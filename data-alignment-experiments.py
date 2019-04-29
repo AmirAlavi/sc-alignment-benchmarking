@@ -1,8 +1,8 @@
 #%% [markdown]
-# # # Docs for VS Code & Jupyter notebooks [here](https://code.visualstudio.com/docs/python/jupyter-support)
+# ## Docs for VS Code & Jupyter notebooks [here](https://code.visualstudio.com/docs/python/jupyter-support)
 
 #%% [markdown]
-# # Imports & constants
+# ## Imports & constants
 
 #%%
 from collections import defaultdict
@@ -120,7 +120,7 @@ print(adata.obs.info())
 datasets['Kowalcyzk'] = adata
 
 #%%
-# Embed
+# ## Embed
 embed(datasets, 'Kowalcyzk', do_standardize=DO_STANDARDIZE)
 
 #%%
@@ -138,14 +138,14 @@ def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch'):
             idx = np.where((datasets[ds_key].obs[cell_type_key] == cell_type) & (datasets[ds_key].obs[batch_key] == batch))[0]
             for embedding_key, ax in zip(['PCA', 'UMAP', 'TSNE'], [ax1, ax2, ax3]):
                 X_subset = datasets[ds_key].obsm[embedding_key][idx, :2]
-                ax.scatter(X_subset[:,0], X_subset[:,1], s=5, c=shade, edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_type, batch))
-    plt.legend(markerscale=4., loc="upper left", bbox_to_anchor=(1,1))
+                ax.scatter(X_subset[:,0], X_subset[:,1], s=20, c=shade, edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_type, batch))
+    plt.legend(markerscale=3., loc="upper left", bbox_to_anchor=(1,1))
     plt.subplots_adjust(right=0.85)
     plt.savefig('{}_embeddings.pdf'.format(ds_key), bbox='tight')
     plt.show
 
 #%%
-# Visualize
+# ## Visualize
 visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cell_age')
 
 #%% [markdown]
@@ -169,11 +169,11 @@ datasets['CellBench'] = anndata.AnnData.concatenate(*adatas, join='inner', batch
 print('Merged shape: {}'.format(datasets['CellBench'].shape))
 
 #%%
-# Embed
+# ## Embed
 embed(datasets, 'CellBench', do_standardize=DO_STANDARDIZE)
 
 #%%
-# Visualize
+# ## Visualize
 visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
 
 #%%
@@ -194,26 +194,7 @@ def get_source_target(datasets, ds_key, batch_key, cell_type_key, source_name, t
     return source, target, type_index_dict
 
 #%% [markdown]
-# # 1: Iterative Closest Point
-
-#%%
-# chosen_dataset = 'CellBench'
-# batchA = 'Dropseq'
-# batchB = 'CELseq2'
-
-# A = datasets[chosen_dataset][batchA]['pca']
-# A_types = datasets[chosen_dataset][batchA]['meta']['cell_line_demuxlet']
-# B = datasets[chosen_dataset][batchB]['pca']
-# B_types = datasets[chosen_dataset][batchB]['meta']['cell_line_demuxlet']
-# print('A shape: {}'.format(A.shape))
-# print('B shape: {}'.format(B.shape))
-# print(A.dtype)
-# type_index_dict = {}
-# combined_types = np.concatenate((A_types, B_types))
-# for cell_type in np.unique(combined_types):
-#     type_index_dict[cell_type] = np.where(combined_types == cell_type)[0]
-
-A, B, type_index_dict = get_source_target(datasets, 'CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', use_PCA=True)
+# ## Code for ICP methods
 
 #%%
 def isnan(x):
@@ -225,11 +206,6 @@ def get_rigid_transformer(ndims=N_PC, bias=False):
     model[0].weight.data.copy_(torch.eye(ndims))#, dtype=torch.double))
     print(model[0].weight.data.dtype)
     return model
-
-def shift_CoM(A, B):
-    A -= A.mean(axis=0)
-    B -= B.mean(axis=0)
-    return A, B
 
 def closest_point_loss(A, B):
     loss = A.unsqueeze(1) - B.unsqueeze(0)
@@ -277,14 +253,17 @@ def plot_step(A, B, type_index_dict, pca, step, matched_targets, closest_points,
     plt.close()
     #time.sleep(0.5)
 
-def ICP(A, B, type_index_dict, max_iters=2, sgd_steps=100, tolerance=1e-4, standardize=True):
+def ICP(A, B, type_index_dict,
+        loss_function,
+        max_iters=100,
+        sgd_steps=100,
+        tolerance=1e-4,
+        standardize=True):
     #A, B = shift_CoM(A, B)
     if standardize:
         scaler = StandardScaler().fit(np.concatenate((A, B)))
         A = scaler.transform(A)
         B = scaler.transform(B)
-    # A = pca_scaler.transform(A)
-    # B = pca_scaler.transform(B)
     combined = np.concatenate((A, B))
     pca = PCA(n_components=2).fit(combined)
     A = torch.from_numpy(A).float()
@@ -307,7 +286,7 @@ def ICP(A, B, type_index_dict, max_iters=2, sgd_steps=100, tolerance=1e-4, stand
                 hit_nan = True
                 break
             optimizer.zero_grad()
-            loss, unique_matches = closest_point_loss(A_transformed, B)
+            loss, unique_matches = loss_function(A_transformed, B)
             losses.append(loss.item())
             num_matches.append(len(unique_matches))
             plot_step(A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, unique_matches, num_matches, losses)
@@ -316,7 +295,6 @@ def ICP(A, B, type_index_dict, max_iters=2, sgd_steps=100, tolerance=1e-4, stand
         except KeyboardInterrupt:
             break
     return transformer
-aligner = ICP(A, B, type_index_dict)
 
 def before_and_after_plots(A, B, type_index_dict, aligner_fcn, standardize=True):
     fig, axes = plt.subplots(2, 2, figsize=(20,20))
@@ -325,9 +303,7 @@ def before_and_after_plots(A, B, type_index_dict, aligner_fcn, standardize=True)
         scaler = StandardScaler().fit(np.concatenate((A, B)))
         A = scaler.transform(A)
         B = scaler.transform(B)
-    #A_transf = pca_scaler.transform(A)
     A_size = A.shape[0]
-    #B_transf = pca_scaler.transform(B)
     combined = TSNE(n_components=2).fit_transform(np.concatenate((A, B)))
     axes[0,0].scatter(combined[:A_size,0], combined[:A_size,1], c='m', label='source', alpha=0.15)
     axes[0,0].scatter(combined[A_size:,0], combined[A_size:,1], c='b', label='target', alpha=0.15)
@@ -348,34 +324,15 @@ def before_and_after_plots(A, B, type_index_dict, aligner_fcn, standardize=True)
         axes[1,1].scatter(combined[idx, 0], combined[idx, 1], label=cell_type, alpha=0.15)
         axes[1,1].legend()
 
+#%%
+# Get source and target data
+A, B, type_index_dict = get_source_target(datasets, 'CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', use_PCA=True)
+
+#%% [markdown]
+# # 1: Iterative Closest Point
+#%%
+aligner = ICP(A, B, type_index_dict, loss_function=closest_point_loss, max_iters=2)
 before_and_after_plots(A, B, type_index_dict, aligner_fcn=lambda x: aligner(torch.from_numpy(x).float()).detach().numpy())
-
-# fig, axes = plt.subplots(2, 2, figsize=(20,20))
-# # Before alignment
-# A_transf = pca_scaler.transform(A)
-# A_size = A_transf.shape[0]
-# B_transf = pca_scaler.transform(B)
-# all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
-# axes[0,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
-# axes[0,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
-# axes[0,0].legend()
-# axes[0,0].set_title('t-SNE (before)')
-# for cell_type, idx in type_index_dict.items():
-#     axes[0,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
-#     axes[0,1].legend()
-# # Aligned
-# A_transf = aligner(torch.from_numpy(pca_scaler.transform(A)).float()).detach().numpy()
-# A_size = A_transf.shape[0]
-# B_transf = aligner(torch.from_numpy(pca_scaler.transform(B)).float()).detach().numpy()
-# all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
-# axes[1,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
-# axes[1,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
-# axes[1,0].legend()
-# axes[1,0].set_title('t-SNE (after)')
-# for cell_type, idx in type_index_dict.items():
-#     axes[1,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
-#     axes[1,1].legend()
-
 
 #%% [markdown]
 # # 2: Diverse ICP
@@ -410,7 +367,7 @@ def closest_point_loss_ignore(A, B):
     #sys.exit()
     return loss, np.array(list(target_matched))
 
-def closest_point_loss(A, B):
+def relaxed_match_loss(A, B):
     # build distance matrix
     loss = A.unsqueeze(1) - B.unsqueeze(0)
     loss = loss**2
@@ -438,47 +395,7 @@ def closest_point_loss(A, B):
     #sys.exit()
     return loss, np.array(list(target_matched_counts.keys()))
 
-# chosen_dataset = 'CellBench'
-# batchA = 'Dropseq'
-# batchB = 'CELseq2'
-
-# A = datasets[chosen_dataset][batchA]['pca']
-# A_types = datasets[chosen_dataset][batchA]['meta']['cell_line_demuxlet']
-# B = datasets[chosen_dataset][batchB]['pca']
-# B_types = datasets[chosen_dataset][batchB]['meta']['cell_line_demuxlet']
-# print('A shape: {}'.format(A.shape))
-# print('B shape: {}'.format(B.shape))
-# print(A.dtype)
-
-aligner = ICP(A, B, type_index_dict)
-
-
-#%%
-# fig, axes = plt.subplots(2, 2, figsize=(20,20))
-# # Before alignment
-# A_transf = pca_scaler.transform(A)
-# A_size = A_transf.shape[0]
-# B_transf = pca_scaler.transform(B)
-# all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
-# axes[0,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
-# axes[0,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
-# axes[0,0].legend()
-# axes[0,0].set_title('t-SNE (before)')
-# for cell_type, idx in type_index_dict.items():
-#     axes[0,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
-#     axes[0,1].legend()
-# # Aligned
-# A_transf = aligner(torch.from_numpy(pca_scaler.transform(A)).float()).detach().numpy()
-# A_size = A_transf.shape[0]
-# B_transf = aligner(torch.from_numpy(pca_scaler.transform(B)).float()).detach().numpy()
-# all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
-# axes[1,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
-# axes[1,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
-# axes[1,0].legend()
-# axes[1,0].set_title('t-SNE (after)')
-# for cell_type, idx in type_index_dict.items():
-#     axes[1,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
-#     axes[1,1].legend()
+aligner = ICP(A, B, type_index_dict, loss_function=relaxed_match_loss, max_iters=2)
 before_and_after_plots(A, B, type_index_dict, aligner_fcn=lambda x: aligner(torch.from_numpy(x).float()).detach().numpy())
 
 #%% [markdown]
