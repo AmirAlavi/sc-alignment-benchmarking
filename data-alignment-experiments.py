@@ -1,4 +1,4 @@
- #%% [markdown]
+#%% [markdown]
 # # # Docs for VS Code & Jupyter notebooks [here](https://code.visualstudio.com/docs/python/jupyter-support)
 
 #%% [markdown]
@@ -6,8 +6,10 @@
 
 #%%
 from collections import defaultdict
+from pathlib import Path
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+#get_ipython().run_line_magic('matplotlib', 'inline')
+import anndata
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -16,14 +18,14 @@ from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 import umap
 from IPython import display
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 N_PC = 100
 FILTER_MIN_GENES = 1.8e3
-FILTER_MIN_READS = 5
+FILTER_MIN_READS = 10
+FILTER_MIN_DETECTED = 5
 DO_STANDARDIZE = False
 
 #%% [markdown]
@@ -37,75 +39,44 @@ datasets = {}
 
 #%%
 def remove_doublets(df_counts, df_meta):
-    df_counts = df_counts.loc[:, df_meta['demuxlet_cls'] == 'SNG']
+    df_counts = df_counts.loc[df_meta['demuxlet_cls'] == 'SNG', :]
     df_meta = df_meta.loc[df_meta['demuxlet_cls'] == 'SNG', :]
     return df_counts, df_meta
 
-def filter_cells(df_counts, df_meta, min_genes=FILTER_MIN_GENES):
-    df_counts = df_counts.loc[:, df_counts.sum(axis=0) > min_genes]
-    df_meta = df_meta.loc[df_counts.sum(axis=0) > min_genes, :]
+''' Remove cells which do not have at least min_genes detected genes
+'''
+def filter_cells(df_counts, df_meta, min_genes):
+    cell_idx = df_counts.astype(bool).sum(axis=1) > min_genes
+    df_counts = df_counts.loc[cell_idx, :]
+    df_meta = df_meta.loc[cell_idx, :]
     return df_counts, df_meta
 
-def filter_genes(df, min_cells=FILTER_MIN_READS):
-    df = df.loc[df.sum(axis=1) > min_cells, :]
+''' Remove genes that don't have at least min_reads number of reads
+'''
+def filter_low_read_genes(df, min_reads):
+    df = df.loc[:, df.sum(axis=0) > min_reads]
     return df
 
-#%% [markdown]
-# ## Kowalcyzk et al.
-
-#%%
-datasets['Kowalcyzk'] = defaultdict(dict)
-counts = pd.read_csv('data/Kowalcyzk/Kowalcyzk_counts.csv', index_col=0)
-meta = pd.read_csv('data/Kowalcyzk/Kowalcyzk_meta.csv', index_col=0)
-print(counts.info())
-counts, meta = filter_cells(counts, meta)
-counts = filter_genes(counts)
-print(counts.info())
-print(meta.info())
-for age in np.unique(meta['cell_age']):
-    count_subset = counts.loc[:, meta['cell_age'] == age]
-    print(count_subset.shape)
-    meta_subset = meta.loc[meta['cell_age'] == age, :]
-    print(meta_subset.shape)
-    datasets['Kowalcyzk'][age]['counts'] = count_subset
-    datasets['Kowalcyzk'][age]['meta'] = meta_subset
+''' Remove genes that don't have at least min_cells number of detections
+'''
+def filter_low_detected_genes(df, min_cells):
+    df = df.loc[:, df.astype(bool).sum(axis=0) > min_cells]
+    return df
 
 
-#%%
-# Embed
-n_cells = np.sum([datasets['Kowalcyzk'][batch]['counts'].shape[1] for batch in datasets['Kowalcyzk'].keys()])
-X = np.zeros((n_cells, next(iter(datasets['Kowalcyzk'].values()))['counts'].shape[0]))
-y_batch = []
-y_cell_line = []
-cur_idx = 0
-for batch in datasets['Kowalcyzk'].keys():
-    cur_size = datasets['Kowalcyzk'][batch]['counts'].shape[1]
-    y_batch.extend([batch]*cur_size)
-    y_cell_line.extend(datasets['Kowalcyzk'][batch]['meta']['cell_type'])
-    X[cur_idx: cur_idx + cur_size] = datasets['Kowalcyzk'][batch]['counts'].T
-    cur_idx += cur_size
-y_batch = np.array(y_batch)
-y_cell_line = np.array(y_cell_line)
-assert(len(y_batch) == X.shape[0] and len(y_cell_line) == X.shape[0])
-print(X.shape)
-#X = StandardScaler().fit_transform(X)
-print('fitting PCA')
-pca_model = PCA(n_components=N_PC).fit(X)
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
-ax1.bar(np.arange(N_PC) + 1, pca_model.explained_variance_ratio_)
-ax1.set_ylabel('explained variance')
-ax1.set_xlabel('PC')
-ax2.plot(np.cumsum(pca_model.explained_variance_ratio_))
-ax2.plot(np.ones_like(pca_model.explained_variance_ratio_)*0.9)
-ax2.set_xlabel('number of components')
-ax2.set_ylabel('cumulative explained variance')
-#fig.show()
+def clean_counts(df_counts, df_meta, min_lib_size=FILTER_MIN_GENES, min_reads=FILTER_MIN_READS, min_detected=FILTER_MIN_DETECTED):
+    # filter out low-gene cells
+    df_counts, df_meta = filter_cells(df_counts, df_meta, min_lib_size)
+    # remove genes that don't have many reads
+    df_counts = filter_low_read_genes(df_counts, min_reads)
+    # remove genes that are not seen in a sufficient number of cells
+    df_counts = filter_low_detected_genes(df_counts, min_detected)
+    return df_counts, df_meta
 
-if DO_STANDARDIZE:
-    X = StandardScaler().fit_transform(X)
+def embed(datasets, key, do_standardize):
     print('fitting PCA')
-    pca_model = PCA(n_components=N_PC).fit(X)
-    fig2, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
+    pca_model = PCA(n_components=N_PC).fit(datasets[key].X)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
     ax1.bar(np.arange(N_PC) + 1, pca_model.explained_variance_ratio_)
     ax1.set_ylabel('explained variance')
     ax1.set_xlabel('PC')
@@ -113,78 +84,103 @@ if DO_STANDARDIZE:
     ax2.plot(np.ones_like(pca_model.explained_variance_ratio_)*0.9)
     ax2.set_xlabel('number of components')
     ax2.set_ylabel('cumulative explained variance')
-X_pca = pca_model.transform(X)
-print('fitting UMAP')
-X_umap = umap.UMAP().fit_transform(X)
-print('fitting tSNE')
-X_tsne = TSNE(n_components=2).fit_transform(X)
-print(X_pca.shape)
+    #fig.show()
 
+    if do_standardize:
+        datasets[key].X = StandardScaler().fit_transform(datasets[key].X)
+        print('fitting PCA (Standardized)')
+        pca_model = PCA(n_components=N_PC).fit(datasets[key].X)
+        fig2, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
+        ax1.bar(np.arange(N_PC) + 1, pca_model.explained_variance_ratio_)
+        ax1.set_ylabel('explained variance')
+        ax1.set_xlabel('PC')
+        ax2.plot(np.cumsum(pca_model.explained_variance_ratio_))
+        ax2.plot(np.ones_like(pca_model.explained_variance_ratio_)*0.9)
+        ax2.set_xlabel('number of components')
+        ax2.set_ylabel('cumulative explained variance')
+    datasets[key].obsm['PCA'] = pca_model.transform(datasets[key].X)
+    print('fitting UMAP')
+    datasets[key].obsm['UMAP'] = umap.UMAP().fit_transform(datasets[key].X)
+    print('fitting tSNE')
+    datasets[key].obsm['TSNE'] = TSNE(n_components=2).fit_transform(datasets[key].X)
+
+#%% [markdown]
+# ## Kowalcyzk et al.
+
+#%%
+counts = pd.read_csv('data/Kowalcyzk/Kowalcyzk_counts.csv', index_col=0).T
+meta = pd.read_csv('data/Kowalcyzk/Kowalcyzk_meta.csv', index_col=0)
+counts, meta = clean_counts(counts, meta)
+adata = anndata.AnnData(X=counts.values, obs=meta)
+print(adata.X.shape)
+print(adata.obs.info())
+datasets['Kowalcyzk'] = adata
+
+#%%
+# Embed
+embed(datasets, 'Kowalcyzk', do_standardize=DO_STANDARDIZE)
+
+#%%
+def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch'):
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,6))
+    fig.suptitle('Embeddings of Original {} Data'.format(ds_key))
+    ax1.set_title('PCA')
+    ax2.set_title('t-SNE')
+    ax3.set_title('UMAP')
+    total_cells = 0
+    for cell_type, shade in zip(np.unique(datasets[ds_key].obs[cell_type_key]), ['m', 'g', 'c']):
+        for batch, opacity, marker in zip(np.unique(datasets[ds_key].obs[batch_key]), [0.6, 0.2], ['o', 'P']):
+            idx = np.where((datasets[ds_key].obs[cell_type_key] == cell_type) & (datasets[ds_key].obs[batch_key] == batch))[0]
+            for embedding_key, ax in zip(['PCA', 'UMAP', 'TSNE'], [ax1, ax2, ax3]):
+                X_subset = datasets[ds_key].obsm[embedding_key][idx, :2]
+                ax.scatter(X_subset[:,0], X_subset[:,1], s=5, c=shade, edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_type, batch))
+    plt.legend(markerscale=4., loc="upper left", bbox_to_anchor=(1,1))
+    plt.subplots_adjust(right=0.85)
+    plt.savefig('{}_embeddings.pdf'.format(ds_key), bbox='tight')
+    plt.show
 
 #%%
 # Visualize
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,6))
-fig.suptitle('Embeddings of Original Kowalcyzk Data')
-ax1.set_title('PCA')
-ax2.set_title('t-SNE')
-ax3.set_title('UMAP')
-total_cells = 0
-for cell_line, shade in zip(np.unique(y_cell_line), ['m', 'g', 'c']):
-    for batch, opacity, marker in zip(np.unique(y_batch), [0.6, 0.2], ['o', 'P']):
-        #print(np.where((y_cell_line == cell_line))[0])
-        idx = np.where((y_cell_line == cell_line) & (y_batch == batch))[0]
-        for embedding, ax in zip([X_pca, X_umap, X_tsne], [ax1, ax2, ax3]):
-            X_subset = embedding[idx, :2]
-            total_cells += X_subset.shape[0]
-            ax.scatter(X_subset[:,0], X_subset[:,1], s=5, c=shade, edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_line, batch))
-plt.legend(markerscale=4., loc="upper left", bbox_to_anchor=(1,1))
-plt.subplots_adjust(right=0.85)
-plt.savefig('Kowalcyzk_embeddings.pdf', bbox='tight')
-plt.show
+visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cell_age')
+
+# fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,6))
+# fig.suptitle('Embeddings of Original Kowalcyzk Data')
+# ax1.set_title('PCA')
+# ax2.set_title('t-SNE')
+# ax3.set_title('UMAP')
+# total_cells = 0
+# for cell_line, shade in zip(np.unique(datasets['Kowalcyzk'].obs['cell_type']), ['m', 'g', 'c']):
+#     for batch, opacity, marker in zip(np.unique(datasets['Kowalcyzk'].obs['cell_age']), [0.6, 0.2], ['o', 'P']):
+#         idx = np.where((datasets['Kowalcyzk'].obs['cell_type'] == cell_line) & (datasets['Kowalcyzk'].obs['cell_age'] == batch))[0]
+#         for embedding_key, ax in zip(['PCA', 'UMAP', 'TSNE'], [ax1, ax2, ax3]):
+#             X_subset = datasets['Kowalcyzk'].obsm[embedding_key][idx, :2]
+#             ax.scatter(X_subset[:,0], X_subset[:,1], s=5, c=shade, edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_line, batch))
+# plt.legend(markerscale=4., loc="upper left", bbox_to_anchor=(1,1))
+# plt.subplots_adjust(right=0.85)
+# plt.savefig('Kowalcyzk_embeddings.pdf', bbox='tight')
+# plt.show
+
 
 #%% [markdown]
 # ## CellBench
 
 #%%
-datasets['CellBench'] = defaultdict(dict)
+#datasets['CellBench'] = defaultdict(dict)
 protocols = ['10x', 'CELseq2', 'Dropseq']
+adatas = []
 for protocol in protocols:
     print(protocol)
-    counts = pd.read_csv('data/CellBench/{}_counts.csv'.format(protocol), index_col=0)
+    counts = pd.read_csv('data/CellBench/{}_counts.csv'.format(protocol), index_col=0).T
+    counts = counts.loc[:, ~counts.columns.duplicated()]
     #counts.drop_duplicates(inplace=True)
     meta = pd.read_csv('data/CellBench/{}_meta.csv'.format(protocol), index_col=0)
     counts, meta = remove_doublets(counts, meta)
-    counts, meta = filter_cells(counts, meta)
-    counts = filter_genes(counts)
-    print(counts.shape)
-    datasets['CellBench'][protocol]['counts'] = counts
-    datasets['CellBench'][protocol]['meta'] = meta
-
-print(datasets['CellBench']['10x']['meta'].columns)
-
-
-#%%
-# Get intersection of genes in all batches:
-geneset = set(datasets['CellBench']['10x']['counts'].index)
-for protocol in protocols:
-    print(protocol)
-    genes = datasets['CellBench'][protocol]['counts'].index
-    #print(genes[:10])
-    genes = set(genes)
-    #print(len(genes))
-    geneset.intersection_update(genes)
-    print(len(geneset))
-print('Number of genes in common = {}'.format(len(geneset)))
-# Now keep only the intersection:
-for proto in protocols:
-    print(proto)
-    #df = datasets['CellBench'][proto][0]
-    datasets['CellBench'][proto]['counts'] = datasets['CellBench'][proto]['counts'][datasets['CellBench'][proto]['counts'].index.isin(geneset)]
-    # datasets['CellBench'][protocol][0] = datasets['CellBench'][protocol][0].reindex(geneset)
-    print(datasets['CellBench'][proto]['counts'].shape)
-    #print(datasets['CellBench'][protocol][0])
-    #print(datasets['CellBench'][proto]['counts'].isnull().values.any())
-
+    counts, meta = clean_counts(counts, meta)
+    adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
+    print(adatas[-1].shape)
+    #print(adatas[-1].var)
+datasets['CellBench'] = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
+print('Merged shape: {}'.format(datasets['CellBench'].shape))
 
 #%%
 # def embed_dataset(datasets, key):
