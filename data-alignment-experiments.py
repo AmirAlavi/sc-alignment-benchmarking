@@ -87,6 +87,7 @@ def embed(datasets, key, do_standardize):
     #fig.show()
 
     if do_standardize:
+        # standardize the data for the PCA reduced dimensions (prior to fitting PCA)
         datasets[key].X = StandardScaler().fit_transform(datasets[key].X)
         print('fitting PCA (Standardized)')
         pca_model = PCA(n_components=N_PC).fit(datasets[key].X)
@@ -99,6 +100,8 @@ def embed(datasets, key, do_standardize):
         ax2.set_xlabel('number of components')
         ax2.set_ylabel('cumulative explained variance')
     datasets[key].obsm['PCA'] = pca_model.transform(datasets[key].X)
+    # # Data standardizer for when using PCA
+    # datasets[key].uns['PCA-Standard-Scaler'] = StandardScaler.fit(datasets[key].obsm['PCA'])
     print('fitting UMAP')
     datasets[key].obsm['UMAP'] = umap.UMAP().fit_transform(datasets[key].X)
     print('fitting tSNE')
@@ -127,9 +130,11 @@ def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch'):
     ax1.set_title('PCA')
     ax2.set_title('t-SNE')
     ax3.set_title('UMAP')
-    total_cells = 0
+    num_batches = len(np.unique(datasets[ds_key].obs[batch_key]))
+    opacities = [0.6, 0.2, 0.2][:num_batches]
+    markers = ['o', 'o', 'P'][-num_batches:]
     for cell_type, shade in zip(np.unique(datasets[ds_key].obs[cell_type_key]), ['m', 'g', 'c']):
-        for batch, opacity, marker in zip(np.unique(datasets[ds_key].obs[batch_key]), [0.6, 0.2], ['o', 'P']):
+        for batch, opacity, marker in zip(np.unique(datasets[ds_key].obs[batch_key]), opacities, markers):
             idx = np.where((datasets[ds_key].obs[cell_type_key] == cell_type) & (datasets[ds_key].obs[batch_key] == batch))[0]
             for embedding_key, ax in zip(['PCA', 'UMAP', 'TSNE'], [ax1, ax2, ax3]):
                 X_subset = datasets[ds_key].obsm[embedding_key][idx, :2]
@@ -143,29 +148,10 @@ def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch'):
 # Visualize
 visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cell_age')
 
-# fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,6))
-# fig.suptitle('Embeddings of Original Kowalcyzk Data')
-# ax1.set_title('PCA')
-# ax2.set_title('t-SNE')
-# ax3.set_title('UMAP')
-# total_cells = 0
-# for cell_line, shade in zip(np.unique(datasets['Kowalcyzk'].obs['cell_type']), ['m', 'g', 'c']):
-#     for batch, opacity, marker in zip(np.unique(datasets['Kowalcyzk'].obs['cell_age']), [0.6, 0.2], ['o', 'P']):
-#         idx = np.where((datasets['Kowalcyzk'].obs['cell_type'] == cell_line) & (datasets['Kowalcyzk'].obs['cell_age'] == batch))[0]
-#         for embedding_key, ax in zip(['PCA', 'UMAP', 'TSNE'], [ax1, ax2, ax3]):
-#             X_subset = datasets['Kowalcyzk'].obsm[embedding_key][idx, :2]
-#             ax.scatter(X_subset[:,0], X_subset[:,1], s=5, c=shade, edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_line, batch))
-# plt.legend(markerscale=4., loc="upper left", bbox_to_anchor=(1,1))
-# plt.subplots_adjust(right=0.85)
-# plt.savefig('Kowalcyzk_embeddings.pdf', bbox='tight')
-# plt.show
-
-
 #%% [markdown]
 # ## CellBench
 
 #%%
-#datasets['CellBench'] = defaultdict(dict)
 protocols = ['10x', 'CELseq2', 'Dropseq']
 adatas = []
 for protocol in protocols:
@@ -183,107 +169,51 @@ datasets['CellBench'] = anndata.AnnData.concatenate(*adatas, join='inner', batch
 print('Merged shape: {}'.format(datasets['CellBench'].shape))
 
 #%%
-# def embed_dataset(datasets, key):
-#     for batch in datasets[key].keys():
-#         cur_size = datasets[key][batch][0].shape[1]
-#         y_proto.extend([proto]*cur_size)
-#         y_cell_line.extend(datasets['CellBench'][proto][1]['cell_line_demuxlet'])
-#         X[cur_idx: cur_idx + cur_size] = datasets['CellBench'][proto][0].T
-#         cur_idx += cur_size
 # Embed
-n_cells = np.sum([datasets['CellBench'][proto]['counts'].shape[1] for proto in protocols])
-X = np.zeros((n_cells, len(geneset)))
-y_proto = []
-y_cell_line = []
-cur_idx = 0
-for proto in protocols:
-    cur_size = datasets['CellBench'][proto]['counts'].shape[1]
-    y_proto.extend([proto]*cur_size)
-    y_cell_line.extend(datasets['CellBench'][proto]['meta']['cell_line_demuxlet'])
-    X[cur_idx: cur_idx + cur_size] = datasets['CellBench'][proto]['counts'].T
-    cur_idx += cur_size
-y_proto = np.array(y_proto)
-y_cell_line = np.array(y_cell_line)
-assert(len(y_proto) == X.shape[0] and len(y_cell_line) == X.shape[0])
-print(X.shape)
-#X = StandardScaler().fit_transform(X)
-print('fitting PCA')
-pca_model = PCA(n_components=N_PC).fit(X)
-
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
-ax1.bar(np.arange(N_PC) + 1, pca_model.explained_variance_ratio_)
-ax1.set_ylabel('explained variance')
-ax1.set_xlabel('PC')
-ax2.plot(np.cumsum(pca_model.explained_variance_ratio_))
-ax2.plot(np.ones_like(pca_model.explained_variance_ratio_)*0.9)
-ax2.set_xlabel('number of components')
-ax2.set_ylabel('cumulative explained variance')
-
-if DO_STANDARDIZE:
-    X = StandardScaler().fit_transform(X)
-    print('fitting PCA')
-    pca_model = PCA(n_components=N_PC).fit(X)
-    fig2, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
-    ax1.bar(np.arange(N_PC) + 1, pca_model.explained_variance_ratio_)
-    ax1.set_ylabel('explained variance')
-    ax1.set_xlabel('PC')
-    ax2.plot(np.cumsum(pca_model.explained_variance_ratio_))
-    ax2.plot(np.ones_like(pca_model.explained_variance_ratio_)*0.9)
-    ax2.set_xlabel('number of components')
-    ax2.set_ylabel('cumulative explained variance')
-
-X_pca = pca_model.transform(X)
-pca_scaler = StandardScaler().fit(X_pca)
-print('fitting UMAP')
-X_umap = umap.UMAP().fit_transform(X)
-print('fitting tSNE')
-X_tsne = TSNE(n_components=2).fit_transform(X)
-print(X_pca.shape)
-for proto in protocols:
-    datasets['CellBench'][proto]['pca'] = pca_model.transform(datasets['CellBench'][proto]['counts'].T)
-
+embed(datasets, 'CellBench', do_standardize=DO_STANDARDIZE)
 
 #%%
 # Visualize
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,6))
-fig.suptitle('Embeddings of Original CellBench Data')
-ax1.set_title('PCA')
-ax2.set_title('t-SNE')
-ax3.set_title('UMAP')
-total_cells = 0
-for cell_line, shade in zip(np.unique(y_cell_line), ['m', 'g', 'c']):
-    for proto, opacity, marker in zip(protocols, [0.6, 0.2, 0.2], ['o', 'o', 'P']):
-        #print(np.where((y_cell_line == cell_line))[0])
-        idx = np.where((y_cell_line == cell_line) & (y_proto == proto))[0]
-        for embedding, ax in zip([X_pca, X_umap, X_tsne], [ax1, ax2, ax3]):
-            X_subset = embedding[idx, :2]
-            total_cells += X_subset.shape[0]
-            ax.scatter(X_subset[:,0], X_subset[:,1], s=5, c=shade, edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_line, proto))
-plt.legend(markerscale=4., loc="upper left", bbox_to_anchor=(1,1))
-plt.subplots_adjust(right=0.85)
-plt.savefig('CellBench_embeddings.pdf', bbox='tight')
-plt.show
+visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
+
+#%%
+def get_source_target(datasets, ds_key, batch_key, cell_type_key, source_name, target_name, use_PCA=False):
+    source_idx = datasets[ds_key].obs[batch_key] == source_name
+    target_idx = datasets[ds_key].obs[batch_key] == target_name
+    if use_PCA:
+        source = datasets[ds_key].obsm['PCA'][source_idx]
+        target = datasets[ds_key].obsm['PCA'][target_idx]
+    else:
+        source = datasets[ds_key].X[source_idx]
+        target = datasets[ds_key].X[target_idx]
+    type_index_dict = {}
+    combined_types = np.concatenate((datasets[ds_key].obs[cell_type_key][source_idx],
+                                     datasets[ds_key].obs[cell_type_key][target_idx]))
+    for cell_type in np.unique(combined_types):
+        type_index_dict[cell_type] = np.where(combined_types == cell_type)[0]
+    return source, target, type_index_dict
 
 #%% [markdown]
 # # 1: Iterative Closest Point
 
 #%%
-chosen_dataset = 'CellBench'
-batchA = 'Dropseq'
-batchB = 'CELseq2'
+# chosen_dataset = 'CellBench'
+# batchA = 'Dropseq'
+# batchB = 'CELseq2'
 
-A = datasets[chosen_dataset][batchA]['pca']
-A_types = datasets[chosen_dataset][batchA]['meta']['cell_line_demuxlet']
-B = datasets[chosen_dataset][batchB]['pca']
-B_types = datasets[chosen_dataset][batchB]['meta']['cell_line_demuxlet']
-print('A shape: {}'.format(A.shape))
-print('B shape: {}'.format(B.shape))
-print(A.dtype)
-type_index_dict = {}
-combined_types = np.concatenate((A_types, B_types))
-for cell_type in np.unique(combined_types):
-    type_index_dict[cell_type] = np.where(combined_types == cell_type)[0]
+# A = datasets[chosen_dataset][batchA]['pca']
+# A_types = datasets[chosen_dataset][batchA]['meta']['cell_line_demuxlet']
+# B = datasets[chosen_dataset][batchB]['pca']
+# B_types = datasets[chosen_dataset][batchB]['meta']['cell_line_demuxlet']
+# print('A shape: {}'.format(A.shape))
+# print('B shape: {}'.format(B.shape))
+# print(A.dtype)
+# type_index_dict = {}
+# combined_types = np.concatenate((A_types, B_types))
+# for cell_type in np.unique(combined_types):
+#     type_index_dict[cell_type] = np.where(combined_types == cell_type)[0]
 
+A, B, type_index_dict = get_source_target(datasets, 'CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', use_PCA=True)
 
 #%%
 def isnan(x):
@@ -347,10 +277,14 @@ def plot_step(A, B, type_index_dict, pca, step, matched_targets, closest_points,
     plt.close()
     #time.sleep(0.5)
 
-def ICP(A, B, type_index_dict, max_iters=100, sgd_steps=100, tolerance=1e-4):
+def ICP(A, B, type_index_dict, max_iters=2, sgd_steps=100, tolerance=1e-4, standardize=True):
     #A, B = shift_CoM(A, B)
-    A = pca_scaler.transform(A)
-    B = pca_scaler.transform(B)
+    if standardize:
+        scaler = StandardScaler().fit(np.concatenate((A, B)))
+        A = scaler.transform(A)
+        B = scaler.transform(B)
+    # A = pca_scaler.transform(A)
+    # B = pca_scaler.transform(B)
     combined = np.concatenate((A, B))
     pca = PCA(n_components=2).fit(combined)
     A = torch.from_numpy(A).float()
@@ -383,31 +317,64 @@ def ICP(A, B, type_index_dict, max_iters=100, sgd_steps=100, tolerance=1e-4):
             break
     return transformer
 aligner = ICP(A, B, type_index_dict)
-fig, axes = plt.subplots(2, 2, figsize=(20,20))
-# Before alignment
-A_transf = pca_scaler.transform(A)
-A_size = A_transf.shape[0]
-B_transf = pca_scaler.transform(B)
-all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
-axes[0,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
-axes[0,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
-axes[0,0].legend()
-axes[0,0].set_title('t-SNE (before)')
-for cell_type, idx in type_index_dict.items():
-    axes[0,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
-    axes[0,1].legend()
-# Aligned
-A_transf = aligner(torch.from_numpy(pca_scaler.transform(A)).float()).detach().numpy()
-A_size = A_transf.shape[0]
-B_transf = aligner(torch.from_numpy(pca_scaler.transform(B)).float()).detach().numpy()
-all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
-axes[1,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
-axes[1,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
-axes[1,0].legend()
-axes[1,0].set_title('t-SNE (after)')
-for cell_type, idx in type_index_dict.items():
-    axes[1,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
-    axes[1,1].legend()
+
+def before_and_after_plots(A, B, type_index_dict, aligner_fcn, standardize=True):
+    fig, axes = plt.subplots(2, 2, figsize=(20,20))
+    # Before alignment
+    if standardize:
+        scaler = StandardScaler().fit(np.concatenate((A, B)))
+        A = scaler.transform(A)
+        B = scaler.transform(B)
+    #A_transf = pca_scaler.transform(A)
+    A_size = A.shape[0]
+    #B_transf = pca_scaler.transform(B)
+    combined = TSNE(n_components=2).fit_transform(np.concatenate((A, B)))
+    axes[0,0].scatter(combined[:A_size,0], combined[:A_size,1], c='m', label='source', alpha=0.15)
+    axes[0,0].scatter(combined[A_size:,0], combined[A_size:,1], c='b', label='target', alpha=0.15)
+    axes[0,0].legend()
+    axes[0,0].set_title('t-SNE (before)')
+    for cell_type, idx in type_index_dict.items():
+        axes[0,1].scatter(combined[idx, 0], combined[idx, 1], label=cell_type, alpha=0.15)
+        axes[0,1].legend()
+    # Aligned
+    A = aligner_fcn(A)
+    B = aligner_fcn(B)
+    combined = TSNE(n_components=2).fit_transform(np.concatenate((A, B)))
+    axes[1,0].scatter(combined[:A_size,0], combined[:A_size,1], c='m', label='source', alpha=0.15)
+    axes[1,0].scatter(combined[A_size:,0], combined[A_size:,1], c='b', label='target', alpha=0.15)
+    axes[1,0].legend()
+    axes[1,0].set_title('t-SNE (after)')
+    for cell_type, idx in type_index_dict.items():
+        axes[1,1].scatter(combined[idx, 0], combined[idx, 1], label=cell_type, alpha=0.15)
+        axes[1,1].legend()
+
+before_and_after_plots(A, B, type_index_dict, aligner_fcn=lambda x: aligner(torch.from_numpy(x).float()).detach().numpy())
+
+# fig, axes = plt.subplots(2, 2, figsize=(20,20))
+# # Before alignment
+# A_transf = pca_scaler.transform(A)
+# A_size = A_transf.shape[0]
+# B_transf = pca_scaler.transform(B)
+# all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
+# axes[0,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
+# axes[0,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
+# axes[0,0].legend()
+# axes[0,0].set_title('t-SNE (before)')
+# for cell_type, idx in type_index_dict.items():
+#     axes[0,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
+#     axes[0,1].legend()
+# # Aligned
+# A_transf = aligner(torch.from_numpy(pca_scaler.transform(A)).float()).detach().numpy()
+# A_size = A_transf.shape[0]
+# B_transf = aligner(torch.from_numpy(pca_scaler.transform(B)).float()).detach().numpy()
+# all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
+# axes[1,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
+# axes[1,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
+# axes[1,0].legend()
+# axes[1,0].set_title('t-SNE (after)')
+# for cell_type, idx in type_index_dict.items():
+#     axes[1,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
+#     axes[1,1].legend()
 
 
 #%% [markdown]
@@ -471,48 +438,48 @@ def closest_point_loss(A, B):
     #sys.exit()
     return loss, np.array(list(target_matched_counts.keys()))
 
-chosen_dataset = 'CellBench'
-batchA = 'Dropseq'
-batchB = 'CELseq2'
+# chosen_dataset = 'CellBench'
+# batchA = 'Dropseq'
+# batchB = 'CELseq2'
 
-A = datasets[chosen_dataset][batchA]['pca']
-A_types = datasets[chosen_dataset][batchA]['meta']['cell_line_demuxlet']
-B = datasets[chosen_dataset][batchB]['pca']
-B_types = datasets[chosen_dataset][batchB]['meta']['cell_line_demuxlet']
-print('A shape: {}'.format(A.shape))
-print('B shape: {}'.format(B.shape))
-print(A.dtype)
+# A = datasets[chosen_dataset][batchA]['pca']
+# A_types = datasets[chosen_dataset][batchA]['meta']['cell_line_demuxlet']
+# B = datasets[chosen_dataset][batchB]['pca']
+# B_types = datasets[chosen_dataset][batchB]['meta']['cell_line_demuxlet']
+# print('A shape: {}'.format(A.shape))
+# print('B shape: {}'.format(B.shape))
+# print(A.dtype)
 
 aligner = ICP(A, B, type_index_dict)
 
 
 #%%
-fig, axes = plt.subplots(2, 2, figsize=(20,20))
-# Before alignment
-A_transf = pca_scaler.transform(A)
-A_size = A_transf.shape[0]
-B_transf = pca_scaler.transform(B)
-all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
-axes[0,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
-axes[0,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
-axes[0,0].legend()
-axes[0,0].set_title('t-SNE (before)')
-for cell_type, idx in type_index_dict.items():
-    axes[0,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
-    axes[0,1].legend()
-# Aligned
-A_transf = aligner(torch.from_numpy(pca_scaler.transform(A)).float()).detach().numpy()
-A_size = A_transf.shape[0]
-B_transf = aligner(torch.from_numpy(pca_scaler.transform(B)).float()).detach().numpy()
-all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
-axes[1,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
-axes[1,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
-axes[1,0].legend()
-axes[1,0].set_title('t-SNE (after)')
-for cell_type, idx in type_index_dict.items():
-    axes[1,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
-    axes[1,1].legend()
-
+# fig, axes = plt.subplots(2, 2, figsize=(20,20))
+# # Before alignment
+# A_transf = pca_scaler.transform(A)
+# A_size = A_transf.shape[0]
+# B_transf = pca_scaler.transform(B)
+# all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
+# axes[0,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
+# axes[0,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
+# axes[0,0].legend()
+# axes[0,0].set_title('t-SNE (before)')
+# for cell_type, idx in type_index_dict.items():
+#     axes[0,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
+#     axes[0,1].legend()
+# # Aligned
+# A_transf = aligner(torch.from_numpy(pca_scaler.transform(A)).float()).detach().numpy()
+# A_size = A_transf.shape[0]
+# B_transf = aligner(torch.from_numpy(pca_scaler.transform(B)).float()).detach().numpy()
+# all_transf = TSNE(n_components=2).fit_transform(np.concatenate((A_transf, B_transf)))
+# axes[1,0].scatter(all_transf[:A_size,0], all_transf[:A_size,1], c='m', label='source', alpha=0.15)
+# axes[1,0].scatter(all_transf[A_size:,0], all_transf[A_size:,1], c='b', label='target', alpha=0.15)
+# axes[1,0].legend()
+# axes[1,0].set_title('t-SNE (after)')
+# for cell_type, idx in type_index_dict.items():
+#     axes[1,1].scatter(all_transf[idx, 0], all_transf[idx, 1], label=cell_type, alpha=0.15)
+#     axes[1,1].legend()
+before_and_after_plots(A, B, type_index_dict, aligner_fcn=lambda x: aligner(torch.from_numpy(x).float()).detach().numpy())
 
 #%% [markdown]
 # # 3: BatchMatch Autoencoder
