@@ -22,6 +22,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from scalign import ScAlign
+
+import icp
+import metrics
+
 N_PC = 100
 FILTER_MIN_GENES = 1.8e3
 FILTER_MIN_READS = 10
@@ -191,112 +196,12 @@ def get_source_target(datasets, ds_key, batch_key, cell_type_key, source_name, t
                                      datasets[ds_key].obs[cell_type_key][target_idx]))
     for cell_type in np.unique(combined_types):
         type_index_dict[cell_type] = np.where(combined_types == cell_type)[0]
-    return source, target, type_index_dict
+    subset_meta = pd.concat((datasets[ds_key].obs[source_idx], datasets[ds_key].obs[target_idx]), axis=0)
+    return source, target, type_index_dict, subset_meta
 
-#%% [markdown]
-# ## Code for ICP methods
 
-#%%
-def isnan(x):
-    return x != x
 
-def get_rigid_transformer(ndims=N_PC, bias=False):
-    model = nn.Sequential(nn.Linear(ndims, ndims, bias=bias))
-    print(model[0].weight.data.dtype)
-    model[0].weight.data.copy_(torch.eye(ndims))#, dtype=torch.double))
-    print(model[0].weight.data.dtype)
-    return model
-
-def closest_point_loss(A, B):
-    loss = A.unsqueeze(1) - B.unsqueeze(0)
-    loss = loss**2
-    loss = loss.mean(dim=-1)
-    loss, matches = loss.min(dim=1)
-    unique_matches = np.unique(matches.numpy())
-    loss = loss.sum()
-    return loss, unique_matches
-
-def plot_step(A, B, type_index_dict, pca, step, matched_targets, closest_points, losses):
-    A = pca.transform(A)
-    B = pca.transform(B)
-    mask = np.zeros(B.shape[0], dtype=bool)
-    mask[matched_targets] = True
-    B_matched = B[mask]
-    B_unmatched = B[~mask]
-    fig, axes = plt.subplots(2, 2, figsize=(20,20))
-    # Scatter, colored by dataset, with matching
-    axes[0,0].scatter(A[:,0], A[:,1], c='m', label='source', alpha=0.15)
-    axes[0,0].scatter(B_unmatched[:,0], B_unmatched[:,1], c='b', label='target', alpha=0.15)
-    axes[0,0].scatter(B_matched[:,0], B_matched[:,1], c='g', label='matched target', alpha=0.75)
-    axes[0,0].legend()
-    # Training loss & number of target matches
-    axes[0,1].plot(closest_points, label='matches')
-    axes[0,1].set_xlabel('iteration')
-    axes[0,1].set_ylabel('matches')
-    axes[0,1].set_title('num unique matches in target set')
-    axes[0,1].legend(loc='upper left')
-    ax_matches = axes[0,1].twinx()
-    ax_matches.set_ylabel('loss')
-    ax_matches.plot(losses, c='orange', label='loss')
-    ax_matches.legend(loc='upper right')
-    # Scatter, colored by dataset
-    axes[1,0].scatter(A[:,0], A[:,1], c='m', label='source', alpha=0.15)
-    axes[1,0].scatter(B[:,0], B[:,1], c='b', label='target', alpha=0.15)
-    axes[1,0].legend()
-    # Scatter, colored by cell types
-    combined = np.concatenate((A, B))
-    for cell_type, idx in type_index_dict.items():
-        axes[1,1].scatter(combined[idx, 0], combined[idx, 1], label=cell_type, alpha=0.15)
-    axes[1,1].legend()
-    display.clear_output(wait=True)
-    display.display(plt.gcf())
-    plt.close()
-    #time.sleep(0.5)
-
-def ICP(A, B, type_index_dict,
-        loss_function,
-        max_iters=100,
-        sgd_steps=100,
-        tolerance=1e-4,
-        standardize=True):
-    #A, B = shift_CoM(A, B)
-    if standardize:
-        scaler = StandardScaler().fit(np.concatenate((A, B)))
-        A = scaler.transform(A)
-        B = scaler.transform(B)
-    combined = np.concatenate((A, B))
-    pca = PCA(n_components=2).fit(combined)
-    A = torch.from_numpy(A).float()
-    B = torch.from_numpy(B).float()
-    assert(not isnan(A).any() and not isnan(B).any())
-    transformer = get_rigid_transformer(A.shape[1])
-    optimizer = optim.SGD(transformer.parameters(), lr=1e-3)
-    transformer.train()
-    hit_nan = False
-    num_matches = []
-    losses = []
-    for i in range(max_iters):
-        if hit_nan:
-            break
-        try:
-            A_transformed = transformer(A)
-            if isnan(A_transformed).any():
-                print('encountered NaNs')
-                print(transformer[0].weight.data)
-                hit_nan = True
-                break
-            optimizer.zero_grad()
-            loss, unique_matches = loss_function(A_transformed, B)
-            losses.append(loss.item())
-            num_matches.append(len(unique_matches))
-            plot_step(A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, unique_matches, num_matches, losses)
-            loss.backward()
-            optimizer.step()
-        except KeyboardInterrupt:
-            break
-    return transformer
-
-def before_and_after_plots(A, B, type_index_dict, aligner_fcn, standardize=True):
+def before_and_after_plots(A, B, type_index_dict, aligner_fcn, standardize=True, do_B_transform=False):
     fig, axes = plt.subplots(2, 2, figsize=(20,20))
     # Before alignment
     if standardize:
@@ -314,7 +219,8 @@ def before_and_after_plots(A, B, type_index_dict, aligner_fcn, standardize=True)
         axes[0,1].legend()
     # Aligned
     A = aligner_fcn(A)
-    B = aligner_fcn(B)
+    if do_B_transform:
+        B = aligner_fcn(B)
     combined = TSNE(n_components=2).fit_transform(np.concatenate((A, B)))
     axes[1,0].scatter(combined[:A_size,0], combined[:A_size,1], c='m', label='source', alpha=0.15)
     axes[1,0].scatter(combined[A_size:,0], combined[A_size:,1], c='b', label='target', alpha=0.15)
@@ -324,99 +230,103 @@ def before_and_after_plots(A, B, type_index_dict, aligner_fcn, standardize=True)
         axes[1,1].scatter(combined[idx, 0], combined[idx, 1], label=cell_type, alpha=0.15)
         axes[1,1].legend()
 
+def compute_lisi(A, B, combined_meta, batch_key, cell_type_key, aligner_fcn, do_B_transform=False):
+    A = aligner_fcn(A)
+    if do_B_transform:
+        B = aligner_fcn(B)
+    X = np.concatenate((A, B))
+    print(X.shape)
+    assert(X.shape[0] == combined_meta.shape[0])
+    return metrics.lisi2(X, combined_meta, [batch_key, cell_type_key])
+
 #%%
 # Get source and target data
-A, B, type_index_dict = get_source_target(datasets, 'CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', use_PCA=True)
+A, B, type_index_dict, combined_meta = get_source_target(datasets, 'CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', use_PCA=True)
+
 
 #%% [markdown]
 # # 1: Iterative Closest Point
 #%%
-aligner = ICP(A, B, type_index_dict, loss_function=closest_point_loss, max_iters=2)
-before_and_after_plots(A, B, type_index_dict, aligner_fcn=lambda x: aligner(torch.from_numpy(x).float()).detach().numpy())
-
+aligner = icp.ICP(A, B, type_index_dict, loss_function=icp.closest_point_loss, max_iters=2)
+aligner_fcn = lambda x: aligner(torch.from_numpy(x).float()).detach().numpy()
+before_and_after_plots(A, B, type_index_dict, aligner_fcn=aligner_fcn)
+icp_lisi = compute_lisi(A, B, combined_meta, batch_key='protocol', cell_type_key='cell_line_demuxlet', aligner_fcn=aligner_fcn)
 #%% [markdown]
 # # 2: Diverse ICP
-
 #%%
-def closest_point_loss_ignore(A, B):
-    # build distance matrix
-    loss = A.unsqueeze(1) - B.unsqueeze(0)
-    loss = loss**2
-    loss = loss.mean(dim=-1)
-    # Select pairs, iteratively building up a mask
-    mask = np.zeros(loss.shape, dtype=np.float32)
-    sorted_idx = np.stack(np.unravel_index(np.argsort(loss.detach().numpy().ravel()), loss.shape), axis=1)
-    target_matched = set()
-    source_matched = set()
-    matched = 0
-    for i in range(sorted_idx.shape[0]):
-#         if matched >= 100:
-#             break
-        match_idx = sorted_idx[i]
-        #if match_idx[0] not in source_matched and match_idx[1] not in target_matched:
-        if match_idx[1] not in target_matched:
-            mask[match_idx[0], match_idx[1]] = 1
-            matched += 1
-            target_matched.add(match_idx[1])
-            source_matched.add(match_idx[0])
-    mask = torch.from_numpy(mask)
-    #print(mask.sum())
-    loss = torch.mul(loss, mask).sum()
-    loss = loss.sum()
-    #print(target_matched)
-    #sys.exit()
-    return loss, np.array(list(target_matched))
-
-def relaxed_match_loss(A, B):
-    # build distance matrix
-    loss = A.unsqueeze(1) - B.unsqueeze(0)
-    loss = loss**2
-    loss = loss.mean(dim=-1)
-    # Select pairs, iteratively building up a mask
-    mask = np.zeros(loss.shape, dtype=np.float32)
-    sorted_idx = np.stack(np.unravel_index(np.argsort(loss.detach().numpy().ravel()), loss.shape), axis=1)
-    target_matched_counts = defaultdict(int)
-    source_matched = set()
-    matched = 0
-    for i in range(sorted_idx.shape[0]):
-#         if matched >= 100:
-#             break
-        match_idx = sorted_idx[i]
-        #if match_idx[0] not in source_matched and match_idx[1] not in target_matched:
-        if target_matched_counts[match_idx[1]] < 2 and match_idx[0] not in source_matched:
-            target_matched_counts[match_idx[1]] += 1
-            mask[match_idx[0], match_idx[1]] = 1
-            source_matched.add(match_idx[0])
-    mask = torch.from_numpy(mask)
-    #print(mask.sum())
-    loss = torch.mul(loss, mask).sum()
-    loss = loss.sum()
-    #print(target_matched)
-    #sys.exit()
-    return loss, np.array(list(target_matched_counts.keys()))
-
-aligner = ICP(A, B, type_index_dict, loss_function=relaxed_match_loss, max_iters=2)
-before_and_after_plots(A, B, type_index_dict, aligner_fcn=lambda x: aligner(torch.from_numpy(x).float()).detach().numpy())
+aligner = icp.ICP(A, B, type_index_dict, loss_function=icp.relaxed_match_loss, max_iters=2)
+aligner_fcn=lambda x: aligner(torch.from_numpy(x).float()).detach().numpy()
+before_and_after_plots(A, B, type_index_dict, aligner_fcn=aligner_fcn)
+diverse_icp_lisi = compute_lisi(A, B, combined_meta, batch_key='protocol', cell_type_key='cell_line_demuxlet', aligner_fcn=aligner_fcn)
 
 #%% [markdown]
-# # 3: BatchMatch Autoencoder
-from types import SimpleNamespace
-from batch_match.model import DomainInvariantAutoencoder
+# # 3: ScAlign (Python)
+#%%
+sc_align = ScAlign(
+    object1_name='Dropseq',
+    object2_name='CELseq2', 
+    object_var='protocol',
+    label_var='cell_line_demuxlet',
+    data_use='PCA',
+    user_options={
+        'max_steps': 10,
+        'logdir': 'scAlign_model',
+        'log_results': True,
+        'early_stop': True
+    },
+    device='CPU')
+sc_align.fit_encoder(datasets['CellBench'])
+print('Trained encoder saved to: {}'.format(sc_align.trained_encoder_path_))
+#%%
+#combined_aligned = sc_align.encode(np.concatenate((A, B)))
+before_and_after_plots(A, B, type_index_dict, aligner_fcn=sc_align.encode, do_B_transform=True)
+scalign_lisi = compute_lisi(A, B, combined_meta, batch_key='protocol', cell_type_key='cell_line_demuxlet', aligner_fcn=sc_align.encode, do_B_transform=True)
 
-args = {
-    'hidden_layer_sizes': ['1000', '100'],
-    'act': 'relu',
-    'dropout': 0,
-    'batch_norm': False
-}
-args = SimpleNamespace(args)
-def get_model(args, input_dim):
-    hidden_layer_sizes = [int(x) for x in args.hidden_layer_sizes]
-    model = DomainInvariantAutoencoder(input_size=input_dim,
-                                       layer_sizes=hidden_layer_sizes,
-                                       act=args.act,
-                                       dropout=args.dropout,
-                                       batch_norm=args.batch_norm)
-    return model
+#%% [markdown]
+# # LISI score comparisons
+# ### From Harmony paper definitions:
+# "iLISI measures the degree of mixing among datasets in an embedding, ranging from 1
+# in an unmixed space to B in a well mixed space. B is the number of datasets in the
+# analysis. cLISI measures integration accuracy using the same formulation but computed
+# on cell-type labels instead. An accurate embedding has a cLISI close to 1 for every
+# neighborhood"
+#%%
+def lisi_score_plot(method_names, lisi_dfs, batch_key, cell_type_key):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
+    fig.suptitle('LISI scores of aligners')
+    ax1.set_title('Dataset mixing ({})'.format(batch_key))
+    lisi_data = [df[batch_key].values for df in lisi_dfs]
+    ax1.boxplot(lisi_data, vert=False, labels=method_names, showfliers=False)
+    ax1.set_xlabel('iLISI')
+    ax2.set_title('Cell-type mixing ({})'.format(cell_type_key))
+    lisi_data = [df[cell_type_key] for df in lisi_dfs]
+    ax2.boxplot(lisi_data, vert=False, labels=method_names, showfliers=False)
+    ax2.set_xlabel('cLISI')
+    #plt.savefig('{}_embeddings.pdf'.format(ds_key), bbox='tight')
+    plt.show
+
+lisi_score_plot(['ICP', 'ICP2', 'ScAlign'], [icp_lisi, diverse_icp_lisi, scalign_lisi], 'protocol', 'cell_line_demuxlet')
+
+#%% [markdown]
+# # 4: (Not implemented) BatchMatch Autoencoder
+#%%
+# from types import SimpleNamespace
+# from batch_match.model import DomainInvariantAutoencoder
+
+# args = {
+#     'hidden_layer_sizes': ['1000', '100'],
+#     'act': 'relu',
+#     'dropout': 0,
+#     'batch_norm': False
+# }
+# args = SimpleNamespace(args)
+# def get_model(args, input_dim):
+#     hidden_layer_sizes = [int(x) for x in args.hidden_layer_sizes]
+#     model = DomainInvariantAutoencoder(input_size=input_dim,
+#                                        layer_sizes=hidden_layer_sizes,
+#                                        act=args.act,
+#                                        dropout=args.dropout,
+#                                        batch_norm=args.batch_norm)
+#     return model
 
 
