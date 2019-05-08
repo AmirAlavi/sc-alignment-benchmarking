@@ -58,7 +58,7 @@ def closest_point_loss_ignore(A, B):
     #sys.exit()
     return loss, np.array(list(target_matched))
 
-def relaxed_match_loss(A, B):
+def relaxed_match_loss(A, B, source_match_threshold=1.0):
     # build distance matrix
     loss = A.unsqueeze(1) - B.unsqueeze(0)
     loss = loss**2
@@ -78,6 +78,8 @@ def relaxed_match_loss(A, B):
             target_matched_counts[match_idx[1]] += 1
             mask[match_idx[0], match_idx[1]] = 1
             source_matched.add(match_idx[0])
+        if len(source_matched) > source_match_threshold * A.shape[0]:
+            break
     mask = torch.from_numpy(mask)
     #print(mask.sum())
     loss = torch.mul(loss, mask).sum()
@@ -128,7 +130,7 @@ def ICP(A, B, type_index_dict,
         max_iters=100,
         sgd_steps=100,
         tolerance=1e-4,
-        standardize=True):
+        standardize=True, verbose=True):
     #A, B = shift_CoM(A, B)
     if standardize:
         scaler = StandardScaler().fit(np.concatenate((A, B)))
@@ -159,7 +161,8 @@ def ICP(A, B, type_index_dict,
             loss, unique_matches = loss_function(A_transformed, B)
             losses.append(loss.item())
             num_matches.append(len(unique_matches))
-            plot_step(A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, unique_matches, num_matches, losses)
+            if verbose:
+                plot_step(A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, unique_matches, num_matches, losses)
             loss.backward()
             optimizer.step()
         except KeyboardInterrupt:
