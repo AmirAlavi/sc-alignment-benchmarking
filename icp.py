@@ -9,15 +9,34 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from IPython import display
 
+activations = {
+    'tanh': nn.Tanh,
+    'sigmoid': nn.Sigmoid,
+    'relu': nn.ReLU
+}
+
 # Code for ICP methods
 def isnan(x):
     return x != x
 
-def get_rigid_transformer(ndims, bias=False):
+def get_rigid_transformer(ndims, act=None, bias=False):
     model = nn.Sequential(nn.Linear(ndims, ndims, bias=bias))
-    print(model[0].weight.data.dtype)
+    #print(model[0].weight.data.dtype)
     model[0].weight.data.copy_(torch.eye(ndims))#, dtype=torch.double))
-    print(model[0].weight.data.dtype)
+    if act is not None:
+        model.add_module('transformer_{}'.format(act), activations[act]())
+    #print(model[0].weight.data.dtype)
+    return model
+
+def get_2_layer_rigid_transformer(ndims, act=None, bias=False):
+    model = nn.Sequential(nn.Linear(ndims, ndims, bias=bias))
+    #print(model[0].weight.data.dtype)
+    model[0].weight.data.copy_(torch.eye(ndims))#, dtype=torch.double))
+    if act is not None:
+        model.add_module('transformer_{}'.format(act), activations[act]())
+    model.add_module('transformer_layer2_lin', nn.Linear(ndims, ndims, bias=bias))
+    model[-1].weight.data.copy_(torch.eye(ndims))
+    #print(model[0].weight.data.dtype)
     return model
 
 def closest_point_loss(A, B):
@@ -127,6 +146,8 @@ def plot_step(A, B, type_index_dict, pca, step, matched_targets, closest_points,
 
 def ICP(A, B, type_index_dict,
         loss_function,
+        n_layers=1,
+        act=None,
         max_iters=100,
         sgd_steps=100,
         tolerance=1e-4,
@@ -141,7 +162,10 @@ def ICP(A, B, type_index_dict,
     A = torch.from_numpy(A).float()
     B = torch.from_numpy(B).float()
     assert(not isnan(A).any() and not isnan(B).any())
-    transformer = get_rigid_transformer(A.shape[1])
+    if n_layers == 1:
+        transformer = get_rigid_transformer(A.shape[1], act=act)
+    elif n_layers == 2:
+        transformer = get_2_layer_rigid_transformer(A.shape[1], act=act)
     optimizer = optim.SGD(transformer.parameters(), lr=1e-3)
     transformer.train()
     hit_nan = False
