@@ -108,7 +108,7 @@ def relaxed_match_loss(A, B, source_match_threshold=1.0):
     return loss, np.array(list(target_matched_counts.keys()))
 
 def Hbeta(D, beta):
-    P = torch.exp(D * beta)
+    P = torch.exp(-D * beta.clone())
     sumP = torch.sum(P)
     H = torch.log(sumP) + beta * torch.sum(D * P) / sumP
     P = P / sumP
@@ -116,9 +116,11 @@ def Hbeta(D, beta):
 
 def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
     n, d = X.shape
-    dist = X.unsqueeze(1) - X.unsqueeze(0)    # creates an N x N * D difference matrix
-    dist = torch.norm(dist, p=2, dim=-1)     # L2 norm, N vector
-    dist = dist**2                          # squared L2 norm, N vector
+    # dist = X.unsqueeze(1) - X.unsqueeze(0)    # creates an N x N * D difference matrix
+    # dist = torch.norm(dist, p=2, dim=-1)     # L2 norm, N vector
+    # dist = dist**2                          # squared L2 norm, N vector
+    dist = torch.cdist(X, X, p=2)
+    dist = dist**2
 
     P = torch.zeros((n, n))
     beta = torch.ones((n, 1))
@@ -251,6 +253,7 @@ def ICP(A, B, type_index_dict,
     num_matches = []
     losses = []
     for i in range(max_iters):
+        print(i)
         if hit_nan:
             break
         try:
