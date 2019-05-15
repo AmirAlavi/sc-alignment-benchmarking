@@ -1,23 +1,22 @@
 #%% [markdown]
-#  #### Docs for VS Code & Jupyter notebooks [here](https://code.visualstudio.com/docs/python/jupyter-support)
-#  # Jump to sections of interest:
-#  1. Visualizing Raw Datasets
-#    1. [Kowalcyzk et al.](#kowal)
-#    2. [CellBench](#cellbench)
-#  2. Alignment Method Experiments Results
-#    1. [Iterative Closest Point (ICP)](#icp)
-#    2. [ICP 2](#icp2)
-#    3. [ScAlign](#scalign)
-#  3. [LISI Performance Metric](#lisi)
+#   #### Docs for VS Code & Jupyter notebooks [here](https://code.visualstudio.com/docs/python/jupyter-support)
+#   # Jump to sections of interest:
+#   1. Visualizing Raw Datasets
+#     1. [Kowalcyzk et al.](#kowal)
+#     2. [CellBench](#cellbench)
+#   2. Alignment Method Experiments Results
+#     1. [Iterative Closest Point (ICP)](#icp)
+#     2. [ICP 2](#icp2)
+#     3. [ScAlign](#scalign)
+#   3. [LISI Performance Metric](#lisi)
 #%% [markdown]
-# ### Imports & constants
+#  ### Imports & constants
 
 #%%
 from collections import defaultdict
 from functools import partial
 from pathlib import Path
 
-#get_ipython().run_line_magic('matplotlib', 'inline')
 #get_ipython().run_line_magic('matplotlib', 'inline')
 import anndata
 import matplotlib.pyplot as plt
@@ -29,7 +28,7 @@ from sklearn.preprocessing import StandardScaler
 import umap
 from IPython import display
 import torch
-torch.autograd.set_detect_anomaly(True)
+#torch.autograd.set_detect_anomaly(True)
 import torch.nn as nn
 import torch.optim as optim
 import mnnpy
@@ -46,13 +45,13 @@ FILTER_MIN_DETECTED = 5
 DO_STANDARDIZE = False
 
 #%% [markdown]
-#  # Load datasets, clean them, view reduced dimensions
+#   # Load datasets, clean them, view reduced dimensions
 
 #%%
 datasets = {}
 
 #%% [markdown]
-#  ### Functions for cleaning the data (filtering)
+#   ### Functions for cleaning the data (filtering)
 
 #%%
 def remove_doublets(df_counts, df_meta):
@@ -91,7 +90,7 @@ def clean_counts(df_counts, df_meta, min_lib_size=FILTER_MIN_GENES, min_reads=FI
     return df_counts, df_meta
 
 #%% [markdown]
-# ### Reduce dimensions (PCA, UMAP, t-SNE) & visualize
+#  ### Reduce dimensions (PCA, UMAP, t-SNE) & visualize
 
 #%%
 def embed(datasets, key, do_standardize):
@@ -149,7 +148,7 @@ def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch'):
     plt.show
 
 #%% [markdown]
-#  ## Dataset: Kowalcyzk et al.
+#   ## Dataset: Kowalcyzk et al.
 
 #%%
 # Load and clean
@@ -167,21 +166,21 @@ datasets['Kowalcyzk'] = adata
 embed(datasets, 'Kowalcyzk', do_standardize=DO_STANDARDIZE)
 
 #%% [markdown]
-# <a name="kowal"></a>
-# ### Kowalcyzk Visualizations
+#  <a name="kowal"></a>
+#  ### Kowalcyzk Visualizations
 
 #%%
 # Visualize
 visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cell_age')
 
 #%% [markdown]
-# ## Dataset: Mann et al.
+#  ## Dataset: Mann et al.
 
 #%%
 
 
 #%% [markdown]
-#  ## Dataset: CellBench
+#   ## Dataset: CellBench
 
 #%%
 # Load and clean
@@ -207,15 +206,15 @@ print('Merged shape: {}'.format(datasets['CellBench'].shape))
 embed(datasets, 'CellBench', do_standardize=DO_STANDARDIZE)
 
 #%% [markdown]
-# <a name="cellbench"></a>
-# ### CellBench Visualizations
+#  <a name="cellbench"></a>
+#  ### CellBench Visualizations
 
 #%%
 # Visualize
 visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
 
 #%% [markdown]
-# ### Functions to prepare data for input to alignment methods, visualize alignments, score alignments
+#  ### Functions to prepare data for input to alignment methods, visualize alignments, score alignments
 
 #%%
 def get_source_target(datasets, ds_key, batch_key, cell_type_key, source_name, target_name, use_PCA=False, leave_out_type=None):
@@ -531,6 +530,23 @@ lisi_fig.savefig('comparison_scores.png')
 #     if ax.is_first_row():
 #         ax.set_title('foo')
 #outer_grid[0,0].get_axes()
-        
+
+#%% [markdown]
+# # Testing ICP Xentropy
+
+#%%
+# Get source and target data
+A, B, type_index_dict, combined_meta = get_source_target(datasets, 'CellBench',
+                                                         'protocol', 'cell_line_demuxlet', 
+                                                        'Dropseq', 'CELseq2',
+                                                         use_PCA=True)
+print(A.shape)
+print(B.shape)
+loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=0.5)# ignored
+aligner = icp.ICP(A, B, type_index_dict, loss_function=loss_fcn, max_iters=200, verbose=True, use_xentropy_loss=True)
+
+
+#%%
+
 
 
