@@ -102,9 +102,86 @@ def relaxed_match_loss(A, B, source_match_threshold=1.0):
     mask = torch.from_numpy(mask)
     #print(mask.sum())
     loss = torch.mul(loss, mask).sum()
-    loss = loss.sum()
+    loss /= torch.sum(mask)
     #print(target_matched)
     #sys.exit()
+    return loss, np.array(list(target_matched_counts.keys()))
+
+def Hbeta(D, beta):
+    P = torch.exp(D * beta)
+    sumP = torch.sum(P)
+    H = torch.log(sumP) + beta * torch.sum(D * P) / sumP
+    P = P / sumP
+    return H, P
+
+def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
+    n, d = X.shape
+    dist = X.unsqueeze(1) - X.unsqueeze(0)    # creates an N x N * D difference matrix
+    dist = torch.norm(dist, p=2, dim=-1)     # L2 norm, N vector
+    dist = dist**2                          # squared L2 norm, N vector
+
+    P = torch.zeros((n, n))
+    beta = torch.ones((n, 1))
+    logU = torch.log(torch.tensor(perplexity, dtype=torch.float32))
+    for i in range(n):
+        betamin = -float('inf')
+        betamax = float('inf')
+        H, thisP = Hbeta(dist[i], beta[i])
+
+        Hdiff = H - logU
+        tries = 0
+        while torch.abs(Hdiff) > tol and tries < 50:
+            if Hdiff > 0:
+                betamin = beta[i]
+                if betamax == float('inf') or betamax == -float('inf'):
+                    beta[i] = beta[i] * 2
+                else:
+                    beta[i] = (beta[i] + betamax) / 2.
+            else:
+                betamax = beta[i]
+                if betamin == float('inf') or betamin == -float('inf'):
+                    beta[i] = beta[i] / 2
+                else:
+                    beta[i] = (beta[i] + betamin) / 2.
+            H, thisP = Hbeta(dist[i], beta[i])
+            Hdiff = H - logU
+            tries += 1
+        P[i, :] = thisP
+    return P
+
+
+""" Also adds loss terms to enforce that pairwise distances are maintained
+"""
+def relaxed_match_loss_xentropy(A, B, original_A, source_match_threshold=1.0):
+    # build distance matrix
+    mse_loss = A.unsqueeze(1) - B.unsqueeze(0) # N x N x D
+    mse_loss = mse_loss**2
+    mse_loss = mse_loss.mean(dim=-1) # N x N
+    # Select pairs, iteratively building up a mask
+    mask = np.zeros(mse_loss.shape, dtype=np.float32)
+    sorted_idx = np.stack(np.unravel_index(np.argsort(mse_loss.detach().numpy().ravel()), mse_loss.shape), axis=1)
+    target_matched_counts = defaultdict(int)
+    source_matched = set()
+    matched = 0
+    for i in range(sorted_idx.shape[0]):
+#         if matched >= 100:
+#             break
+        match_idx = sorted_idx[i]
+        #if match_idx[0] not in source_matched and match_idx[1] not in target_matched:
+        if target_matched_counts[match_idx[1]] < 2 and match_idx[0] not in source_matched:
+            target_matched_counts[match_idx[1]] += 1
+            mask[match_idx[0], match_idx[1]] = 1
+            source_matched.add(match_idx[0])
+        if len(source_matched) > source_match_threshold * A.shape[0]:
+            break
+    mask = torch.from_numpy(mask)
+    mse_loss = torch.mul(mse_loss, mask).sum()
+    mse_loss /= torch.sum(mask)
+    # Compute cross-entropy loss
+    kernel_mat = compute_Gaussian_kernel(A)
+    kernel_mat_original = compute_Gaussian_kernel(original_A)
+    xentropy_loss = torch.sum(torch.sum(-kernel_mat * torch.log(kernel_mat_original), dim=1)) / A.shape[0]
+    loss = mse_loss + xentropy_loss
     return loss, np.array(list(target_matched_counts.keys()))
 
 def plot_step(A, B, type_index_dict, pca, step, matched_targets, closest_points, losses):
@@ -151,7 +228,9 @@ def ICP(A, B, type_index_dict,
         max_iters=100,
         sgd_steps=100,
         tolerance=1e-4,
-        standardize=True, verbose=True):
+        standardize=True, verbose=True,
+        use_xentropy_loss=False,
+        source_match_threshold=0.5):# TODO: this is a nasty hack for now, if use_xentropy_loss true, uses the xentropy loss instead of loss_function
     #A, B = shift_CoM(A, B)
     if standardize:
         scaler = StandardScaler().fit(np.concatenate((A, B)))
@@ -182,7 +261,10 @@ def ICP(A, B, type_index_dict,
                 hit_nan = True
                 break
             optimizer.zero_grad()
-            loss, unique_matches = loss_function(A_transformed, B)
+            if use_xentropy_loss:
+                loss, unique_matches = relaxed_match_loss_xentropy(A_transformed, B, A, source_match_threshold=0.5)
+            else:
+                loss, unique_matches = loss_function(A_transformed, B)
             losses.append(loss.item())
             num_matches.append(len(unique_matches))
             if verbose:
