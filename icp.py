@@ -1,6 +1,7 @@
 # Code for ICP methods
 
 from collections import defaultdict
+import datetime
 
 import numpy as np
 import torch
@@ -22,6 +23,11 @@ activations = {
 # ----------------------------------------------------------------------------
 # --------------------------UTILITY FUNCTIONS---------------------------------
 # ----------------------------------------------------------------------------
+
+def pretty_tdelta(tdelta):
+    hours, rem = divmod(tdelta.seconds, 3600)
+    mins, secs = divmod(rem, 60)
+    return '{:02d}:{:02d}:{:02d}'.format(hours, mins, secs)
 
 def create_summary_writer(model, data_sample, log_dir):
     writer = SummaryWriter(log_dir=log_dir)
@@ -94,7 +100,7 @@ def get_2_layer_affine_transformer(ndims, act=None, bias=False):
         model.add_module('{}_0'.format(act), activations[act]())
     model.add_module('lin_1', nn.Linear(ndims, ndims, bias=bias))
     model[-1].weight.data.copy_(torch.eye(ndims))
-    return model, [0, len(model)]
+    return model, [0, len(model)-1]
 
 # ----------------------------------------------------------------------------
 # -------------------------LOSS FUNCTIONS-------------------------------------
@@ -209,8 +215,8 @@ def plot_tsne_tboard(tboard, A, B, type_index_dict):
 def ICP(A, B, type_index_dict,
         working_dir,
         mse_loss_function,
-        #device,
         n_layers=1,
+        bias=False,
         act=None,
         l2_reg=0.,
         epochs=100,
@@ -219,6 +225,9 @@ def ICP(A, B, type_index_dict,
         standardize=True,
         xentropy_loss_weight=0.,
         plot_every_n_steps=10):
+    print('Looking for GPU to use...')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device {}'.format(device))
     if standardize:
         scaler = StandardScaler().fit(np.concatenate((A, B)))
         A = scaler.transform(A)
@@ -233,10 +242,12 @@ def ICP(A, B, type_index_dict,
     assert(not isnan(A).any() and not isnan(B).any())
     # Get transformer (a neural net)
     if n_layers == 1:
-        transformer, lin_layer_indices = get_affine_transformer(A.shape[1])
+        transformer, lin_layer_indices = get_affine_transformer(A.shape[1], bias=bias)
     elif n_layers == 2:
-        transformer, lin_layer_indices = get_2_layer_affine_transformer(A.shape[1], act=act)
+        transformer, lin_layer_indices = get_2_layer_affine_transformer(A.shape[1], act=act, bias=bias)
+    print(transformer)
     tboard = create_summary_writer(transformer, A[0], working_dir)
+    transformer.to(device)
 
     # Plot the original data in tensorboard for quick visual comparison:
     plot_tsne_tboard(tboard, A.detach().numpy(), B.detach().numpy(), type_index_dict)
@@ -244,6 +255,7 @@ def ICP(A, B, type_index_dict,
     optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
     transformer.train()
     prev_transformed = A
+    t0 = datetime.datetime.now()
     for i in tnrange(epochs):
         try:
             for idx, lin_idx in enumerate(lin_layer_indices):
@@ -276,4 +288,7 @@ def ICP(A, B, type_index_dict,
             optimizer.step()
         except KeyboardInterrupt:
             break
+    t1 = datetime.datetime.now()
+    time_str = pretty_tdelta(t1 - t0)
+    print('Training took ' + time_str)
     return transformer
