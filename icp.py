@@ -49,8 +49,11 @@ def Hbeta(D, beta):
 
 def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
     n, d = X.shape
-    dist = torch.cdist(X, X, p=2)
+    dist = X.unsqueeze(1) - X.unsqueeze(0)
     dist = dist**2
+    dist = dist.sum(dim=-1)
+    # dist = torch.cdist(X, X, p=2)
+    # dist = dist**2
 
     P = torch.zeros((n, n))
     beta = torch.ones((n, 1))
@@ -150,11 +153,11 @@ def relaxed_match_loss(A, B, source_match_threshold=1.0, target_match_limit=2, d
 
 """ Also adds loss terms to enforce that pairwise distances are maintained
 """
-def xentropy_loss(A, original_A):
+def xentropy_loss(A, original_A_kernel):
     # Compute cross-entropy loss
     kernel_mat = compute_Gaussian_kernel(A)
-    kernel_mat_original = compute_Gaussian_kernel(original_A)
-    xentropy_loss = torch.sum(torch.sum(-kernel_mat * torch.log(kernel_mat_original), dim=1)) / A.shape[0]
+    #kernel_mat_original = compute_Gaussian_kernel(original_A)
+    xentropy_loss = torch.sum(torch.sum(-kernel_mat * torch.log(original_A_kernel), dim=1)) / A.shape[0]
     return xentropy_loss
 
 def plot_step_tboard(tboard, A, B, type_index_dict, pca, step, matched_targets):
@@ -255,6 +258,9 @@ def ICP(A, B, type_index_dict,
     optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
     transformer.train()
     prev_transformed = A
+    if xentropy_loss_weight > 0:
+        # Compute the Gaussian kernel for the origina data once, reuse later
+        A_kernel = compute_Gaussian_kernel(A)
     t0 = datetime.datetime.now()
     for i in tnrange(epochs):
         try:
@@ -278,7 +284,7 @@ def ICP(A, B, type_index_dict,
             tboard.add_scalar('training/uniq_targets_matched', len(unique_target_matches), i)
             total_loss += mse_loss
             if xentropy_loss_weight > 0:
-                source_xentropy_loss = xentropy_loss(A_transformed, A)
+                source_xentropy_loss = xentropy_loss(A_transformed, A_kernel)
                 tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), i)
                 total_loss += xentropy_loss_weight * source_xentropy_loss
             tboard.add_scalar('training/total_loss', total_loss.item(), i)
