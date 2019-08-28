@@ -1,4 +1,12 @@
 # Reduce dimensions (PCA, UMAP, t-SNE) & visualize
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import umap
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+
 
 def embed(datasets, key, n_pc, do_standardize):
     """Embeds datasets via PCA, t-SNE, and UMAP

@@ -1,5 +1,6 @@
 # To add a new cell, type '#%%'
 # To add a new markdown cell, type '#%% [markdown]'
+
 #%%
 from IPython import get_ipython
 
@@ -47,11 +48,13 @@ import icp
 import preprocessing
 import embed
 import task
+import comparison_plots
 import metrics
 importlib.reload(icp)
 importlib.reload(preprocessing)
 importlib.reload(embed)
 importlib.reload(task)
+importlib.reload(comparison_plots)
 
 N_PC = 100
 FILTER_MIN_GENES = 1.8e3
@@ -65,13 +68,6 @@ DO_STANDARDIZE = False
 #%%
 datasets = {}
 
-#%% [markdown]
-#    ### Functions for cleaning the data (filtering)
-
-
-
-#%% [markdown]
-#   ##
 #%% [markdown]
 #    ## Dataset: Kowalcyzk et al.
 
@@ -138,27 +134,8 @@ embed.embed(datasets, 'CellBench', N_PC, do_standardize=DO_STANDARDIZE)
 # Visualize
 embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
 
-#%% [markdown]
-#   ### Functions to prepare data for input to alignment methods, visualize alignments, score alignments
-
-
-
-# def compute_lisi(A, B, combined_meta, batch_key, cell_type_key, aligner_fcn, perplexity=30, do_B_transform=False):
-#     A = aligner_fcn(A)
-#     if do_B_transform:
-#         B = aligner_fcn(B)
-#     X = np.concatenate((A, B))
-#     print(X.shape)
-#     assert(X.shape[0] == combined_meta.shape[0])
-#     return metrics.lisi2(X, combined_meta, [batch_key, cell_type_key], perplexity=perplexity)
-
-
-#%%
-
-    
+#%%    
 # Select Alignment tasks
-
-
 alignment_tasks = []
 #alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2'))
 #alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H1975'))
@@ -166,79 +143,21 @@ alignment_tasks = []
 #alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'HCC827'))
 alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old'))
 alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'LT'))
-alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'MPP'))
-alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'ST'))
+#alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'MPP'))
+#alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'ST'))
 for task in alignment_tasks:
     print(task)
 # Select alignment methods:
-#methods = [None, 'MNN']
-methods = ['None', 'ICP', 'ICP2', 'ICP2_xentropy', 'ScAlign', 'MNN']
+methods = [None, 'MNN']
+#methods = ['None', 'ICP', 'ICP2', 'ICP2_xentropy', 'ScAlign', 'MNN']
 #methods = ['None', 'ICP', 'ICP2_xentropy']
 #methods = [None, 'ScAlign']
 #methods = [None, 'MNN']
 
-plot_scaler = 5
-fig = plt.figure(figsize=(plot_scaler*len(alignment_tasks), plot_scaler*len(methods)), constrained_layout=False)
-outer_grid = fig.add_gridspec(len(methods) + 1, len(alignment_tasks) + 1)
-
-pca_fig = plt.figure(figsize=(plot_scaler*len(alignment_tasks), plot_scaler*len(methods)), constrained_layout=False)
-pca_outer_grid = pca_fig.add_gridspec(len(methods) + 1, len(alignment_tasks) + 1, wspace=0.25)
-
-lisi_fig = plt.figure(figsize=(plot_scaler*len(alignment_tasks), plot_scaler), constrained_layout=False)
-lisi_outer_grid = lisi_fig.add_gridspec(2, len(alignment_tasks))
+tsne_fig, tsne_outer_grid, pca_fig, pca_outer_grid, lisi_fig, lisi_outer_grid = comparison_plots.setup_comparison_grid_plot(alignment_tasks, methods)
 
 log_dir_root = 'experiments_leave_out_Kowal'
 
-for i, task in enumerate(alignment_tasks):
-    ax = fig.add_subplot(outer_grid[0, i + 1])
-    ax.text(0.5, 0.2, task.as_title(), va="top", ha="center")
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    
-    ax = pca_fig.add_subplot(pca_outer_grid[0, i + 1])
-    ax.text(0.5, 0.2, task.as_title(), va="top", ha="center")
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    
-    ax = lisi_fig.add_subplot(lisi_outer_grid[0, i])
-    ax.text(0.5, 0.3, task.as_title(), va="top", ha="center")
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    
-for i, method in enumerate(methods):
-    ax = fig.add_subplot(outer_grid[i+1, 0])
-    if method is None:
-        method = 'none'
-    ax.text(0.7, 0.5, method, va="center", ha="left")
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    
-    ax = pca_fig.add_subplot(pca_outer_grid[i+1, 0])
-    if method is None:
-        method = 'none'
-    ax.text(0.7, 0.5, method, va="center", ha="left")
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.set_xticks([])
-    ax.set_yticks([])
 
 # For each alignment task
 for j, task in enumerate(alignment_tasks):
@@ -257,8 +176,8 @@ for j, task in enumerate(alignment_tasks):
         method_key = '{}_aligned'.format(method)
         
         if method == 'None':
-            plot_embedding_in_grid(task_adata, 'TSNE', task, fig, outer_grid, i+1, j+1)
-            plot_embedding_in_grid(task_adata, 'PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
+            comparison_plots.plot_embedding_in_grid(task_adata, 'TSNE', task, tsne_fig, tsne_outer_grid, i+1, j+1)
+            comparison_plots.plot_embedding_in_grid(task_adata, 'PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
             lisi_scores.append(metrics.lisi2(task_adata.obsm['PCA'], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
         elif method == 'ICP' or method == 'ICP2' or method=='ICP2_act' or method == 'ICP2_act+lin' or method == 'ICP2_xentropy':
             log_dir = join(log_dir_root, '{}_{}'.format(task.as_path(), method))
@@ -331,8 +250,8 @@ for j, task in enumerate(alignment_tasks):
             #lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
             task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
             task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2).fit_transform(task_adata.obsm[method_key])
-            plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, fig, outer_grid, i+1, j+1)
-            plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
+            comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, tsne_fig, tsne_outer_grid, i+1, j+1)
+            comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
             lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
         elif method == 'ScAlign':
             #idx = (datasets['CellBench'].obs['cell_line_demuxlet'] == 'H2228') & (datasets['CellBench'].obs['protocol'] == 'CELseq2')
@@ -355,8 +274,8 @@ for j, task in enumerate(alignment_tasks):
             task_adata.obsm[method_key] = sc_align.encode(task_adata.obsm['PCA'])
             task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
             task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2).fit_transform(task_adata.obsm[method_key])
-            plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
-            plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, fig, outer_grid, i+1, j+1)
+            comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
+            comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, tsne_fig, tsne_outer_grid, i+1, j+1)
             lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
         elif method == 'MNN':
             A_idx = task_adata.obs[task.batch_key] == task.source_batch
@@ -375,69 +294,16 @@ for j, task in enumerate(alignment_tasks):
             task_adata.obsm[method_key][np.where(B_idx)[0]] = corrected[0].X[mnn_adata_A.shape[0]:]
             task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
             task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2).fit_transform(task_adata.obsm[method_key])
-            plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
-            plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, fig, outer_grid, i+1, j+1)
+            comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
+            comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, tsne_fig, tsne_outer_grid, i+1, j+1)
             lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
-    plot_lisi(lisi_scores, methods, task, lisi_fig, lisi_outer_grid, 1, j)
-fig.savefig('comparison_tsne.pdf')
-fig.savefig('comparison_tsne.png')
+    comparison_plots.plot_lisi(lisi_scores, methods, task, lisi_fig, lisi_outer_grid, 1, j)
+tsne_fig.savefig('comparison_tsne.pdf')
+tsne_fig.savefig('comparison_tsne.png')
 pca_fig.savefig('comparison_pca.pdf')
 pca_fig.savefig('comparison_pca.png')
 lisi_fig.savefig('comparison_scores.pdf')
 lisi_fig.savefig('comparison_scores.png')
-            
-# all_axes = fig.get_axes()
-# print(len(all_axes))
-# for ax in all_axes:
-#     if ax.is_first_row():
-#         ax.set_title('foo')
-#outer_grid[0,0].get_axes()
 
 
 #%%
-fig.savefig('comparison_tsne.png')
-pca_fig.savefig('comparison_pca.png')
-lisi_fig.savefig('comparison_scores.png')
-
-#%% [markdown]
-#  # Testing ICP Xentropy
-
-#%%
-import importlib
-importlib.reload(icp)
-
-
-#%%
-# Get source and target data
-A, B, type_index_dict, combined_meta = get_source_target(datasets, 'CellBench',
-                                                         'protocol', 'cell_line_demuxlet', 
-                                                        'Dropseq', 'CELseq2',
-                                                         use_PCA=True)
-print(A.shape)
-print(B.shape)
-loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=0.5, do_mean=False)
-log_dir = 'xentropy_timing'
-if not exists(log_dir):
-    makedirs(log_dir)
-aligner = icp.ICP(A, B, type_index_dict,
-                                  working_dir=log_dir,
-                                  mse_loss_function=loss_fcn,
-                                  n_layers=1,
-                                  bias=True,
-                                  #act='tanh',
-                                  epochs=200,
-                                  lr=1e-3,
-                                  momentum=0.9,
-                                  l2_reg=0.,
-                                  xentropy_loss_weight=1.0)
-
-
-#%%
-aligner_fcn=lambda x: aligner(torch.from_numpy(x).float()).detach().numpy()
-before_and_after_plots(A, B, type_index_dict, aligner_fcn=aligner_fcn)
-
-
-#%%
-
-
-

@@ -44,13 +44,66 @@ def plot_embedding_in_grid(adata, embed_key, alignment_task, fig, figure_grid, i
         ct_ax.scatter(adata.obsm[embed_key][idx, 0], adata.obsm[embed_key][idx, 1], label=ct, alpha=0.15)
     fig.add_subplot(ct_ax)
 
-def setup_comparison_grid_plot():
+def setup_comparison_grid_plot(alignment_task_list, method_names):
     plot_scaler = 5
-    fig = plt.figure(figsize=(plot_scaler*len(alignment_tasks), plot_scaler*len(methods)), constrained_layout=False)
-    outer_grid = fig.add_gridspec(len(methods) + 1, len(alignment_tasks) + 1)
+    tsne_fig = plt.figure(figsize=(plot_scaler*len(alignment_task_list), plot_scaler*len(method_names)), constrained_layout=False)
+    tsne_outer_grid = tsne_fig.add_gridspec(len(method_names) + 1, len(alignment_task_list) + 1)
 
-    pca_fig = plt.figure(figsize=(plot_scaler*len(alignment_tasks), plot_scaler*len(methods)), constrained_layout=False)
-    pca_outer_grid = pca_fig.add_gridspec(len(methods) + 1, len(alignment_tasks) + 1, wspace=0.25)
+    pca_fig = plt.figure(figsize=(plot_scaler*len(alignment_task_list), plot_scaler*len(method_names)), constrained_layout=False)
+    pca_outer_grid = pca_fig.add_gridspec(len(method_names) + 1, len(alignment_task_list) + 1, wspace=0.25)
 
-    lisi_fig = plt.figure(figsize=(plot_scaler*len(alignment_tasks), plot_scaler), constrained_layout=False)
-    lisi_outer_grid = lisi_fig.add_gridspec(2, len(alignment_tasks))
+    lisi_fig = plt.figure(figsize=(plot_scaler*len(alignment_task_list), plot_scaler), constrained_layout=False)
+    lisi_outer_grid = lisi_fig.add_gridspec(2, len(alignment_task_list))
+
+    for i, task in enumerate(alignment_task_list):
+        ax = tsne_fig.add_subplot(tsne_outer_grid[0, i + 1])
+        ax.text(0.5, 0.2, task.as_title(), va="top", ha="center")
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        ax = pca_fig.add_subplot(pca_outer_grid[0, i + 1])
+        ax.text(0.5, 0.2, task.as_title(), va="top", ha="center")
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        ax = lisi_fig.add_subplot(lisi_outer_grid[0, i])
+        ax.text(0.5, 0.3, task.as_title(), va="top", ha="center")
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+    for i, method in enumerate(method_names):
+        ax = tsne_fig.add_subplot(tsne_outer_grid[i+1, 0])
+        if method is None:
+            method = 'none'
+        ax.text(0.7, 0.5, method, va="center", ha="left")
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        ax = pca_fig.add_subplot(pca_outer_grid[i+1, 0])
+        if method is None:
+            method = 'none'
+        ax.text(0.7, 0.5, method, va="center", ha="left")
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+    
+    return tsne_fig, tsne_outer_grid, pca_fig, pca_outer_grid, lisi_fig, lisi_outer_grid
