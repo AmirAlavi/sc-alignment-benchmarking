@@ -1,0 +1,443 @@
+# To add a new cell, type '#%%'
+# To add a new markdown cell, type '#%% [markdown]'
+#%%
+from IPython import get_ipython
+
+#%% [markdown]
+#    #### Docs for VS Code & Jupyter notebooks [here](https://code.visualstudio.com/docs/python/jupyter-support)
+#    # Jump to sections of interest:
+#    1. Visualizing Raw Datasets
+#      1. [Kowalcyzk et al.](#kowal)
+#      2. [CellBench](#cellbench)
+#    2. Alignment Method Experiments Results
+#      1. [Iterative Closest Point (ICP)](#icp)
+#      2. [ICP 2](#icp2)
+#      3. [ScAlign](#scalign)
+#    3. [LISI Performance Metric](#lisi)
+#%% [markdown]
+#   ### Imports & constants
+
+#%%
+from collections import defaultdict
+from functools import partial
+from pathlib import Path
+from os import makedirs
+from os.path import exists, join
+import importlib
+
+get_ipython().run_line_magic('matplotlib', 'inline')
+import anndata
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import StandardScaler
+import umap
+from IPython import display
+import torch
+#torch.autograd.set_detect_anomaly(True)
+import torch.nn as nn
+import torch.optim as optim
+import mnnpy
+
+from scalign import ScAlign
+
+import icp
+import preprocessing
+import embed
+import task
+import metrics
+importlib.reload(icp)
+importlib.reload(preprocessing)
+importlib.reload(embed)
+importlib.reload(task)
+
+N_PC = 100
+FILTER_MIN_GENES = 1.8e3
+FILTER_MIN_READS = 10
+FILTER_MIN_DETECTED = 5
+DO_STANDARDIZE = False
+
+#%% [markdown]
+#    # Load datasets, clean them, view reduced dimensions
+
+#%%
+datasets = {}
+
+#%% [markdown]
+#    ### Functions for cleaning the data (filtering)
+
+
+
+#%% [markdown]
+#   ##
+#%% [markdown]
+#    ## Dataset: Kowalcyzk et al.
+
+#%%
+# Load and clean
+counts = pd.read_csv('data/Kowalcyzk/Kowalcyzk_counts.csv', index_col=0).T
+meta = pd.read_csv('data/Kowalcyzk/Kowalcyzk_meta.csv', index_col=0)
+counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
+adata = anndata.AnnData(X=counts.values, obs=meta)
+print(adata.X.shape)
+print(adata.obs.info())
+datasets['Kowalcyzk'] = adata
+
+
+#%%
+# Reduce dims
+embed.embed(datasets, 'Kowalcyzk', N_PC, do_standardize=DO_STANDARDIZE)
+
+#%% [markdown]
+#   <a name="kowal"></a>
+#   ### Kowalcyzk Visualizations
+
+#%%
+# Visualize
+embed.visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cell_age')
+
+#%% [markdown]
+#   ## Dataset: Mann et al.
+
+#%%
+
+
+#%% [markdown]
+#    ## Dataset: CellBench
+
+#%%
+# Load and clean
+protocols = ['10x', 'CELseq2', 'Dropseq']
+adatas = []
+for protocol in protocols:
+    print(protocol)
+    counts = pd.read_csv('data/CellBench/{}_counts.csv'.format(protocol), index_col=0).T
+    counts = counts.loc[:, ~counts.columns.duplicated()]
+    #counts.drop_duplicates(inplace=True)
+    meta = pd.read_csv('data/CellBench/{}_meta.csv'.format(protocol), index_col=0)
+    counts, meta = preprocessing.remove_doublets(counts, meta)
+    counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
+    adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
+    print(adatas[-1].shape)
+    #print(adatas[-1].var)
+datasets['CellBench'] = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
+print('Merged shape: {}'.format(datasets['CellBench'].shape))
+
+
+#%%
+# Reduce dims
+embed.embed(datasets, 'CellBench', N_PC, do_standardize=DO_STANDARDIZE)
+
+#%% [markdown]
+#   <a name="cellbench"></a>
+#   ### CellBench Visualizations
+
+#%%
+# Visualize
+embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
+
+#%% [markdown]
+#   ### Functions to prepare data for input to alignment methods, visualize alignments, score alignments
+
+
+
+# def compute_lisi(A, B, combined_meta, batch_key, cell_type_key, aligner_fcn, perplexity=30, do_B_transform=False):
+#     A = aligner_fcn(A)
+#     if do_B_transform:
+#         B = aligner_fcn(B)
+#     X = np.concatenate((A, B))
+#     print(X.shape)
+#     assert(X.shape[0] == combined_meta.shape[0])
+#     return metrics.lisi2(X, combined_meta, [batch_key, cell_type_key], perplexity=perplexity)
+
+
+#%%
+
+    
+# Select Alignment tasks
+
+
+alignment_tasks = []
+#alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2'))
+#alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H1975'))
+#alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H2228'))
+#alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'HCC827'))
+alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old'))
+alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'LT'))
+alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'MPP'))
+alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'ST'))
+for task in alignment_tasks:
+    print(task)
+# Select alignment methods:
+#methods = [None, 'MNN']
+methods = ['None', 'ICP', 'ICP2', 'ICP2_xentropy', 'ScAlign', 'MNN']
+#methods = ['None', 'ICP', 'ICP2_xentropy']
+#methods = [None, 'ScAlign']
+#methods = [None, 'MNN']
+
+plot_scaler = 5
+fig = plt.figure(figsize=(plot_scaler*len(alignment_tasks), plot_scaler*len(methods)), constrained_layout=False)
+outer_grid = fig.add_gridspec(len(methods) + 1, len(alignment_tasks) + 1)
+
+pca_fig = plt.figure(figsize=(plot_scaler*len(alignment_tasks), plot_scaler*len(methods)), constrained_layout=False)
+pca_outer_grid = pca_fig.add_gridspec(len(methods) + 1, len(alignment_tasks) + 1, wspace=0.25)
+
+lisi_fig = plt.figure(figsize=(plot_scaler*len(alignment_tasks), plot_scaler), constrained_layout=False)
+lisi_outer_grid = lisi_fig.add_gridspec(2, len(alignment_tasks))
+
+log_dir_root = 'experiments_leave_out_Kowal'
+
+for i, task in enumerate(alignment_tasks):
+    ax = fig.add_subplot(outer_grid[0, i + 1])
+    ax.text(0.5, 0.2, task.as_title(), va="top", ha="center")
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    
+    ax = pca_fig.add_subplot(pca_outer_grid[0, i + 1])
+    ax.text(0.5, 0.2, task.as_title(), va="top", ha="center")
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    
+    ax = lisi_fig.add_subplot(lisi_outer_grid[0, i])
+    ax.text(0.5, 0.3, task.as_title(), va="top", ha="center")
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    
+for i, method in enumerate(methods):
+    ax = fig.add_subplot(outer_grid[i+1, 0])
+    if method is None:
+        method = 'none'
+    ax.text(0.7, 0.5, method, va="center", ha="left")
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    
+    ax = pca_fig.add_subplot(pca_outer_grid[i+1, 0])
+    if method is None:
+        method = 'none'
+    ax.text(0.7, 0.5, method, va="center", ha="left")
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+# For each alignment task
+for j, task in enumerate(alignment_tasks):
+    print(task)
+    if task.leave_out_ct is not None:
+        task_idx = (datasets[task.ds_key].obs[task.batch_key] == task.source_batch) | ((datasets[task.ds_key].obs[task.batch_key] == task.target_batch) & (datasets[task.ds_key].obs[task.ct_key] != task.leave_out_ct))
+    else:
+        task_idx = (datasets[task.ds_key].obs[task.batch_key] == task.source_batch) | (datasets[task.ds_key].obs[task.batch_key] == task.target_batch)
+    task_adata = datasets[task.ds_key][task_idx]
+    
+    lisi_scores = []
+    
+    # For each alignment method
+    for i, method in enumerate(methods):
+        print('\t{}'.format(method))
+        method_key = '{}_aligned'.format(method)
+        
+        if method == 'None':
+            plot_embedding_in_grid(task_adata, 'TSNE', task, fig, outer_grid, i+1, j+1)
+            plot_embedding_in_grid(task_adata, 'PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
+            lisi_scores.append(metrics.lisi2(task_adata.obsm['PCA'], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
+        elif method == 'ICP' or method == 'ICP2' or method=='ICP2_act' or method == 'ICP2_act+lin' or method == 'ICP2_xentropy':
+            log_dir = join(log_dir_root, '{}_{}'.format(task.as_path(), method))
+            if not exists(log_dir):
+                makedirs(log_dir)
+            A, B, type_index_dict, combined_meta = task.get_source_target(datasets, task, use_PCA=True)
+            print(A.shape)
+            print(B.shape)
+            if method == 'ICP':
+                #aligner = icp.ICP(A, B, type_index_dict, loss_function=icp.closest_point_loss, max_iters=200, verbose=False)
+                aligner = icp.ICP(A, B, type_index_dict,
+                                  working_dir=log_dir,
+                                  mse_loss_function=icp.closest_point_loss,
+                                  n_layers=1,
+                                  bias=True,
+                                  #act='tanh',
+                                  epochs=200,
+                                  lr=1e-3,
+                                  momentum=0.9,
+                                  l2_reg=0.,
+                                  xentropy_loss_weight=0.0)
+            elif method == 'ICP2':
+                loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=0.5, do_mean=False)
+                #aligner = icp.ICP(A, B, type_index_dict, loss_function=loss_fcn, max_iters=200, verbose=False)
+                aligner = icp.ICP(A, B, type_index_dict,
+                                  working_dir=log_dir,
+                                  mse_loss_function=loss_fcn,
+                                  n_layers=1,
+                                  bias=True,
+                                  #act='tanh',
+                                  epochs=200,
+                                  lr=1e-3,
+                                  momentum=0.9,
+                                  l2_reg=0.,
+                                  xentropy_loss_weight=0.0)
+#             elif method == 'ICP2_act':
+#                 loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=0.5)
+#                 aligner = icp.ICP(A, B, type_index_dict, act='tanh', loss_function=loss_fcn, max_iters=200, verbose=False)
+#             elif method == 'ICP2_act+lin':
+#                 loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=0.5)
+#                 aligner = icp.ICP(A, B, type_index_dict, n_layers=2, act='tanh', loss_function=loss_fcn, max_iters=200, verbose=False)
+            elif method == 'ICP2_xentropy':
+                loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=0.5, do_mean=False)
+                # aligner = icp.ICP(A, B, type_index_dict, loss_function=loss_fcn, max_iters=200, verbose=False, use_xentropy_loss=True)
+                aligner = icp.ICP(A, B, type_index_dict,
+                                  working_dir=log_dir,
+                                  mse_loss_function=loss_fcn,
+                                  n_layers=1,
+                                  bias=True,
+                                  #act='tanh',
+                                  epochs=200,
+                                  lr=1e-3,
+                                  momentum=0.9,
+                                  l2_reg=0.,
+                                  xentropy_loss_weight=10.0)
+            aligner_fcn = lambda x: aligner(torch.from_numpy(x).float()).detach().numpy()
+            #standardizing because it was fitted with standardized data (see ICP code)
+            scaler = StandardScaler().fit(np.concatenate((A,B)))
+            A = scaler.transform(A)
+            B = scaler.transform(B)
+            A = aligner_fcn(A)
+            print(A.shape)
+            n_samples = task_adata.shape[0]
+            n_dims = A.shape[1]
+            task_adata.obsm[method_key] = np.zeros((n_samples, n_dims))
+            a_idx = np.where(task_adata.obs[task.batch_key] == task.source_batch)[0]
+            b_idx = np.where(task_adata.obs[task.batch_key] == task.target_batch)[0]
+            task_adata.obsm[method_key][a_idx, :] = A
+            task_adata.obsm[method_key][b_idx, :] = B
+            #lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
+            task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
+            task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2).fit_transform(task_adata.obsm[method_key])
+            plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, fig, outer_grid, i+1, j+1)
+            plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
+            lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
+        elif method == 'ScAlign':
+            #idx = (datasets['CellBench'].obs['cell_line_demuxlet'] == 'H2228') & (datasets['CellBench'].obs['protocol'] == 'CELseq2')
+            #datasets['CellBench'] = datasets['CellBench'][ ~idx ,:]
+            sc_align = ScAlign(
+                object1_name=task.source_batch,
+                object2_name=task.target_batch, 
+                object_var=task.batch_key,
+                label_var=task.ct_key,
+                data_use='PCA',
+                user_options={
+                    #'max_steps': 100,
+                    'logdir': 'scAlign_model',
+                    'log_results': True,
+                    'early_stop': True
+                },
+                device='CPU')
+            sc_align.fit_encoder(task_adata)
+            print('Trained encoder saved to: {}'.format(sc_align.trained_encoder_path_))
+            task_adata.obsm[method_key] = sc_align.encode(task_adata.obsm['PCA'])
+            task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
+            task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2).fit_transform(task_adata.obsm[method_key])
+            plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
+            plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, fig, outer_grid, i+1, j+1)
+            lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
+        elif method == 'MNN':
+            A_idx = task_adata.obs[task.batch_key] == task.source_batch
+            B_idx = task_adata.obs[task.batch_key] == task.target_batch
+            A_X = task_adata[A_idx].obsm['PCA']
+            B_X = task_adata[B_idx].obsm['PCA']
+#             # standardizing
+#             scaler = StandardScaler().fit(np.concatenate((A_X,B_X)))
+#             A_X = scaler.transform(A_X)
+#             B_X = scaler.transform(B_X)
+            mnn_adata_A = anndata.AnnData(X=A_X, obs=task_adata[A_idx].obs)
+            mnn_adata_B = anndata.AnnData(X=B_X, obs=task_adata[B_idx].obs)
+            corrected = mnnpy.mnn_correct(mnn_adata_A, mnn_adata_B)
+            task_adata.obsm[method_key] = np.zeros(corrected[0].shape)
+            task_adata.obsm[method_key][np.where(A_idx)[0]] = corrected[0].X[:mnn_adata_A.shape[0]]
+            task_adata.obsm[method_key][np.where(B_idx)[0]] = corrected[0].X[mnn_adata_A.shape[0]:]
+            task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
+            task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2).fit_transform(task_adata.obsm[method_key])
+            plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
+            plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, fig, outer_grid, i+1, j+1)
+            lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
+    plot_lisi(lisi_scores, methods, task, lisi_fig, lisi_outer_grid, 1, j)
+fig.savefig('comparison_tsne.pdf')
+fig.savefig('comparison_tsne.png')
+pca_fig.savefig('comparison_pca.pdf')
+pca_fig.savefig('comparison_pca.png')
+lisi_fig.savefig('comparison_scores.pdf')
+lisi_fig.savefig('comparison_scores.png')
+            
+# all_axes = fig.get_axes()
+# print(len(all_axes))
+# for ax in all_axes:
+#     if ax.is_first_row():
+#         ax.set_title('foo')
+#outer_grid[0,0].get_axes()
+
+
+#%%
+fig.savefig('comparison_tsne.png')
+pca_fig.savefig('comparison_pca.png')
+lisi_fig.savefig('comparison_scores.png')
+
+#%% [markdown]
+#  # Testing ICP Xentropy
+
+#%%
+import importlib
+importlib.reload(icp)
+
+
+#%%
+# Get source and target data
+A, B, type_index_dict, combined_meta = get_source_target(datasets, 'CellBench',
+                                                         'protocol', 'cell_line_demuxlet', 
+                                                        'Dropseq', 'CELseq2',
+                                                         use_PCA=True)
+print(A.shape)
+print(B.shape)
+loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=0.5, do_mean=False)
+log_dir = 'xentropy_timing'
+if not exists(log_dir):
+    makedirs(log_dir)
+aligner = icp.ICP(A, B, type_index_dict,
+                                  working_dir=log_dir,
+                                  mse_loss_function=loss_fcn,
+                                  n_layers=1,
+                                  bias=True,
+                                  #act='tanh',
+                                  epochs=200,
+                                  lr=1e-3,
+                                  momentum=0.9,
+                                  l2_reg=0.,
+                                  xentropy_loss_weight=1.0)
+
+
+#%%
+aligner_fcn=lambda x: aligner(torch.from_numpy(x).float()).detach().numpy()
+before_and_after_plots(A, B, type_index_dict, aligner_fcn=aligner_fcn)
+
+
+#%%
+
+
+
