@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 class AlignmentTask(object):
     """Specifies the details of the task of aligning source data to a target space.
 
@@ -51,8 +54,8 @@ def get_source_target(datasets, task_info, use_PCA=False):
         target = datasets[task_info.ds_key].X[target_idx]
     # A dict of <cell_type, indices where it occurs in concatenated (source, target) vector of cells>
     type_index_dict = {}
-    combined_types = np.concatenate((datasets[task_info.ds_key].obs[task_info.cell_type_key][source_idx],
-                                     datasets[task_info.ds_key].obs[task_info.cell_type_key][target_idx]))
+    combined_types = np.concatenate((datasets[task_info.ds_key].obs[task_info.ct_key][source_idx],
+                                     datasets[task_info.ds_key].obs[task_info.ct_key][target_idx]))
     for cell_type in np.unique(combined_types):
         type_index_dict[cell_type] = np.where(combined_types == cell_type)[0]
     subset_meta = pd.concat((datasets[task_info.ds_key].obs[source_idx], datasets[task_info.ds_key].obs[target_idx]), axis=0)

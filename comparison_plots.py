@@ -28,6 +28,7 @@ def plot_embedding_in_grid(adata, embed_key, alignment_task, fig, figure_grid, i
     # Plot, coloring by the batch
     sub_grid = figure_grid[i,j].subgridspec(1, 2)
     batch_ax = plt.Subplot(fig, sub_grid[0])
+    batch_ax.set_title('Color by batch', fontsize='small')
     batch_ax.set_xticks([])
     batch_ax.set_yticks([])
     batch_colors = ['m', 'c']
@@ -37,6 +38,7 @@ def plot_embedding_in_grid(adata, embed_key, alignment_task, fig, figure_grid, i
     fig.add_subplot(batch_ax)
     # Plot, coloring by the cell type
     ct_ax = plt.Subplot(fig, sub_grid[1])
+    ct_ax.set_title('Color by cell type', fontsize='small')
     ct_ax.set_xticks([])
     ct_ax.set_yticks([])
     for ct in np.unique(adata.obs[alignment_task.ct_key]):
@@ -47,12 +49,15 @@ def plot_embedding_in_grid(adata, embed_key, alignment_task, fig, figure_grid, i
 def setup_comparison_grid_plot(alignment_task_list, method_names):
     plot_scaler = 5
     tsne_fig = plt.figure(figsize=(plot_scaler*len(alignment_task_list), plot_scaler*len(method_names)), constrained_layout=False)
+    tsne_fig.suptitle('t-SNE embeddings')
     tsne_outer_grid = tsne_fig.add_gridspec(len(method_names) + 1, len(alignment_task_list) + 1)
 
     pca_fig = plt.figure(figsize=(plot_scaler*len(alignment_task_list), plot_scaler*len(method_names)), constrained_layout=False)
+    pca_fig.suptitle('PCA projections')
     pca_outer_grid = pca_fig.add_gridspec(len(method_names) + 1, len(alignment_task_list) + 1, wspace=0.25)
 
     lisi_fig = plt.figure(figsize=(plot_scaler*len(alignment_task_list), plot_scaler), constrained_layout=False)
+    lisi_fig.suptitle('LISI scores')
     lisi_outer_grid = lisi_fig.add_gridspec(2, len(alignment_task_list))
 
     for i, task in enumerate(alignment_task_list):

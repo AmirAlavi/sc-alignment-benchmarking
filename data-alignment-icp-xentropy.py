@@ -26,9 +26,11 @@ from os import makedirs
 from os.path import exists, join
 import importlib
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+#get_ipython().run_line_magic('matplotlib', 'inline')
 import anndata
 import matplotlib.pyplot as plt
+plt.style.use('default')
+plt.rcParams['svg.fonttype'] = 'none'
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
@@ -105,26 +107,26 @@ embed.visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cel
 
 #%%
 # Load and clean
-protocols = ['10x', 'CELseq2', 'Dropseq']
-adatas = []
-for protocol in protocols:
-    print(protocol)
-    counts = pd.read_csv('data/CellBench/{}_counts.csv'.format(protocol), index_col=0).T
-    counts = counts.loc[:, ~counts.columns.duplicated()]
-    #counts.drop_duplicates(inplace=True)
-    meta = pd.read_csv('data/CellBench/{}_meta.csv'.format(protocol), index_col=0)
-    counts, meta = preprocessing.remove_doublets(counts, meta)
-    counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
-    adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
-    print(adatas[-1].shape)
-    #print(adatas[-1].var)
-datasets['CellBench'] = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
-print('Merged shape: {}'.format(datasets['CellBench'].shape))
+# protocols = ['10x', 'CELseq2', 'Dropseq']
+# adatas = []
+# for protocol in protocols:
+#     print(protocol)
+#     counts = pd.read_csv('data/CellBench/{}_counts.csv'.format(protocol), index_col=0).T
+#     counts = counts.loc[:, ~counts.columns.duplicated()]
+#     #counts.drop_duplicates(inplace=True)
+#     meta = pd.read_csv('data/CellBench/{}_meta.csv'.format(protocol), index_col=0)
+#     counts, meta = preprocessing.remove_doublets(counts, meta)
+#     counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
+#     adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
+#     print(adatas[-1].shape)
+#     #print(adatas[-1].var)
+# datasets['CellBench'] = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
+# print('Merged shape: {}'.format(datasets['CellBench'].shape))
 
 
 #%%
 # Reduce dims
-embed.embed(datasets, 'CellBench', N_PC, do_standardize=DO_STANDARDIZE)
+#embed.embed(datasets, 'CellBench', N_PC, do_standardize=DO_STANDARDIZE)
 
 #%% [markdown]
 #   <a name="cellbench"></a>
@@ -132,7 +134,7 @@ embed.embed(datasets, 'CellBench', N_PC, do_standardize=DO_STANDARDIZE)
 
 #%%
 # Visualize
-embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
+#embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
 
 #%%    
 # Select Alignment tasks
@@ -148,7 +150,7 @@ alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'ce
 for task in alignment_tasks:
     print(task)
 # Select alignment methods:
-methods = [None, 'MNN', 'ScAlign']
+methods = ['None', 'ICP']
 #methods = ['None', 'ICP', 'ICP2', 'ICP2_xentropy', 'ScAlign', 'MNN']
 #methods = ['None', 'ICP', 'ICP2_xentropy']
 #methods = [None, 'ScAlign']
@@ -194,7 +196,7 @@ for j, task in enumerate(alignment_tasks):
                                   n_layers=1,
                                   bias=True,
                                   #act='tanh',
-                                  epochs=200,
+                                  epochs=10,
                                   lr=1e-3,
                                   momentum=0.9,
                                   l2_reg=0.,
@@ -299,10 +301,13 @@ for j, task in enumerate(alignment_tasks):
             lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
     comparison_plots.plot_lisi(lisi_scores, methods, task, lisi_fig, lisi_outer_grid, 1, j)
 tsne_fig.savefig('comparison_tsne.pdf')
+tsne_fig.savefig('comparison_tsne.svg')
 tsne_fig.savefig('comparison_tsne.png')
 pca_fig.savefig('comparison_pca.pdf')
+pca_fig.savefig('comparison_pca.svg')
 pca_fig.savefig('comparison_pca.png')
 lisi_fig.savefig('comparison_scores.pdf')
+lisi_fig.savefig('comparison_scores.svg')
 lisi_fig.savefig('comparison_scores.png')
 
 
