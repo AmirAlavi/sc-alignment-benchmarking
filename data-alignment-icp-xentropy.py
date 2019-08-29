@@ -47,13 +47,13 @@ from scalign import ScAlign
 import icp
 import preprocessing
 import embed
-import task
+import alignment_task
 import comparison_plots
 import metrics
 importlib.reload(icp)
 importlib.reload(preprocessing)
 importlib.reload(embed)
-importlib.reload(task)
+importlib.reload(alignment_task)
 importlib.reload(comparison_plots)
 
 N_PC = 100
@@ -137,18 +137,18 @@ embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch
 #%%    
 # Select Alignment tasks
 alignment_tasks = []
-#alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2'))
-#alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H1975'))
-#alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H2228'))
-#alignment_tasks.append(task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'HCC827'))
-alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old'))
-alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'LT'))
-#alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'MPP'))
-#alignment_tasks.append(task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'ST'))
+#alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2'))
+#alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H1975'))
+#alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H2228'))
+#alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'HCC827'))
+alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old'))
+alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'LT'))
+#alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'MPP'))
+#alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'ST'))
 for task in alignment_tasks:
     print(task)
 # Select alignment methods:
-methods = [None, 'MNN']
+methods = [None, 'MNN', 'ScAlign']
 #methods = ['None', 'ICP', 'ICP2', 'ICP2_xentropy', 'ScAlign', 'MNN']
 #methods = ['None', 'ICP', 'ICP2_xentropy']
 #methods = [None, 'ScAlign']
@@ -183,7 +183,7 @@ for j, task in enumerate(alignment_tasks):
             log_dir = join(log_dir_root, '{}_{}'.format(task.as_path(), method))
             if not exists(log_dir):
                 makedirs(log_dir)
-            A, B, type_index_dict, combined_meta = task.get_source_target(datasets, task, use_PCA=True)
+            A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=True)
             print(A.shape)
             print(B.shape)
             if method == 'ICP':
