@@ -259,7 +259,7 @@ def ICP(A, B, type_index_dict,
     transformer.train()
     prev_transformed = A
     if xentropy_loss_weight > 0:
-        # Compute the Gaussian kernel for the origina data once, reuse later
+        # Compute the Gaussian kernel for the original data once, reuse later
         A_kernel = compute_Gaussian_kernel(A)
     t0 = datetime.datetime.now()
     for i in tnrange(epochs):
