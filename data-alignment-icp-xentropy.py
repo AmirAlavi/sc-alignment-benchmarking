@@ -47,21 +47,19 @@ import mnnpy
 from scalign import ScAlign
 
 import icp
-import preprocessing
+import data
 import embed
 import alignment_task
 import comparison_plots
 import metrics
 importlib.reload(icp)
-importlib.reload(preprocessing)
+importlib.reload(data)
 importlib.reload(embed)
 importlib.reload(alignment_task)
 importlib.reload(comparison_plots)
 
 N_PC = 100
-FILTER_MIN_GENES = 1.8e3
-FILTER_MIN_READS = 10
-FILTER_MIN_DETECTED = 5
+
 DO_STANDARDIZE = False
 
 #%% [markdown]
@@ -71,70 +69,29 @@ DO_STANDARDIZE = False
 datasets = {}
 
 #%% [markdown]
-#    ## Dataset: Kowalcyzk et al.
+## Dataset: Kowalcyzk et al.
 
 #%%
-# Load and clean
-counts = pd.read_csv('data/Kowalcyzk/Kowalcyzk_counts.csv', index_col=0).T
-meta = pd.read_csv('data/Kowalcyzk/Kowalcyzk_meta.csv', index_col=0)
-counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
-adata = anndata.AnnData(X=counts.values, obs=meta)
-print(adata.X.shape)
-print(adata.obs.info())
-datasets['Kowalcyzk'] = adata
-
-
-#%%
-# Reduce dims
+datasets['Kowalcyzk'] = data.get_data('Kowalcyzk')
 embed.embed(datasets, 'Kowalcyzk', N_PC, do_standardize=DO_STANDARDIZE)
-
-#%% [markdown]
-#   <a name="kowal"></a>
-#   ### Kowalcyzk Visualizations
-
-#%%
-# Visualize
 embed.visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cell_age')
 
-#%% [markdown]
-#   ## Dataset: Mann et al.
-
-#%%
-
 
 #%% [markdown]
-#    ## Dataset: CellBench
+## Dataset: CellBench
 
 #%%
-# Load and clean
-# protocols = ['10x', 'CELseq2', 'Dropseq']
-# adatas = []
-# for protocol in protocols:
-#     print(protocol)
-#     counts = pd.read_csv('data/CellBench/{}_counts.csv'.format(protocol), index_col=0).T
-#     counts = counts.loc[:, ~counts.columns.duplicated()]
-#     #counts.drop_duplicates(inplace=True)
-#     meta = pd.read_csv('data/CellBench/{}_meta.csv'.format(protocol), index_col=0)
-#     counts, meta = preprocessing.remove_doublets(counts, meta)
-#     counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
-#     adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
-#     print(adatas[-1].shape)
-#     #print(adatas[-1].var)
-# datasets['CellBench'] = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
-# print('Merged shape: {}'.format(datasets['CellBench'].shape))
-
-
-#%%
-# Reduce dims
-#embed.embed(datasets, 'CellBench', N_PC, do_standardize=DO_STANDARDIZE)
+datasets['CellBench'] = data.get_data('CellBench')
+embed.embed(datasets, 'CellBench', N_PC, do_standardize=DO_STANDARDIZE)
+embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
 
 #%% [markdown]
-#   <a name="cellbench"></a>
-#   ### CellBench Visualizations
+## Dataset: panc8
 
 #%%
-# Visualize
-#embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
+datasets['panc8'] = data.get_data('panc8')
+embed.embed(datasets, 'panc8', N_PC, do_standardize=DO_STANDARDIZE)
+embed.visualize(datasets, 'panc8', cell_type_key='celltype', batch_key='dataset')
 
 #%%    
 # Select Alignment tasks
@@ -150,7 +107,7 @@ alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'ce
 for task in alignment_tasks:
     print(task)
 # Select alignment methods:
-methods = ['None', 'ICP']
+methods = ['SeuratV3']
 #methods = ['None', 'ICP', 'ICP2', 'ICP2_xentropy', 'ScAlign', 'MNN']
 #methods = ['None', 'ICP', 'ICP2_xentropy']
 #methods = [None, 'ScAlign']
@@ -299,6 +256,15 @@ for j, task in enumerate(alignment_tasks):
             comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
             comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, tsne_fig, tsne_outer_grid, i+1, j+1)
             lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
+        elif method == 'SeuratV3':
+            print("saving data for Seurat")
+            #task_adata.write('_tmp_adata_for_seurat.h5ad')
+            df = task_adata.to_df()
+            df.T.to_csv('_tmp_counts.csv')
+            task_adata.obs.to_csv('_tmp_meta.csv')
+            # Run seurat
+            aligned_adata = anndata.read_loom("_tmp_adata_for_seurat.loom")
+
     comparison_plots.plot_lisi(lisi_scores, methods, task, lisi_fig, lisi_outer_grid, 1, j)
 tsne_fig.savefig('comparison_tsne.pdf')
 tsne_fig.savefig('comparison_tsne.svg')
