@@ -19,6 +19,7 @@ from IPython import get_ipython
 #   ### Imports & constants
 
 #%%
+import subprocess
 from collections import defaultdict
 from functools import partial
 from pathlib import Path
@@ -263,6 +264,9 @@ for j, task in enumerate(alignment_tasks):
             df.T.to_csv('_tmp_counts.csv')
             task_adata.obs.to_csv('_tmp_meta.csv')
             # Run seurat
+            cmd = "C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3\\Scripts\\Rscript.exe  seurat_align.R {}".format(task.batch_key)
+            print("Running command: {}".format(cmd))
+            subprocess.run(cmd.split())
             aligned_adata = anndata.read_loom("_tmp_adata_for_seurat.loom")
 
     comparison_plots.plot_lisi(lisi_scores, methods, task, lisi_fig, lisi_outer_grid, 1, j)
