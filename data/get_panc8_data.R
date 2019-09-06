@@ -1,5 +1,5 @@
 library(SeuratData)
-
+InstallData("panc8")
 data("panc8")
 
 dir.create("panc8")
@@ -22,6 +22,6 @@ for (batch in batches) {
 	meta.data <- meta.data[indexer, ]
 	print(dim(meta.data))
 
-	write.csv(counts, file = paste0("panc8_2", "/", batch, "_counts.csv"))
-	write.csv(meta.data, file = paste0("panc8_2", "/", batch, "_meta.csv"))
+	write.csv(counts, file = paste0("panc8", "/", batch, "_counts.csv"))
+	write.csv(meta.data, file = paste0("panc8", "/", batch, "_meta.csv"))
 }

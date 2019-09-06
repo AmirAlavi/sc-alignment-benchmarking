@@ -303,5 +303,5 @@ dependencies:
   - winpty=0.4.3=4
   - zeromq=4.3.1=h33f27b4_3
   - zlib=1.2.11=h62dcd97_3
-prefix: C:\Users\Amir\Anaconda3\envs\seuratV3
+prefix: C:\Users\samir\Anaconda3\envs\seuratV3
 
