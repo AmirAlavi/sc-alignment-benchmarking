@@ -1,9 +1,11 @@
 name: point-align
 channels:
   - conda-forge
+  - bioconda
   - pytorch
   - defaults
 dependencies:
+  - anndata=0.6.19=py_0
   - llvmlite=0.28.0=py37_0
   - umap-learn=0.3.8=py37_0
   - astroid=2.2.5=py37_0
@@ -20,6 +22,8 @@ dependencies:
   - defusedxml=0.5.0=py37_1
   - entrypoints=0.3=py37_0
   - freetype=2.9.1=ha9979f8_1
+  - h5py=2.9.0=py37h5e291fa_0
+  - hdf5=1.10.4=h7ebc959_0
   - icc_rt=2019.0.0=h0cc432a_1
   - icu=58.2=ha66f8fd_1
   - intel-openmp=2019.3=203
@@ -54,6 +58,7 @@ dependencies:
   - mkl_fft=1.0.10=py37h14836fe_0
   - mkl_random=1.0.2=py37h343c172_0
   - msys2-conda-epoch=20160418=1
+  - natsort=6.0.0=py_0
   - nbconvert=5.4.1=py37_3
   - nbformat=4.4.0=py37_0
   - ninja=1.9.0=py37h74a9793_0
@@ -77,6 +82,7 @@ dependencies:
   - pylint=2.3.1=py37_0
   - pyparsing=2.3.1=py37_0
   - pyqt=5.9.2=py37h6538335_2
+  - pyreadline=2.1=py37_1
   - pyrsistent=0.14.11=py37he774522_0
   - python=3.7.3=h8c8aaf0_0
   - python-dateutil=2.8.0=py37_0
@@ -110,6 +116,40 @@ dependencies:
   - zeromq=4.3.1=h33f27b4_3
   - zlib=1.2.11=h62dcd97_3
   - zstd=1.3.7=h508b16e_0
-  - pytorch-cpu=1.0.1=py3.7_cpu_1
+  - pytorch-cpu=1.1.0=py3.7_cpu_1
   - torchvision-cpu=0.2.2=py_3
-prefix: C:\Users\Amir\Anaconda3\envs\point-align
+  - pip:
+    - absl-py==0.7.1
+    - astor==0.7.1
+    - chardet==3.0.4
+    - future==0.17.1
+    - gast==0.2.2
+    - gitdb2==2.0.5
+    - gitpython==2.1.11
+    - grpcio==1.20.0
+    - idna==2.8
+    - keras-applications==1.0.7
+    - keras-preprocessing==1.0.9
+    - loompy==2.0.17
+    - markdown==3.1
+    - mnnpy==0.1.9.5
+    - mock==2.0.0
+    - nbdime==1.0.5
+    - pbr==5.1.3
+    - protobuf==3.7.1
+    - requests==2.21.0
+    - scalign==0.0.1
+    - smmap2==2.0.5
+    - tb-nightly==1.14.0a20190519
+    - tensorboard==1.13.1
+    - tensorboardx==1.6
+    - tensorflow==1.13.1
+    - tensorflow-estimator==1.13.0
+    - termcolor==1.1.0
+    - torch==1.1.0
+    - torchvision==0.2.2
+    - tqdm==4.32.1
+    - urllib3==1.24.2
+    - werkzeug==0.15.2
+prefix: C:\Users\samir\Anaconda3\envs\point-align
+
