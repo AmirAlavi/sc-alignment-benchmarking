@@ -4,10 +4,19 @@ library(Seurat)
 
 args = commandArgs(trailingOnly=TRUE)
 
-batch_key <- args[1]
+batch_key <- args[1] #"protocol"
 
-counts <- read.csv(file = "_tmp_counts.csv", header = TRUE, sep = ",", row.names = 1)
+counts <- read.csv(file = "_tmp_counts.csv", header = TRUE, sep = ",", row.names = 1, check.names = FALSE)
 meta <- read.csv(file = "_tmp_meta.csv", header = TRUE, sep = ",", row.names = 1)
+#str(counts)
+#rownames(counts)
+#colnames(counts)
+#str(meta)
+#rownames(meta)
+#print(colnames(counts)[1])
+#print(rownames(meta)[1])
+#print(setdiff(x = rownames(x = meta), y = colnames(x = counts)))
+
 data <- CreateSeuratObject(counts, meta.data=meta)
 
 data.list <- SplitObject(data, split.by = batch_key)
