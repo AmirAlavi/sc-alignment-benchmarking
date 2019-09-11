@@ -64,6 +64,8 @@ def get_panc8(n_cell_types=5):
     sort_idx = np.argsort(counts)[::-1]
     cell_types = cell_types[sort_idx]
     counts = counts[sort_idx]
+    print(cell_types)
+    print(counts)
     selector = adata.obs['celltype'].isin(cell_types[:n_cell_types])
     adata = adata[selector]
     return adata
