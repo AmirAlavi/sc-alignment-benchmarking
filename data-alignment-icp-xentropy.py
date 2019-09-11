@@ -265,10 +265,18 @@ for j, task in enumerate(alignment_tasks):
             task_adata.obs.to_csv('_tmp_meta.csv')
             # Run seurat
             #cmd = "C:\\Users\\samir\\Anaconda3\\envs\\seuratV3\\Scripts\\Rscript.exe  seurat_align.R {}".format(task.batch_key)
-            cmd = r"set PATH=C:\Users\samir\Anaconda3\envs\seuratV3\Library\mingw-w64\bin;%PATH% && C:\Users\samir\Anaconda3\envs\seuratV3\Scripts\Rscript.exe  seurat_align.R cell_age"
+            cmd = r"set PATH=C:\Users\Amir\Anaconda3\envs\seuratV3\Library\mingw-w64\bin;%PATH% && C:\Users\Amir\Anaconda3\envs\seuratV3\Scripts\Rscript.exe  seurat_align.R cell_age"
             print("Running command: {}".format(cmd))
-            subprocess.run(cmd.split(), shell=True)
+            console_output = subprocess.run(cmd.split(), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            print(console_output)
             aligned_adata = anndata.read_loom("_tmp_adata_for_seurat.loom")
+            #print(type(aligned_adata.X))
+            task_adata.obsm[method_key] = aligned_adata.X.todense()
+            task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
+            task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2).fit_transform(task_adata.obsm[method_key])
+            comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
+            comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, tsne_fig, tsne_outer_grid, i+1, j+1)
+            lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
 
     comparison_plots.plot_lisi(lisi_scores, methods, task, lisi_fig, lisi_outer_grid, 1, j)
 tsne_fig.savefig('comparison_tsne.pdf')
