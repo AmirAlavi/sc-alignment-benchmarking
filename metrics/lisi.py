@@ -70,6 +70,7 @@ def compute_simpson_index2(knn_dist, knn_idx, batch_labels, n_batches, perplexit
     return simpson
 
 def lisi2(X, meta_data, labels_use, perplexity=30, nn_eps=0):
+    print('computing LISI score')
     N = meta_data.shape[0] # n rows (n cells)
     kdtree = KDTree(X)
     knn_d, knn_idx = kdtree.query(X, k=perplexity*3, eps=nn_eps)

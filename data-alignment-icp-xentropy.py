@@ -1,22 +1,25 @@
 # To add a new cell, type '#%%'
 # To add a new markdown cell, type '#%% [markdown]'
+#%%
+from IPython import get_ipython
+
 
 #%%
 from IPython import get_ipython
 
 #%% [markdown]
-#    #### Docs for VS Code & Jupyter notebooks [here](https://code.visualstudio.com/docs/python/jupyter-support)
-#    # Jump to sections of interest:
-#    1. Visualizing Raw Datasets
-#      1. [Kowalcyzk et al.](#kowal)
-#      2. [CellBench](#cellbench)
-#    2. Alignment Method Experiments Results
-#      1. [Iterative Closest Point (ICP)](#icp)
-#      2. [ICP 2](#icp2)
-#      3. [ScAlign](#scalign)
-#    3. [LISI Performance Metric](#lisi)
+#     #### Docs for VS Code & Jupyter notebooks [here](https://code.visualstudio.com/docs/python/jupyter-support)
+#     # Jump to sections of interest:
+#     1. Visualizing Raw Datasets
+#       1. [Kowalcyzk et al.](#kowal)
+#       2. [CellBench](#cellbench)
+#     2. Alignment Method Experiments Results
+#       1. [Iterative Closest Point (ICP)](#icp)
+#       2. [ICP 2](#icp2)
+#       3. [ScAlign](#scalign)
+#     3. [LISI Performance Metric](#lisi)
 #%% [markdown]
-#   ### Imports & constants
+#    ### Imports & constants
 
 #%%
 import subprocess
@@ -27,7 +30,7 @@ from os import makedirs
 from os.path import exists, join
 import importlib
 
-#get_ipython().run_line_magic('matplotlib', 'inline')
+# get_ipython().run_line_magic('matplotlib', 'inline')
 import anndata
 import matplotlib.pyplot as plt
 plt.style.use('default')
@@ -64,52 +67,70 @@ N_PC = 100
 DO_STANDARDIZE = False
 
 #%% [markdown]
-#    # Load datasets, clean them, view reduced dimensions
+#     # Load datasets, clean them, view reduced dimensions
 
 #%%
 datasets = {}
 
 #%% [markdown]
-## Dataset: Kowalcyzk et al.
+# # Dataset: Kowalcyzk et al.
 
 #%%
-datasets['Kowalcyzk'] = data.get_data('Kowalcyzk')
-embed.embed(datasets, 'Kowalcyzk', N_PC, do_standardize=DO_STANDARDIZE)
-embed.visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cell_age')
-
+# datasets['Kowalcyzk'] = data.get_data('Kowalcyzk')
+# embed.embed(datasets, 'Kowalcyzk', N_PC, do_standardize=DO_STANDARDIZE)
+# embed.visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cell_age')
 
 #%% [markdown]
-## Dataset: CellBench
+# # Dataset: CellBench
 
 #%%
-datasets['CellBench'] = data.get_data('CellBench')
-embed.embed(datasets, 'CellBench', N_PC, do_standardize=DO_STANDARDIZE)
-embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
+# datasets['CellBench'] = data.get_data('CellBench')
+# embed.embed(datasets, 'CellBench', N_PC, do_standardize=DO_STANDARDIZE)
+# embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
+
+
+#%%
+# datasets['CellBench'].obs.index
+
+
+#%%
+# tmp_df = datasets['CellBench'].to_df().T
+# print(tmp_df.columns)
+# tmp_df.to_csv('test_df.csv')
 
 #%% [markdown]
-## Dataset: panc8
+# # Dataset: panc8
 
 #%%
 datasets['panc8'] = data.get_data('panc8')
 embed.embed(datasets, 'panc8', N_PC, do_standardize=DO_STANDARDIZE)
 embed.visualize(datasets, 'panc8', cell_type_key='celltype', batch_key='dataset')
 
-#%%    
+
+#%%
 # Select Alignment tasks
 alignment_tasks = []
-#alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2'))
-#alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H1975'))
-#alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H2228'))
-#alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'HCC827'))
-alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old'))
-alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'LT'))
-#alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'MPP'))
-#alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'ST'))
+alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2'))
+# alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2', 'alpha'))
+# alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2', 'beta'))
+# alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2'))
+# alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H1975'))
+# alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H2228'))
+# alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'HCC827'))
+# alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old'))
+# alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'LT'))
+# alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'MPP'))
+# alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'ST'))
+
+
 for task in alignment_tasks:
     print(task)
 # Select alignment methods:
-methods = ['SeuratV3']
-#methods = ['None', 'ICP', 'ICP2', 'ICP2_xentropy', 'ScAlign', 'MNN']
+methods = ['ICP2_xentropy']
+
+#methods = ['None', 'ICP', 'ICP2', 'ICP2_xentropy', 'SeuratV3', 'ScAlign', 'MNN']
+# methods = ['None', 'ICP', 'ICP2', 'ICP2_xentropy', 'SeuratV3']
+#methods = ['None', 'ICP', 'ICP2', 'SeuratV3', 'ScAlign', 'MNN']
 #methods = ['None', 'ICP', 'ICP2_xentropy']
 #methods = [None, 'ScAlign']
 #methods = [None, 'MNN']
@@ -154,7 +175,7 @@ for j, task in enumerate(alignment_tasks):
                                   n_layers=1,
                                   bias=True,
                                   #act='tanh',
-                                  epochs=10,
+                                  epochs=200,
                                   lr=1e-3,
                                   momentum=0.9,
                                   l2_reg=0.,
@@ -261,24 +282,37 @@ for j, task in enumerate(alignment_tasks):
             print("saving data for Seurat")
             #task_adata.write('_tmp_adata_for_seurat.h5ad')
             df = task_adata.to_df()
+            print(df.shape)
+            print(df.index)
             df.T.to_csv('_tmp_counts.csv')
+            print(task_adata.obs.shape)
+            print(task_adata.obs.columns)
+            print(task_adata.obs.index)
             task_adata.obs.to_csv('_tmp_meta.csv')
             # Run seurat
             #cmd = "C:\\Users\\samir\\Anaconda3\\envs\\seuratV3\\Scripts\\Rscript.exe  seurat_align.R {}".format(task.batch_key)
-            cmd = r"set PATH=C:\Users\Amir\Anaconda3\envs\seuratV3\Library\mingw-w64\bin;%PATH% && C:\Users\Amir\Anaconda3\envs\seuratV3\Scripts\Rscript.exe  seurat_align.R cell_age"
+            cmd = r"set PATH=C:\Users\Amir\Anaconda3\envs\seuratV3\Library\mingw-w64\bin;%PATH% && C:\Users\Amir\Anaconda3\envs\seuratV3\Scripts\Rscript.exe  seurat_align.R {}".format(task.batch_key)
             print("Running command: {}".format(cmd))
             console_output = subprocess.run(cmd.split(), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            console_output = console_output.stdout.decode('UTF-8')
             print(console_output)
+            print('done running Seurat')
+            print('loading loom')
             aligned_adata = anndata.read_loom("_tmp_adata_for_seurat.loom")
             #print(type(aligned_adata.X))
+            print('Densifying')
             task_adata.obsm[method_key] = aligned_adata.X.todense()
+            print('tsne')
             task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
+            print('pca')
             task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2).fit_transform(task_adata.obsm[method_key])
             comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
             comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, tsne_fig, tsne_outer_grid, i+1, j+1)
             lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30))
 
+    print('plotting Lisi scores')
     comparison_plots.plot_lisi(lisi_scores, methods, task, lisi_fig, lisi_outer_grid, 1, j)
+print('Saving plots')
 tsne_fig.savefig('comparison_tsne.pdf')
 tsne_fig.savefig('comparison_tsne.svg')
 tsne_fig.savefig('comparison_tsne.png')
@@ -291,3 +325,6 @@ lisi_fig.savefig('comparison_scores.png')
 
 
 #%%
+
+
+

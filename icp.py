@@ -157,7 +157,8 @@ def xentropy_loss(A, original_A_kernel):
     # Compute cross-entropy loss
     kernel_mat = compute_Gaussian_kernel(A)
     #kernel_mat_original = compute_Gaussian_kernel(original_A)
-    xentropy_loss = torch.sum(torch.sum(-kernel_mat * torch.log(original_A_kernel), dim=1)) / A.shape[0]
+    safe_log = torch.log(torch.max(original_A_kernel, torch.tensor(1e-9, dtype=torch.float32)))
+    xentropy_loss = torch.sum(torch.sum(-kernel_mat * safe_log, dim=1)) / A.shape[0]
     return xentropy_loss
 
 def plot_step_tboard(tboard, A, B, type_index_dict, pca, step, matched_targets):
