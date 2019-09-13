@@ -56,6 +56,10 @@ def setup_comparison_grid_plot(alignment_task_list, method_names):
     pca_fig.suptitle('PCA projections')
     pca_outer_grid = pca_fig.add_gridspec(len(method_names) + 1, len(alignment_task_list) + 1, wspace=0.25)
 
+    umap_fig = plt.figure(figsize=(plot_scaler*len(alignment_task_list), plot_scaler*len(method_names)), constrained_layout=False)
+    umap_fig.suptitle('UMAP projections')
+    umap_outer_grid = umap_fig.add_gridspec(len(method_names) + 1, len(alignment_task_list) + 1, wspace=0.25)
+
     lisi_fig = plt.figure(figsize=(plot_scaler*len(alignment_task_list), plot_scaler), constrained_layout=False)
     lisi_fig.suptitle('LISI scores')
     lisi_outer_grid = lisi_fig.add_gridspec(2, len(alignment_task_list))
@@ -71,6 +75,15 @@ def setup_comparison_grid_plot(alignment_task_list, method_names):
         ax.set_yticks([])
         
         ax = pca_fig.add_subplot(pca_outer_grid[0, i + 1])
+        ax.text(0.5, 0.2, task.as_title(), va="top", ha="center")
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        ax = umap_fig.add_subplot(umap_outer_grid[0, i + 1])
         ax.text(0.5, 0.2, task.as_title(), va="top", ha="center")
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
@@ -110,5 +123,16 @@ def setup_comparison_grid_plot(alignment_task_list, method_names):
         ax.spines['left'].set_visible(False)
         ax.set_xticks([])
         ax.set_yticks([])
+
+        ax = umap_fig.add_subplot(umap_outer_grid[i+1, 0])
+        if method is None:
+            method = 'none'
+        ax.text(0.7, 0.5, method, va="center", ha="left")
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
     
-    return tsne_fig, tsne_outer_grid, pca_fig, pca_outer_grid, lisi_fig, lisi_outer_grid
+    return tsne_fig, tsne_outer_grid, pca_fig, pca_outer_grid, umap_fig, umap_outer_grid, lisi_fig, lisi_outer_grid
