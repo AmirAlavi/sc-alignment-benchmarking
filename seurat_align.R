@@ -4,8 +4,8 @@ library(Seurat)
 
 args = commandArgs(trailingOnly=TRUE)
 
-batch_key <- args[1] #"protocol"
-n_dims <- as.integer(args[2])
+batch_key <-  #args[1] #"protocol"
+n_dims <- 30 #as.integer(args[2])
 print(n_dims)
 
 counts <- read.csv(file = "_tmp_counts.csv", header = TRUE, sep = ",", row.names = 1, check.names = FALSE)
@@ -40,12 +40,12 @@ print("Finding anchors...")
 data.anchors <- FindIntegrationAnchors(object.list = reference.list, dims = 1:n_dims)
 print("done")
 
+data.integrated <- IntegrateData(anchorset = data.anchors, dims = 1:n_dims)
+DefaultAssay(data.integrated) <- "integrated"
+
 print("data.integrated shape")
 print(dim(data.integrated))
 print(str(data.integrated))
-
-data.integrated <- IntegrateData(anchorset = data.anchors, dims = 1:n_dims)
-DefaultAssay(data.integrated) <- "integrated"
 
 
 data.integrated <- FindVariableFeatures(object = data)

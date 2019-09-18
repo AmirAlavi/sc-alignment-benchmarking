@@ -145,8 +145,8 @@ def run_Seurat(datasets, task, task_adata, method_name, log_dir, args):
     else:
         df = task_adata.to_df()
     print(df.shape)
-    print(df.index)
-    print(df.columns)
+    #print(df.index)
+    #print(df.columns)
     df.T.to_csv('_tmp_counts.csv')
     task_adata.obs.to_csv('_tmp_meta.csv')
     # Run seurat
