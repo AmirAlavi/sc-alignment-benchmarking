@@ -44,8 +44,9 @@ def get_cellbench():
     print(adata.obs.info())
     return adata
 
-def get_panc8(n_cell_types=5):
-    protocols = ['celseq', 'celseq2', 'fluidigmc1']
+def get_panc8(n_cell_types=15):
+    #protocols = ['celseq', 'celseq2', 'fluidigmc1']
+    protocols = ['celseq', 'celseq2', 'smartseq2']
     adatas = []
     for protocol in protocols:
         print(protocol)
