@@ -45,7 +45,7 @@ parser = cli.get_parser()
 
 # methods = ['None', 'MNN', 'SeuratV3', 'ScAlign', 'ICP', 'ICP2', 'ICP2_xentropy']
 #arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=5 --no_standardize'
-arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=10'
+arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=10 --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
 #arguments = '--methods SeuratV3 --datasets panc8-all --input_space GENE --epochs=10 --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
 args = parser.parse_args(arguments.split())
 

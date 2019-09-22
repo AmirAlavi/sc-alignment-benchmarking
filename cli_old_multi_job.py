@@ -5,18 +5,28 @@ def get_parser():
     parser = argparse.ArgumentParser('align-experiment', description='Run benchmarking on methods and datasets for scRNA-Seq dataset batch alignment (data integration)',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter, fromfile_prefix_chars='@')
 
-    parser.add_argument('--method', help='Which method to run.', required=True, choices=['None', 'ScAlign', 'MNN', 'SeuratV3', 'ICP', 'ICP2', 'ICP2_xentropy'])
-    parser.add_argument('--dataset', help='Which dataset to run the alignment method on.', required=True, choices=['Kowalcyzk', 'CellBench', 'panc8'])
-    parser.add_argument('-o', '--output_folder', help='Output folder for this experiment.')
+    parser.add_argument('--methods', nargs='+', help='List of methods to run.', required=True)
+    parser.add_argument('--datasets', nargs='+', help='List of datasets to run all methods on.', required=True)
+    parser.add_argument('-n', '--name', help='Experiment name (a valid name for a folder).')
     parser.add_argument('--no_standardize', help='Do not StandardScale the input data.', action='store_true')
     parser.add_argument('--n_PC', help='Number of Principle Components of data to use.', type=int, default=100)
     parser.add_argument('--input_space', help='Which data input space to use.', choices=['GENE', 'PCA'], default='PCA')
     
 
-    cellbench = parser.add_argument_group('Alignment Task Options')
-    cellbench.add_argument('--source', help='Source batch.', required=True)
-    cellbench.add_argument('--target', help='Target batch.', required=True)
-    cellbench.add_argument('--leaveOut', nargs='*', help='Leave-out cell types.')
+    cellbench = parser.add_argument_group('CellBench Options')
+    cellbench.add_argument('--CellBenchSource', help='Source batch for CellBench data.', default='Dropseq')
+    cellbench.add_argument('--CellBenchTarget', help='Target batch for CellBench data.', default='CELseq2')
+    cellbench.add_argument('--CellBenchLeaveOut', nargs='*', help='Leave-out cell types for CellBench data.', default=['H1975', 'H2228', 'HCC827'])
+
+    kowal = parser.add_argument_group('Kowalcyzk Options')
+    kowal.add_argument('--KowalSource', help='Source batch for Kowalcyzk data.', default='young')
+    kowal.add_argument('--KowalTarget', help='Target batch for Kowalcyzk data.', default='old')
+    kowal.add_argument('--KowalLeaveOut', nargs='*', help='Leave-out cell types for Kowalcyzk data.', default=['LT', 'MPP', 'ST'])
+
+    panc8 = parser.add_argument_group('panc8 Options')
+    panc8.add_argument('--panc8Source', help='Source batch for panc8 data.', default='celseq')
+    panc8.add_argument('--panc8Target', help='Target batch for panc8 data.', default='celseq2')
+    panc8.add_argument('--panc8LeaveOut', nargs='*', help='Leave-out cell types for panc8 data.', default=['alpha', 'beta'])
 
     icp = parser.add_argument_group('ICP options')
     icp.add_argument('--source_match_thresh', help='Portion of source points that need to be matched to a target point', type=float, default=0.5)
