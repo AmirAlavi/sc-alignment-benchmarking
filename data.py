@@ -48,7 +48,8 @@ def get_cellbench():
 
 def get_panc8(n_cell_types=5):
     #protocols = ['celseq', 'celseq2', 'fluidigmc1']
-    protocols = ['celseq', 'celseq2', 'smartseq2']
+    #protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1', 'indrop1', 'indrop2', 'indrop3', 'indrop4']
+    protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1']
     adatas = []
     for protocol in protocols:
         print(protocol)

@@ -45,8 +45,8 @@ parser = cli.get_parser()
 
 # methods = ['None', 'MNN', 'SeuratV3', 'ScAlign', 'ICP', 'ICP2', 'ICP2_xentropy']
 #arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=5 --no_standardize'
-#arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=10'
-arguments = '--methods SeuratV3 --datasets panc8-all --input_space GENE --epochs=10 --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
+arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=10'
+#arguments = '--methods SeuratV3 --datasets panc8-all --input_space GENE --epochs=10 --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
 args = parser.parse_args(arguments.split())
 
 #%%
@@ -72,12 +72,12 @@ if 'CellBench' in args.datasets:
     # alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H2228'))
     # alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'HCC827'))
 
-if 'panc8-all' in args.datasets:
-    datasets['panc8'] = data.get_data('panc8-all')
+if 'panc8' in args.datasets:
+    datasets['panc8'] = data.get_data('panc8')
     #embed.embed(datasets, 'panc8', args.n_PC, do_standardize=not args.no_standardize)
     #embed.visualize(datasets, 'panc8', cell_type_key='celltype', batch_key='dataset')
-    alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2'))
-    # alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2', 'alpha'))
+    alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'fluidigmc1'))
+    alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'fluidigmc1', 'alpha'))
     # alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2', 'beta'))
 
 
