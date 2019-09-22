@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from scipy.spatial import KDTree
+from sklearn.decomposition import PCA
 
 # ========================= LISI Implementation 1 ============================
 # Where the binary search for perplexity is taken from van der Maaten et al.'s
@@ -71,6 +72,12 @@ def compute_simpson_index2(knn_dist, knn_idx, batch_labels, n_batches, perplexit
 
 def lisi2(X, meta_data, labels_use, perplexity=30, nn_eps=0):
     print('computing LISI score')
+    if X.shape[1] > 100:
+        print('Warning: detected high-dimensional (> 100) embedding')
+        print('Computing LISI requires nearest-neighbors computations,')
+        print('which are expensive in high dimensions.')
+        print('Applying PCA to your data first...')
+        X = PCA(n_components=100).fit_transform(X)
     N = meta_data.shape[0] # n rows (n cells)
     kdtree = KDTree(X)
     knn_d, knn_idx = kdtree.query(X, k=perplexity*3, eps=nn_eps)

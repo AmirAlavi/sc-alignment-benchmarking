@@ -15,6 +15,8 @@ def get_data(dataset):
         return get_cellbench()
     elif dataset == 'panc8':
         return get_panc8()
+    elif dataset == 'panc8-all':
+        return get_panc82()
 
 def get_kowalcyzk():
     # Load and clean
@@ -44,7 +46,7 @@ def get_cellbench():
     print(adata.obs.info())
     return adata
 
-def get_panc8(n_cell_types=15):
+def get_panc8(n_cell_types=5):
     #protocols = ['celseq', 'celseq2', 'fluidigmc1']
     protocols = ['celseq', 'celseq2', 'smartseq2']
     adatas = []
@@ -69,4 +71,31 @@ def get_panc8(n_cell_types=15):
     print(counts)
     selector = adata.obs['celltype'].isin(cell_types[:n_cell_types])
     adata = adata[selector]
+    return adata
+
+def get_panc82():
+    protocols = ['celseq', 'celseq2', 'fluidigmc1']
+    #protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1', 'indrop1', 'indrop2', 'indrop3', 'indrop4']
+    adatas = []
+    for protocol in protocols:
+        print(protocol)
+        counts = pd.read_csv('data/panc8/{}_counts.csv'.format(protocol), index_col=0).T
+        counts = counts.loc[:, ~counts.columns.duplicated()]
+        meta = pd.read_csv('data/panc8/{}_meta.csv'.format(protocol), index_col=0)
+        counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
+        adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
+        print(adatas[-1].shape)
+        print(np.unique(adatas[-1].obs['celltype']))
+        #print(adatas[-1].var)
+    adata = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
+    print(adata.X.shape)
+    print(adata.obs.info())
+    # cell_types, counts = np.unique(adata.obs['celltype'], return_counts=True)
+    # sort_idx = np.argsort(counts)[::-1]
+    # cell_types = cell_types[sort_idx]
+    # counts = counts[sort_idx]
+    # print(cell_types)
+    # print(counts)
+    # selector = adata.obs['celltype'].isin(cell_types[:n_cell_types])
+    # adata = adata[selector]
     return adata

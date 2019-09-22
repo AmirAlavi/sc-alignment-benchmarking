@@ -40,12 +40,13 @@ importlib.reload(comparison_plots)
 importlib.reload(runners)
 importlib.reload(cli)
 
+#%%
 parser = cli.get_parser()
 
 # methods = ['None', 'MNN', 'SeuratV3', 'ScAlign', 'ICP', 'ICP2', 'ICP2_xentropy']
 #arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=5 --no_standardize'
 #arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=10'
-arguments = '--methods SeuratV3 --datasets panc8 --input_space PCA --epochs=10 --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
+arguments = '--methods SeuratV3 --datasets panc8-all --input_space GENE --epochs=10 --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
 args = parser.parse_args(arguments.split())
 
 #%%
@@ -71,10 +72,10 @@ if 'CellBench' in args.datasets:
     # alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H2228'))
     # alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'HCC827'))
 
-if 'panc8' in args.datasets:
-    datasets['panc8'] = data.get_data('panc8')
-    embed.embed(datasets, 'panc8', args.n_PC, do_standardize=not args.no_standardize)
-    embed.visualize(datasets, 'panc8', cell_type_key='celltype', batch_key='dataset')
+if 'panc8-all' in args.datasets:
+    datasets['panc8'] = data.get_data('panc8-all')
+    #embed.embed(datasets, 'panc8', args.n_PC, do_standardize=not args.no_standardize)
+    #embed.visualize(datasets, 'panc8', cell_type_key='celltype', batch_key='dataset')
     alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2'))
     # alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2', 'alpha'))
     # alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2', 'beta'))
@@ -169,6 +170,7 @@ for j, task in enumerate(alignment_tasks):
             elif method == 'MNN':
                 runners.run_MNN(datasets, task, task_adata, method, log_dir, args)
             elif method == 'SeuratV3':
+                #task_adata = datasets[task.ds_key]
                 runners.run_Seurat(datasets, task, task_adata, method, log_dir, args)
                 #runners.run_Seurat(datasets, task, datasets[task.ds_key], method, log_dir, args)
             task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
@@ -193,6 +195,9 @@ pca_fig.savefig(join(log_dir_root, 'comparison_pca.png'))
 lisi_fig.savefig(join(log_dir_root, 'comparison_scores.pdf'))
 lisi_fig.savefig(join(log_dir_root, 'comparison_scores.svg'))
 lisi_fig.savefig(join(log_dir_root, 'comparison_scores.png'))
+
+
+ #%%
 
 
 #%%

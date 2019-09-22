@@ -4,8 +4,8 @@ library(Seurat)
 
 args = commandArgs(trailingOnly=TRUE)
 
-batch_key <-  #args[1] #"protocol"
-n_dims <- 30 #as.integer(args[2])
+batch_key <- args[1] #"protocol"
+n_dims <- as.integer(args[2])
 print(n_dims)
 
 counts <- read.csv(file = "_tmp_counts.csv", header = TRUE, sep = ",", row.names = 1, check.names = FALSE)
@@ -25,13 +25,15 @@ print("created seurat object")
 data.list <- SplitObject(data, split.by = batch_key)
 print("split seurat object")
 
+n_features <- min(dim(counts)[1], 2000)
+
 print("normalizing data...")
 for (i in 1:length(data.list)) {
     print(i)
-    data.list[[i]] <- NormalizeData(data.list[[i]], verbose = FALSE)
+    data.list[[i]] <- NormalizeData(data.list[[i]], verbose = TRUE)
     print("normalized")
     data.list[[i]] <- FindVariableFeatures(data.list[[i]], selection.method = "vst", 
-        nfeatures = 2000, verbose = FALSE)
+        nfeatures = n_features, verbose = TRUE)
     print("found variable features")
 }
 
@@ -45,12 +47,11 @@ DefaultAssay(data.integrated) <- "integrated"
 
 print("data.integrated shape")
 print(dim(data.integrated))
-print(str(data.integrated))
 
-
+ 
 data.integrated <- FindVariableFeatures(object = data)
 print("after FindVariableFeatures")
-print(str(data.integrated))
+print(dim(data.integrated))
 fn <- "_tmp_adata_for_seurat.loom"
 if (file.exists(fn)) {
     print("old loom file exists, deleting")
@@ -58,5 +59,4 @@ if (file.exists(fn)) {
 }
 print(dim(data.integrated))
 data.loom <- as.loom(data.integrated, filename = fn, verbose = FALSE)
-print(str(data.loom))
 data.loom$close_all()
