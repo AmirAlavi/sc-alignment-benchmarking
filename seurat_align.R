@@ -6,10 +6,13 @@ args = commandArgs(trailingOnly=TRUE)
 
 batch_key <- args[1] #"protocol"
 n_dims <- as.integer(args[2])
+count_file <- args[3]
+meta_file <- args[4]
+result_file <- args[5]
 print(n_dims)
 
-counts <- read.csv(file = "_tmp_counts.csv", header = TRUE, sep = ",", row.names = 1, check.names = FALSE)
-meta <- read.csv(file = "_tmp_meta.csv", header = TRUE, sep = ",", row.names = 1)
+counts <- read.csv(file = count_file, header = TRUE, sep = ",", row.names = 1, check.names = FALSE)
+meta <- read.csv(file = meta_file, header = TRUE, sep = ",", row.names = 1)
 print(dim(counts))
 # str(counts)
 # rownames(counts)
@@ -52,7 +55,7 @@ print(dim(data.integrated))
 data.integrated <- FindVariableFeatures(object = data)
 print("after FindVariableFeatures")
 print(dim(data.integrated))
-fn <- "_tmp_adata_for_seurat.loom"
+fn <- result_file
 if (file.exists(fn)) {
     print("old loom file exists, deleting")
     file.remove(fn)

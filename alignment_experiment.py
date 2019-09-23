@@ -5,8 +5,6 @@ from IPython import get_ipython
 
 #%% [markdown]
 #    ### Imports & constants
-
-#%%
 import pickle
 import time
 from collections import defaultdict
@@ -28,6 +26,7 @@ from IPython import display
 
 import icp
 import data
+from dataset_info import batch_columns, celltype_columns, batches_available, celltypes_available
 import embed
 import alignment_task
 import comparison_plots
@@ -36,6 +35,7 @@ import runners
 import cli
 importlib.reload(icp)
 importlib.reload(data)
+importlib.reload(dataset_info)
 importlib.reload(embed)
 importlib.reload(alignment_task)
 importlib.reload(comparison_plots)
@@ -45,81 +45,30 @@ importlib.reload(cli)
 #%%
 parser = cli.get_parser()
 
+# example tasks:
+# young --> old
+# Dropseq --> CELseq2
+# celseq --> fluidigmc1
+
 # methods = ['None', 'MNN', 'SeuratV3', 'ScAlign', 'ICP', 'ICP2', 'ICP2_xentropy']
 #arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=5 --no_standardize'
-arguments = '--method SeuratV3 --dataset panc8 --source celseq --target fluidigmc1 --input_space GENE --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
+arguments = '--method None --dataset panc8 --source celseq --target fluidigmc1 --input_space GENE --seurat_env_path C:\\Users\\samir\\Anaconda3\\envs\\seuratV3'
 #arguments = '--methods SeuratV3 --datasets panc8-all --input_space GENE --epochs=10 --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
 args = parser.parse_args(arguments.split())
 
 #%%
-# datasets = {}
-# alignment_tasks = []
-
-batch_columns = {
-    'Kowalcyzk': 'cell_age',
-    'CellBench': 'protocol',
-    'panc8': 'dataset'
-}
-
-celltype_columns = {
-    'Kowalcyzk': 'cell_type',
-    'CellBench': 'cell_line_demuxlet',
-    'panc8': 'celltype'
-}
-
-batches_available = {
-    'Kowalcyzk': ['young', 'old'],
-    'CellBench': ['10x', 'CELseq2', 'Dropseq'],
-    'panc8': ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1', 'indrop1', 'indrop2', 'indrop3', 'indrop4']
-}
-
-celltypes_available = {
-    'Kowalcyzk': ["LT", "MPP", "ST"],
-    'CellBench': ["H1975", "H2228", "HCC827"],
-    'panc8': ["alpha", "beta"]
-}
-
 datasets = {}
 datasets[args.dataset] = data.get_data(args.dataset)
+if args.input_space == 'PCA' or args.method == 'None':
+    embed.embed(datasets, args.dataset, args.n_PC, do_standardize=not args.no_standardize)
 
 #%%
 task = alignment_task.AlignmentTask(args.dataset, batch_columns[args.dataset], celltype_columns[args.dataset], args.source, args.target, args.leaveOut)
-
-# #%%
-# if 'Kowalcyzk' in args.datasets:
-#     datasets['Kowalcyzk'] = data.get_data('Kowalcyzk')
-#     embed.embed(datasets, 'Kowalcyzk', args.n_PC, do_standardize=not args.no_standardize)
-#     embed.visualize(datasets, 'Kowalcyzk', cell_type_key='cell_type', batch_key='cell_age')
-#     alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old'))
-#     alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'LT'))
-#     alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'MPP'))
-#     alignment_tasks.append(alignment_task.AlignmentTask('Kowalcyzk', 'cell_age', 'cell_type', 'young', 'old', 'ST'))
-
-# if 'CellBench' in args.datasets:
-#     datasets['CellBench'] = data.get_data('CellBench')
-#     embed.embed(datasets, 'CellBench', args.n_PC, do_standardize=not args.no_standardize)
-#     embed.visualize(datasets, 'CellBench', cell_type_key='cell_line_demuxlet', batch_key='protocol')
-#     alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2'))
-#     # alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H1975'))
-#     # alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'H2228'))
-#     # alignment_tasks.append(alignment_task.AlignmentTask('CellBench', 'protocol', 'cell_line_demuxlet', 'Dropseq', 'CELseq2', 'HCC827'))
-
-# if 'panc8' in args.datasets:
-#     datasets['panc8'] = data.get_data('panc8')
-#     #embed.embed(datasets, 'panc8', args.n_PC, do_standardize=not args.no_standardize)
-#     #embed.visualize(datasets, 'panc8', cell_type_key='celltype', batch_key='dataset')
-#     alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'fluidigmc1'))
-#     alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'fluidigmc1', 'alpha'))
-#     # alignment_tasks.append(alignment_task.AlignmentTask('panc8', 'dataset', 'celltype', 'celseq', 'celseq2', 'beta'))
-
 
 #%%
 # Run Alignment tasks
         
 print('Alignment task: {}'.format(task))
-
-
-# tsne_fig, tsne_outer_grid, pca_fig, pca_outer_grid, umap_fig, umap_outer_grid, lisi_fig, lisi_outer_grid = comparison_plots.setup_comparison_grid_plot(alignment_tasks, args.methods)
 
 def plot_aligned_embedding(log_dir, adata, embed_key, alignment_task):
     plt.figure()
@@ -177,7 +126,6 @@ if args.method == 'None':
 else:
     if 'ICP' in args.method:
         runners.run_ICP_methods(datasets, task, task_adata, args.method, log_dir, args)
-        #lisi_scores.append(metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
     elif args.method == 'ScAlign':
         runners.run_scAlign(datasets, task, task_adata, args.method, log_dir, args)
     elif args.method == 'MNN':
@@ -185,16 +133,9 @@ else:
     elif args.method == 'SeuratV3':
         #task_adata = datasets[task.ds_key]
         runners.run_Seurat(datasets, task, task_adata, args.method, log_dir, args)
-        #runners.run_Seurat(datasets, task, datasets[task.ds_key], method, log_dir, args)
     task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
     task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2).fit_transform(task_adata.obsm[method_key])
     task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
-    # plot_aligned_embedding(log_dir, task_adata, method_key+'_TSNE', task)
-    # plot_aligned_embedding(log_dir, task_adata, method_key+'_PCA', task)
-    # plot_aligned_embedding(log_dir, task_adata, method_key+'_UMAP', task)
-    # comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_TSNE', task, tsne_fig, tsne_outer_grid, i+1, j+1)
-    # comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_PCA', task, pca_fig, pca_outer_grid, i+1, j+1)
-    # comparison_plots.plot_embedding_in_grid(task_adata, method_key+'_UMAP', task, umap_fig, umap_outer_grid, i+1, j+1)
     plot_alignment_results(log_dir, task_adata, method_key, task)
     lisi_score = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
 result = {
@@ -202,10 +143,9 @@ result = {
     'alignment_task': task,
     'method': args.method
 }
+print('iLISI: {}'.format(lisi_score[task.batch_key].mean()))
+print('cLISI: {}'.format(lisi_score[task.ct_key].mean()))
 with open(join(log_dir, 'results.pickle'), 'wb') as f:
     pickle.dump(result, f)
 
 print('DONE')
-
-
-#%%

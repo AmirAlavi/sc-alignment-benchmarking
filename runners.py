@@ -1,6 +1,7 @@
 from functools import partial
 import subprocess
 from pathlib import Path
+import tempfile
 
 import torch
 from sklearn.preprocessing import StandardScaler
@@ -138,37 +139,42 @@ def run_MNN(datasets, task, task_adata, method_name, log_dir, args):
 
 def run_Seurat(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
-    print("saving data for Seurat")
-    #task_adata.write('_tmp_adata_for_seurat.h5ad')
-    if args.input_space == 'PCA':
-        df = pd.DataFrame(task_adata.obsm['PCA'], index=task_adata.obs.index)
-    else:
-        df = task_adata.to_df()
-    print(df.shape)
-    #print(df.index)
-    #print(df.columns)
-    df.T.to_csv('_tmp_counts.csv')
-    task_adata.obs.to_csv('_tmp_meta.csv')
-    # Run seurat
-    #cmd = "C:\\Users\\samir\\Anaconda3\\envs\\seuratV3\\Scripts\\Rscript.exe  seurat_align.R {}".format(task.batch_key)
-    seurat_env_path = Path(args.seurat_env_path)
-    bin_path = seurat_env_path / 'Library' / 'mingw-w64' / 'bin'
-    rscript_path = seurat_env_path / 'Scripts' / 'Rscript.exe'
-    cmd = 'set PATH={};%PATH% && {} seurat_align.R {} {}'.format(bin_path, rscript_path, task.batch_key, args.seurat_dims)
-    #cmd = r"set PATH=C:\Users\samir\Anaconda3\envs\seuratV3\Library\mingw-w64\bin;%PATH% && C:\Users\samir\Anaconda3\envs\seuratV3\Scripts\Rscript.exe  seurat_align.R {}".format(task.batch_key)
-    print('Running command: {}'.format(cmd))
-    try:
-        console_output = subprocess.run(cmd.split(), shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        console_output = console_output.stdout.decode('UTF-8')
-        print('Finished running')
-        print(console_output)
-        aligned_adata = anndata.read_loom('_tmp_adata_for_seurat.loom')
-        print('done loading loom')
-        print(aligned_adata.shape)
-        #print(type(aligned_adata.X))
-        print('todense...')
-        task_adata.obsm[method_key] = aligned_adata.X.todense()
-    except subprocess.CalledProcessError as e:
-        print("RUNNING SEURAT FAILED")
-        print(e)
-        print(e.stdout.decode('UTF-8'))
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        working_dir = Path(tmp_dir)
+        print("saving data for Seurat")
+        #task_adata.write('_tmp_adata_for_seurat.h5ad')
+        if args.input_space == 'PCA':
+            df = pd.DataFrame(task_adata.obsm['PCA'], index=task_adata.obs.index)
+        else:
+            df = task_adata.to_df()
+        print(df.shape)
+        #print(df.index)
+        #print(df.columns)
+        count_file = working_dir / '_tmp_counts.csv'
+        df.T.to_csv(count_file)
+        metadata_file = working_dir / '_tmp_meta.csv'
+        task_adata.obs.to_csv(metadata_file)
+        loom_result_file = working_dir / '_tmp_adata_for_seurat.loom'
+        # Run seurat
+        #cmd = "C:\\Users\\samir\\Anaconda3\\envs\\seuratV3\\Scripts\\Rscript.exe  seurat_align.R {}".format(task.batch_key)
+        seurat_env_path = Path(args.seurat_env_path)
+        bin_path = seurat_env_path / 'Library' / 'mingw-w64' / 'bin'
+        rscript_path = seurat_env_path / 'Scripts' / 'Rscript.exe'
+        cmd = 'set PATH={};%PATH% && {} seurat_align.R {} {} {} {} {}'.format(bin_path, rscript_path, task.batch_key, args.seurat_dims, count_file, metadata_file, loom_result_file)
+        #cmd = r"set PATH=C:\Users\samir\Anaconda3\envs\seuratV3\Library\mingw-w64\bin;%PATH% && C:\Users\samir\Anaconda3\envs\seuratV3\Scripts\Rscript.exe  seurat_align.R {}".format(task.batch_key)
+        print('Running command: {}'.format(cmd))
+        try:
+            console_output = subprocess.run(cmd.split(), shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            console_output = console_output.stdout.decode('UTF-8')
+            print('Finished running')
+            print(console_output)
+            aligned_adata = anndata.read_loom(loom_result_file)
+            print('done loading loom')
+            print(aligned_adata.shape)
+            #print(type(aligned_adata.X))
+            print('todense...')
+            task_adata.obsm[method_key] = aligned_adata.X.todense()
+        except subprocess.CalledProcessError as e:
+            print("RUNNING SEURAT FAILED")
+            print(e)
+            print(e.stdout.decode('UTF-8'))
