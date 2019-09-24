@@ -16,7 +16,7 @@ def get_parser():
     cellbench = parser.add_argument_group('Alignment Task Options')
     cellbench.add_argument('--source', help='Source batch.', required=True)
     cellbench.add_argument('--target', help='Target batch.', required=True)
-    cellbench.add_argument('--leaveOut', nargs='*', help='Leave-out cell types.')
+    cellbench.add_argument('--leaveOut', help='Leave-out cell type.')
 
     icp = parser.add_argument_group('ICP options')
     icp.add_argument('--source_match_thresh', help='Portion of source points that need to be matched to a target point', type=float, default=0.5)

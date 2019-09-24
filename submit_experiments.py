@@ -66,19 +66,19 @@ if __name__ == '__main__':
     for method in args.methods:
 
         if 'Kowalcyzk' in args.datasets:
-            job_commands.append('python alignment_experiment --method {} --dataset Kowalcyzk --source {} --target {}'.format(method, 'young', 'old'))
+            job_commands.append('python alignment_experiment.py --method {} --dataset Kowalcyzk --source {} --target {}'.format(method, 'young', 'old'))
             for ct in celltypes_available['Kowalcyzk']:
-                job_commands.append('python alignment_experiment --method {} --dataset Kowalcyzk --source {} --target {} --leave_out {}'.format(method, 'young', 'old', ct))
+                job_commands.append('python alignment_experiment.py --method {} --dataset Kowalcyzk --source {} --target {} --leaveOut {}'.format(method, 'young', 'old', ct))
 
         if 'CellBench' in args.datasets:
-            job_commands.append('python alignment_experiment --method {} --dataset CellBench --source {} --target {}'.format(method, 'Dropseq', 'CELseq2'))
+            job_commands.append('python alignment_experiment.py --method {} --dataset CellBench --source {} --target {}'.format(method, 'Dropseq', 'CELseq2'))
             for ct in celltypes_available['CellBench']:
-                job_commands.append('python alignment_experiment --method {} --dataset CellBench --source {} --target {} --leave_out {}'.format(method, 'Dropseq', 'CELseq2', ct))
+                job_commands.append('python alignment_experiment.py --method {} --dataset CellBench --source {} --target {} --leaveOut {}'.format(method, 'Dropseq', 'CELseq2', ct))
 
         if 'panc8' in args.datasets:
-            job_commands.append('python alignment_experiment --method {} --dataset panc8 --source {} --target {}'.format(method, 'celseq', 'fluidigmc1'))
+            job_commands.append('python alignment_experiment.py --method {} --dataset panc8 --source {} --target {}'.format(method, 'celseq', 'fluidigmc1'))
             for ct in celltypes_available['panc8']:
-                job_commands.append('python alignment_experiment --method {} --dataset panc8 --source {} --target {} --leave_out {}'.format(method, 'celseq', 'fluidigmc1', ct))
+                job_commands.append('python alignment_experiment.py --method {} --dataset panc8 --source {} --target {} --leaveOut {}'.format(method, 'celseq', 'fluidigmc1', ct))
 
     root = Path(args.name)
     os.makedirs(root)

@@ -1,3 +1,4 @@
+#import pdb; pdb.set_trace()
 # To add a new cell, type '#%%'
 # To add a new markdown cell, type '#%% [markdown]'
 #%%
@@ -35,7 +36,6 @@ import runners
 import cli
 importlib.reload(icp)
 importlib.reload(data)
-importlib.reload(dataset_info)
 importlib.reload(embed)
 importlib.reload(alignment_task)
 importlib.reload(comparison_plots)
@@ -52,9 +52,10 @@ parser = cli.get_parser()
 
 # methods = ['None', 'MNN', 'SeuratV3', 'ScAlign', 'ICP', 'ICP2', 'ICP2_xentropy']
 #arguments = '--methods SeuratV3 --datasets panc8 --input_space GENE --epochs=5 --no_standardize'
-arguments = '--method None --dataset panc8 --source celseq --target fluidigmc1 --input_space GENE --seurat_env_path C:\\Users\\samir\\Anaconda3\\envs\\seuratV3'
+#arguments = '--method None --dataset panc8 --source celseq --target fluidigmc1 --input_space GENE --seurat_env_path C:\\Users\\samir\\Anaconda3\\envs\\seuratV3'
 #arguments = '--methods SeuratV3 --datasets panc8-all --input_space GENE --epochs=10 --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
-args = parser.parse_args(arguments.split())
+#args = parser.parse_args(arguments.split())
+args = parser.parse_args()
 
 #%%
 datasets = {}
