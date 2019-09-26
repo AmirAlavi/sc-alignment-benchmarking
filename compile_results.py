@@ -39,6 +39,26 @@ def plot_lisi(lisi_dfs, method_names, alignment_task, output_folder):
     plt.savefig(output_folder / '{}.pdf'.format(alignment_task.as_path()))
     plt.close()
 
+def plot_clf(df, alignment_task, output_folder):
+    df['ord'] = df.apply(lambda row: SORT_ORDER[row['method']], axis=1)
+    df.sort_values('ord', inplace=True)
+    sns.set(style="whitegrid")
+    ax = sns.barplot(x='data', y='acc', hue='method', data=df)
+    ax.set_title('Classifier Accuracy on: {}'.format(alignment_task.as_plot_string()))
+
+    plt.savefig(output_folder / '{}_acc.png'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.savefig(output_folder / '{}_acc.svg'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.savefig(output_folder / '{}_acc.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.close()
+
+    # ax = sns.barplot(x='data', y='auc', hue='method', data=df)
+    # ax.set_title('Classifier AUC on: {}'.format(alignment_task.as_plot_string()))
+
+    # plt.savefig(output_folder / '{}_auc.png'.format(alignment_task.as_path()), bbox_inches='tight')
+    # plt.savefig(output_folder / '{}_auc.svg'.format(alignment_task.as_path()), bbox_inches='tight')
+    # plt.savefig(output_folder / '{}_auc.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
+    # plt.close()
+
 def plot_seaborn_lisi(df, alignment_task, output_folder, left=0.9, right=2.5):
     df['ord'] = df.apply(lambda row: SORT_ORDER[row['method']], axis=1)
     df.sort_values('ord', inplace=True)
@@ -119,6 +139,21 @@ if __name__ == '__main__':
                 score.extend(r['lisi'][col])
         df = pd.DataFrame(data={'method': method, 'metric': metric, 'score': score})
         plot_seaborn_lisi(df, results[0]['alignment_task'], Path(args.output_folder))
-        # new version:
+        
+    for task, results in results_by_task.items():
+        method = []
+        data = []
+        acc = []
+        # auc = []
+        for r in results:
+            method.extend([r['method']]*3)
+            for dataset in ['target', 'source', 'source_aligned']:
+                data.append(dataset)
+                acc.append(r['clf']['{}_acc'.format(dataset)])
+                # auc.append(r['clf']['{}_auc'.format(dataset)])
+        # df = pd.DataFrame(data={'method': method, 'data': data, 'acc': acc, 'auc': auc})
+        df = pd.DataFrame(data={'method': method, 'data': data, 'acc': acc})
+        plot_clf(df, results[0]['alignment_task'], Path(args.output_folder))
+    
 
 

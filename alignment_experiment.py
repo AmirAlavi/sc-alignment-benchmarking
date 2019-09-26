@@ -151,8 +151,10 @@ if __name__ == '__main__':
         task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
         plot_alignment_results(log_dir, task_adata, method_key, task)
         lisi_score = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
+    clf_score = metrics.classification_test(task_adata, method_key, task, use_PCA=args.input_space=='PCA')
     result = {
         'lisi': lisi_score,
+        'clf': clf_score,
         'alignment_task': task,
         'method': args.method
     }
