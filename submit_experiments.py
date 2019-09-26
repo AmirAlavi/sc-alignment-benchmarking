@@ -11,7 +11,7 @@ def get_parser():
 
     parser.add_argument('--methods', nargs='+', help='List of methods to run.', required=True)
     parser.add_argument('--datasets', nargs='+', help='List of datasets to run all methods on.', required=True)
-    parser.add_argument('-n', '--name', help='Experiment name (a valid name for a folder).')
+    parser.add_argument('-n', '--name', help='Experiment name (a valid name for a folder).', required=True)
     #parser.add_argument('--no_standardize', help='Do not StandardScale the input data.', action='store_true')
     parser.add_argument('--n_PC', help='Number of Principle Components of data to use.', type=int, default=100)
     #parser.add_argument('--input_space', help='Which data input space to use.', choices=['GENE', 'PCA'], default='PCA')
@@ -62,26 +62,29 @@ def get_parser():
 if __name__ == '__main__':
     args = get_parser().parse_args()
 
-    job_commands = []
-    for method in args.methods:
-
-        if 'Kowalcyzk' in args.datasets:
-            job_commands.append('python alignment_experiment.py --method {} --dataset Kowalcyzk --source {} --target {}'.format(method, 'young', 'old'))
-            for ct in celltypes_available['Kowalcyzk']:
-                job_commands.append('python alignment_experiment.py --method {} --dataset Kowalcyzk --source {} --target {} --leaveOut {}'.format(method, 'young', 'old', ct))
-
-        if 'CellBench' in args.datasets:
-            job_commands.append('python alignment_experiment.py --method {} --dataset CellBench --source {} --target {}'.format(method, 'Dropseq', 'CELseq2'))
-            for ct in celltypes_available['CellBench']:
-                job_commands.append('python alignment_experiment.py --method {} --dataset CellBench --source {} --target {} --leaveOut {}'.format(method, 'Dropseq', 'CELseq2', ct))
-
-        if 'panc8' in args.datasets:
-            job_commands.append('python alignment_experiment.py --method {} --dataset panc8 --source {} --target {}'.format(method, 'celseq', 'fluidigmc1'))
-            for ct in celltypes_available['panc8']:
-                job_commands.append('python alignment_experiment.py --method {} --dataset panc8 --source {} --target {} --leaveOut {}'.format(method, 'celseq', 'fluidigmc1', ct))
-
     root = Path(args.name)
     os.makedirs(root)
+
+    job_commands = []
+    for method in args.methods:
+        run_dir = root / method.lower()
+        if 'Kowalcyzk' in args.datasets:
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset Kowalcyzk --source {} --target {} --no_standardize'.format(run_dir, method, 'young', 'old'))
+            for ct in celltypes_available['Kowalcyzk']:
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset Kowalcyzk --source {} --target {} --leaveOut {} --no_standardize'.format(run_dir, method, 'young', 'old', ct))
+
+        if 'CellBench' in args.datasets:
+            # no standardization captures more variance in PCs
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --no_standardize'.format(run_dir, method, 'Dropseq', 'CELseq2'))
+            for ct in celltypes_available['CellBench']:
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --leaveOut {} --no_standardize'.format(run_dir, method, 'Dropseq', 'CELseq2', ct))
+
+        if 'panc8' in args.datasets:
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --no_standardize'.format(run_dir, method, 'celseq', 'fluidigmc1'))
+            for ct in celltypes_available['panc8']:
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --no_standardize'.format(run_dir, method, 'celseq', 'fluidigmc1', ct))
+
+    
     commands_file = root / Path('_tmp_commands_list.txt')
     with open(commands_file, 'w') as f:
         for command_line in job_commands:

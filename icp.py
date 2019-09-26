@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
-from tqdm import tnrange
+from tqdm import tnrange, trange
 
 activations = {
     'tanh': nn.Tanh,
@@ -263,7 +263,7 @@ def ICP(A, B, type_index_dict,
         # Compute the Gaussian kernel for the original data once, reuse later
         A_kernel = compute_Gaussian_kernel(A)
     t0 = datetime.datetime.now()
-    for i in tnrange(epochs):
+    for i in trange(epochs):
         try:
             for idx, lin_idx in enumerate(lin_layer_indices):
                 if isnan(transformer[lin_idx].weight).any():

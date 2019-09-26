@@ -13,7 +13,7 @@ def get_cmap(n, name='hsv'):
     return plt.cm.get_cmap(name, n)
 
 
-def embed(datasets, key, n_pc, do_standardize):
+def embed(datasets, key, n_pc, do_standardize, log_dir=None):
     """Embeds datasets via PCA, t-SNE, and UMAP
 
     Args:
@@ -28,8 +28,15 @@ def embed(datasets, key, n_pc, do_standardize):
         Adds each embedding projection of the data as an 'observation' field (obsm)
             in the datasets object.
     """
-    print('fitting PCA')
-    pca_model = PCA(n_components=n_pc).fit(datasets[key].X)
+    if do_standardize:
+        print('fitting PCA (Standardized)')
+        X = StandardScaler().fit_transform(datasets[key].X)
+        pca_model = PCA(n_components=n_pc).fit(X)
+        datasets[key].obsm['PCA'] = pca_model.transform(X)
+    else:
+        print('fitting PCA')
+        pca_model = PCA(n_components=n_pc).fit(datasets[key].X)
+        datasets[key].obsm['PCA'] = pca_model.transform(datasets[key].X)
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
     ax1.bar(np.arange(n_pc) + 1, pca_model.explained_variance_ratio_)
     ax1.set_ylabel('explained variance')
@@ -38,30 +45,15 @@ def embed(datasets, key, n_pc, do_standardize):
     ax2.plot(np.ones_like(pca_model.explained_variance_ratio_)*0.9)
     ax2.set_xlabel('number of components')
     ax2.set_ylabel('cumulative explained variance')
-    #fig.show()
+    if log_dir is not None:
+        plt.savefig(log_dir / 'explained_variance_pca.png')
 
-    if do_standardize:
-        # standardize the data for the PCA reduced dimensions (prior to fitting PCA)
-        datasets[key].X = StandardScaler().fit_transform(datasets[key].X)
-        print('fitting PCA (Standardized)')
-        pca_model = PCA(n_components=n_pc).fit(datasets[key].X)
-        fig2, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
-        ax1.bar(np.arange(n_pc) + 1, pca_model.explained_variance_ratio_)
-        ax1.set_ylabel('explained variance')
-        ax1.set_xlabel('PC')
-        ax2.plot(np.cumsum(pca_model.explained_variance_ratio_))
-        ax2.plot(np.ones_like(pca_model.explained_variance_ratio_)*0.9)
-        ax2.set_xlabel('number of components')
-        ax2.set_ylabel('cumulative explained variance')
-    datasets[key].obsm['PCA'] = pca_model.transform(datasets[key].X)
-    # # Data standardizer for when using PCA
-    # datasets[key].uns['PCA-Standard-Scaler'] = StandardScaler.fit(datasets[key].obsm['PCA'])
     print('fitting UMAP')
-    datasets[key].obsm['UMAP'] = umap.UMAP().fit_transform(datasets[key].X)
+    datasets[key].obsm['UMAP'] = umap.UMAP().fit_transform(datasets[key].obsm['PCA'])
     print('fitting tSNE')
     datasets[key].obsm['TSNE'] = TSNE(n_components=2).fit_transform(datasets[key].obsm['PCA'])
 
-def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch'):
+def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch', log_dir=None):
     """Visualize embeddings, colored by cell type, and opacity by batch.
     """
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,6))
@@ -81,5 +73,7 @@ def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch'):
                 ax.scatter(X_subset[:,0], X_subset[:,1], s=20, c=cmap(color_idx), edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_type, batch))
     plt.legend(markerscale=3., loc="upper left", bbox_to_anchor=(1,1))
     plt.subplots_adjust(right=0.85)
-    plt.savefig('{}_embeddings.pdf'.format(ds_key), bbox='tight')
+    if log_dir is not None:
+        plt.savefig(log_dir / '{}_embeddings.pdf'.format(ds_key), bbox='tight')
+    # plt.savefig('{}_embeddings.pdf'.format(ds_key), bbox='tight')
     plt.show

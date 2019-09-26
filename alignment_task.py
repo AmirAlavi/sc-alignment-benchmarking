@@ -30,6 +30,9 @@ class AlignmentTask(object):
         
     def __str__(self):
         return self.as_title().replace('\n', '')
+    
+    def as_plot_string(self):
+        return self.__str__().replace('->', r'$\rightarrow$')
 
     def as_path(self):
         if self.leave_out_ct is not None:

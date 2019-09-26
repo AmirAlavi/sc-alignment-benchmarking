@@ -8,13 +8,13 @@ FILTER_MIN_GENES = 1.8e3
 FILTER_MIN_READS = 10
 FILTER_MIN_DETECTED = 5
 
-def get_data(dataset):
+def get_data(dataset, args):
     if dataset == 'Kowalcyzk':
         return get_kowalcyzk()
     elif dataset == 'CellBench':
         return get_cellbench()
     elif dataset == 'panc8':
-        return get_panc8()
+        return get_panc8(args)
     elif dataset == 'panc8-all':
         return get_panc82()
 
@@ -46,10 +46,11 @@ def get_cellbench():
     print(adata.obs.info())
     return adata
 
-def get_panc8(n_cell_types=5):
+def get_panc8(args, n_cell_types=5):
     #protocols = ['celseq', 'celseq2', 'fluidigmc1']
     #protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1', 'indrop1', 'indrop2', 'indrop3', 'indrop4']
-    protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1']
+    #protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1']
+    protocols = [args.source, args.target]
     adatas = []
     for protocol in protocols:
         print(protocol)

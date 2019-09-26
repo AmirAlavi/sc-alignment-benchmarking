@@ -36,7 +36,7 @@ def get_parser():
     scalign.add_argument('--scalign_emb_size', help='Size of embedding.', type=int, default=32)
 
     seurat = parser.add_argument_group('Seurat options')
-    seurat.add_argument('--seurat_env_path', help='Path to SeuratV3 R environment.', default='C:\\Users\\samir\\Anaconda3\\envs\\seuratV3')
+    seurat.add_argument('--seurat_env_path', help='Path to SeuratV3 R environment.', default='C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3')
     seurat.add_argument('--seurat_dims', help='Dimensionality of the dataset in alignment.', type=int, default=30)
 
     return parser

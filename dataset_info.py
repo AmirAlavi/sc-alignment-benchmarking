@@ -19,5 +19,5 @@ batches_available = {
 celltypes_available = {
     'Kowalcyzk': ["LT", "MPP", "ST"],
     'CellBench': ["H1975", "H2228", "HCC827"],
-    'panc8': ["alpha", "beta"]
+    'panc8': ["alpha", "beta", "ductal", "acinar"]
 }
