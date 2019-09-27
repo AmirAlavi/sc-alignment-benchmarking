@@ -2,6 +2,7 @@ from functools import partial
 import subprocess
 from pathlib import Path
 import tempfile
+import platform
 
 import torch
 from sklearn.preprocessing import StandardScaler
@@ -139,6 +140,7 @@ def run_MNN(datasets, task, task_adata, method_name, log_dir, args):
 
 def run_Seurat(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         working_dir = Path(tmp_dir)
         print("saving data for Seurat")
@@ -158,13 +160,21 @@ def run_Seurat(datasets, task, task_adata, method_name, log_dir, args):
         # Run seurat
         #cmd = "C:\\Users\\samir\\Anaconda3\\envs\\seuratV3\\Scripts\\Rscript.exe  seurat_align.R {}".format(task.batch_key)
         seurat_env_path = Path(args.seurat_env_path)
-        bin_path = seurat_env_path / 'Library' / 'mingw-w64' / 'bin'
-        rscript_path = seurat_env_path / 'Scripts' / 'Rscript.exe'
-        cmd = 'set PATH={};%PATH% && {} seurat_align.R {} {} {} {} {}'.format(bin_path, rscript_path, task.batch_key, args.seurat_dims, count_file, metadata_file, loom_result_file)
+        if platform.system() == 'Windows':
+            bin_path = seurat_env_path / 'Library' / 'mingw-w64' / 'bin'
+            rscript_path = seurat_env_path / 'Scripts' / 'Rscript.exe'
+            cmd = 'set PATH={};%PATH% && {} seurat_align.R {} {} {} {} {}'.format(bin_path, rscript_path, task.batch_key, args.seurat_dims, count_file, metadata_file, loom_result_file)
+            cmd = cmd.split()
+        else:
+            bin_path = seurat_env_path / 'bin' 
+            rscript_path = bin_path / 'Rscript'
+            cmd = 'PATH="{}:$PATH" {} seurat_align.R {} {} {} {} {}'.format(bin_path, rscript_path, task.batch_key, args.seurat_dims, count_file, metadata_file, loom_result_file)
+            #cmd = '{} seurat_align.R {} {} {} {} {}'.format(rscript_path, task.batch_key, args.seurat_dims, count_file, metadata_file, loom_result_file)
+
         #cmd = r"set PATH=C:\Users\samir\Anaconda3\envs\seuratV3\Library\mingw-w64\bin;%PATH% && C:\Users\samir\Anaconda3\envs\seuratV3\Scripts\Rscript.exe  seurat_align.R {}".format(task.batch_key)
         print('Running command: {}'.format(cmd))
         try:
-            console_output = subprocess.run(cmd.split(), shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            console_output = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             console_output = console_output.stdout.decode('UTF-8')
             print('Finished running')
             print(console_output)
@@ -176,5 +186,4 @@ def run_Seurat(datasets, task, task_adata, method_name, log_dir, args):
             task_adata.obsm[method_key] = aligned_adata.X.todense()
         except subprocess.CalledProcessError as e:
             print("RUNNING SEURAT FAILED")
-            print(e)
             print(e.stdout.decode('UTF-8'))

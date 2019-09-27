@@ -2,7 +2,7 @@
 # To add a new cell, type '#%%'
 # To add a new markdown cell, type '#%% [markdown]'
 #%%
-from IPython import get_ipython
+#from IPython import get_ipython
 
 #%% [markdown]
 #    ### Imports & constants
@@ -23,7 +23,7 @@ plt.rcParams['svg.fonttype'] = 'none'
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import umap
-from IPython import display
+#from IPython import display
 
 import icp
 import data
