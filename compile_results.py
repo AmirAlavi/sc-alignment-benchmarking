@@ -1,4 +1,4 @@
-#import pdb; pdb.set_trace()
+# import pdb; pdb.set_trace()
 import argparse
 import os
 import pickle
@@ -59,47 +59,51 @@ def plot_clf(df, alignment_task, output_folder):
     # plt.savefig(output_folder / '{}_auc.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
     # plt.close()
 
-def plot_seaborn_lisi(df, alignment_task, output_folder, left=0.9, right=2.5):
+def plot_seaborn_lisi(df, alignment_task, output_folder):
     df['ord'] = df.apply(lambda row: SORT_ORDER[row['method']], axis=1)
     df.sort_values('ord', inplace=True)
     sns.set(style="whitegrid")
 
-    ax = sns.boxplot(x="score", y="method", hue="metric", data=df, palette="Set3", orient="h", showfliers=False)
+    ax = sns.boxplot(x="score", y="method", hue="metric", data=df, palette="Set3", orient="h", showfliers=False, hue_order=[alignment_task.batch_key, alignment_task.ct_key])
 
-    groups = df.groupby(['method', 'metric'], sort=False)
+    groups = df.groupby(['method', 'metric'], sort=True)
     means = groups['score'].mean()
+    medians = groups['score'].median()
+    q1 = groups['score'].quantile(0.25)
+    q2 = groups['score'].quantile(0.75)
+    iqr = q2.max() - q1.min()
+    whisker = q2.mean() + 1.5 * iqr
+    print('whisker: {}'.format(whisker))
     stds = groups['score'].std()
-
+    
     print(groups)
     print()
-    print(means)
-    print()
-    print(stds)
-
-    print(means.shape)
-    print(stds.shape)
-
-    annotes = [r'{:.2f}$\pm${:.3f}'.format(m, s) for m, s in zip(means, stds)]
-    print(annotes)
-
+    print(medians)
     # new_left = df['score'].min()
-    # max_point = df['score'].max()
+    max_point = df['score'].max()
+    print('max_point: {}'.format(max_point))
+
     # new_right = max_point + (max_point - new_left) / 5
 
-    pos = range(len(annotes))
-    for tick,label in zip(pos, ax.get_yticklabels()):
+    for tick, label in enumerate(ax.get_yticklabels()):
         print(tick)
+        label = label.get_text()
         print(label)
-        print(annotes[(2*tick)])
-        print(annotes[(2*tick) + 1])
+
+
+        dataset_lisi_median = medians[label][alignment_task.batch_key]
+        celltype_lisi_median = medians[label][alignment_task.ct_key]
+        print(dataset_lisi_median)
+        print(celltype_lisi_median)
         print()
-        ax.text(right - 0.25, tick - 0.2, annotes[(2*tick)], horizontalalignment='left', size='x-small', color='r', weight='semibold')
-        ax.text(right - 0.25, tick + 0.2, annotes[(2*tick) + 1], horizontalalignment='left', size='x-small', color='r', weight='semibold')
+        ax.text(whisker, tick - 0.1, '{:.3f}'.format(dataset_lisi_median), horizontalalignment='left', size='x-small', color='r', weight='semibold')
+        ax.text(whisker, tick + 0.1, '{:.3f}'.format(celltype_lisi_median), horizontalalignment='left', size='x-small', color='r', weight='semibold')
 
     # print(new_left)
     # print(new_right)
-    ax.set_xlim(left=left, right=right)
-    plt.legend(bbox_to_anchor=(1.1, 1))
+    #ax.set_xlim(left=left, right=right)
+    #plt.legend(bbox_to_anchor=(1.1, 1))
+    plt.legend(loc='upper left', bbox_to_anchor=(1,1))
 
     ax.set_title('Scores on Task: {}'.format(alignment_task.as_plot_string()))
 
