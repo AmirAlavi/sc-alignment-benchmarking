@@ -8,7 +8,7 @@ def get_parser():
     parser.add_argument('--method', help='Which method to run.', required=True, choices=['None', 'ScAlign', 'MNN', 'SeuratV3', 'ICP', 'ICP2', 'ICP2_xentropy'])
     parser.add_argument('--dataset', help='Which dataset to run the alignment method on.', required=True, choices=['Kowalcyzk', 'CellBench', 'panc8'])
     parser.add_argument('-o', '--output_folder', help='Output folder for this experiment.')
-    parser.add_argument('--no_standardize', help='Do not StandardScale the input data.', action='store_true')
+    parser.add_argument('--standardize', help='StandardScale the input to PCA.', action='store_true')
     parser.add_argument('--n_PC', help='Number of Principle Components of data to use.', type=int, default=100)
     parser.add_argument('--input_space', help='Which data input space to use.', choices=['GENE', 'PCA'], default='PCA')
     
@@ -36,7 +36,8 @@ def get_parser():
     scalign.add_argument('--scalign_emb_size', help='Size of embedding.', type=int, default=32)
 
     seurat = parser.add_argument_group('Seurat options')
-    seurat.add_argument('--seurat_env_path', help='Path to SeuratV3 R environment.', default='C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3')
+    #seurat.add_argument('--seurat_env_path', help='Path to SeuratV3 R environment.', default='C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3')
+    seurat.add_argument('--seurat_env_path', help='Path to SeuratV3 R environment.', default='/home/aalavi/anaconda2/envs/seuratV3')
     seurat.add_argument('--seurat_dims', help='Dimensionality of the dataset in alignment.', type=int, default=30)
 
     return parser

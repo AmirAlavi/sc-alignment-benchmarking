@@ -16,9 +16,9 @@ def get_parser():
     parser.add_argument('--n_PC', help='Number of Principle Components of data to use.', type=int, default=100)
     #parser.add_argument('--input_space', help='Which data input space to use.', choices=['GENE', 'PCA'], default='PCA')
     
-    parser.add_argument('--partition', help='Slurm partition to use.', default='zbj1')
+    parser.add_argument('--partition', help='Slurm partition to use.', default='zbj1,zbj1-bigmem,pool1,pool3-bigmem,short1')
     parser.add_argument('--n_cpu', help='Number of CPUs per job.', type=int, default=2)
-    parser.add_argument('--mem', help='Amount of memory (per cpu)', default='16G')
+    parser.add_argument('--mem', help='Amount of memory (per cpu)', default='8G')
     parser.add_argument('--email', help='Email to send slurm status to.', required=True)
 
     # cellbench = parser.add_argument_group('CellBench Options')
@@ -59,6 +59,16 @@ def get_parser():
 
     return parser
 
+IN_SPACES = {
+    'None': 'GENE',
+    'MNN': 'GENE',
+    'SeuratV3': 'GENE',
+    'ICP': 'PCA',
+    'ICP2': 'PCA',
+    'ICP2_xentropy': 'PCA',
+    'ScAlign': 'PCA'
+}
+
 if __name__ == '__main__':
     args = get_parser().parse_args()
 
@@ -68,21 +78,47 @@ if __name__ == '__main__':
     job_commands = []
     for method in args.methods:
         run_dir = root / method.lower()
+        input_space = IN_SPACES[method]
         if 'Kowalcyzk' in args.datasets:
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset Kowalcyzk --source {} --target {} --no_standardize'.format(run_dir, method, 'young', 'old'))
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset Kowalcyzk --source {} --target {} --input_space {}'.format(run_dir, method, 'young', 'old', input_space))
             for ct in celltypes_available['Kowalcyzk']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset Kowalcyzk --source {} --target {} --leaveOut {} --no_standardize'.format(run_dir, method, 'young', 'old', ct))
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset Kowalcyzk --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'young', 'old', ct, input_space))
 
         if 'CellBench' in args.datasets:
-            # no standardization captures more variance in PCs
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --no_standardize'.format(run_dir, method, 'Dropseq', 'CELseq2'))
+            # Dropseq -> CELseq2
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --input_space {}'.format(run_dir, method, 'Dropseq', 'CELseq2', input_space))
             for ct in celltypes_available['CellBench']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --leaveOut {} --no_standardize'.format(run_dir, method, 'Dropseq', 'CELseq2', ct))
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'Dropseq', 'CELseq2', ct, input_space))
+            # Dropseq -> 10x
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --input_space {}'.format(run_dir, method, 'Dropseq', '10x', input_space))
+            for ct in celltypes_available['CellBench']:
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'Dropseq', '10x', ct, input_space))
+            # CELseq2 -> 10x
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --input_space {}'.format(run_dir, method, 'CELseq2', '10x', input_space))
+            for ct in celltypes_available['CellBench']:
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'CELseq2', '10x', ct, input_space))
 
         if 'panc8' in args.datasets:
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --no_standardize'.format(run_dir, method, 'celseq', 'fluidigmc1'))
+            # celseq -> fluidigmc1
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'celseq', 'fluidigmc1', input_space))
             for ct in celltypes_available['panc8']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --no_standardize'.format(run_dir, method, 'celseq', 'fluidigmc1', ct))
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'celseq', 'fluidigmc1', ct, input_space))
+            # celseq -> celseq2
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'celseq', 'celseq2', input_space))
+            for ct in celltypes_available['panc8']:
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'celseq', 'celseq2', ct, input_space))
+            # celseq -> smartseq2
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'celseq', 'smartseq2', input_space))
+            for ct in celltypes_available['panc8']:
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'celseq', 'smartseq2', ct, input_space))
+            # celseq -> indrop1
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'celseq', 'indrop1', input_space))
+            for ct in celltypes_available['panc8']:
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'celseq', 'indrop1', ct, input_space))
+            # indrop1 -> indrop2
+            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'indrop1', 'indrop2', input_space))
+            for ct in celltypes_available['panc8']:
+                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'indrop1', 'indrop2', ct, input_space))
 
     
     commands_file = root / Path('_tmp_commands_list.txt')
@@ -90,10 +126,10 @@ if __name__ == '__main__':
         for command_line in job_commands:
             print(command_line)
             f.write(command_line + '\n')
-    slurm_out = root / Path('scrna_train_array_%A_%a.out')
-    slurm_err = root / Path('scrna_train_array_%A_%a.err')  
-    submit_cmd = 'sbatch --job-name {} -p {} -n 1 -c {} --mem-per-cpu {} --array=0-{} --mail-user {} --mail-type FAIL --output {} --error {} slurm_array.sh {}'.format('align_exp', args.partition, args.n_cpu, args.mem, len(job_commands)-1, args.email, slurm_out, slurm_err, commands_file)
+    slurm_out = root / Path('slurm_array_%A_%a.out')
+    slurm_err = root / Path('slurm_array_%A_%a.err')  
+    submit_cmd = 'sbatch --job-name {} -p {} -n 1 -c {} --mem-per-cpu {} --array=0-{} --mail-user {} --mail-type FAIL --output {} --error {} singularity_execute.sh slurm_array.sh {}'.format('align_exp', args.partition, args.n_cpu, args.mem, len(job_commands)-1, args.email, slurm_out, slurm_err, commands_file)
     print(submit_cmd)
-    #subprocess.run(submit_cmd.split())
+    subprocess.run(submit_cmd.split())
 
 

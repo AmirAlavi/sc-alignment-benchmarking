@@ -13,6 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 from os import makedirs
 from os.path import exists, join
+import tempfile
 
 #get_ipython().run_line_magic('matplotlib', 'inline')
 import numpy as np
@@ -60,10 +61,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     def create_working_directory(out_path):
-        if exists(out_path):
+        try:
+            makedirs(out_path)
+        except FileExistsError:
             time_str = time.strftime("%Y_%m_%d-%H_%M_%S")
-            out_path = '{}_{}'.format(out_path, time_str)
-        makedirs(out_path)
+            out_path = tempfile.mkdtemp(prefix='{}_{}_'.format(out_path, time_str), dir='.')
         return out_path
 
     experiment_name = 'experiment' if args.output_folder is None else args.output_folder
@@ -81,7 +83,7 @@ if __name__ == '__main__':
     datasets = {}
     datasets[args.dataset] = data.get_data(args.dataset, args)
     # if args.input_space == 'PCA' or args.method == 'None':
-    embed.embed(datasets, args.dataset, args.n_PC, do_standardize=not args.no_standardize, log_dir=log_dir)
+    embed.embed(datasets, args.dataset, args.n_PC, do_standardize=args.standardize, log_dir=log_dir)
     embed.visualize(datasets, args.dataset, cell_type_key=celltype_columns[args.dataset], batch_key=batch_columns[args.dataset], log_dir=log_dir)
 
     #%%
@@ -151,7 +153,13 @@ if __name__ == '__main__':
         task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
         plot_alignment_results(log_dir, task_adata, method_key, task)
         lisi_score = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
-    clf_score = metrics.classification_test(task_adata, method_key, task, use_PCA=args.input_space=='PCA')
+    #clf_score = metrics.classification_test(task_adata, method_key, task, use_PCA=args.input_space=='PCA')
+    # temporary dummy values, don't use classification scoring for now, it's not finished / it's broken
+    clf_score = {
+        'target_acc': 0.,
+        'source_acc': 0.,
+        'source_aligned_acc': 0.,
+    }
     result = {
         'lisi': lisi_score,
         'clf': clf_score,
