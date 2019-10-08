@@ -164,7 +164,8 @@ if __name__ == '__main__':
         'lisi': lisi_score,
         'clf': clf_score,
         'alignment_task': task,
-        'method': args.method
+        'method': args.method,
+        'log_dir': log_dir
     }
     print('iLISI: {}'.format(lisi_score[task.batch_key].mean()))
     print('cLISI: {}'.format(lisi_score[task.ct_key].mean()))

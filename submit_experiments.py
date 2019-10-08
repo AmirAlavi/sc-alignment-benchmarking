@@ -3,7 +3,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from dataset_info import batch_columns, celltype_columns, batches_available, celltypes_available
+from dataset_info import batch_columns, celltype_columns, batches_available, celltypes_available, sources_targets_selected
 
 def get_parser():
     parser = argparse.ArgumentParser('submit-experiments', description='Submit multiple alignment experiment jobs.',
@@ -37,12 +37,12 @@ def get_parser():
     # panc8.add_argument('--panc8LeaveOut', nargs='*', help='Leave-out cell types for panc8 data.', default=['alpha', 'beta'])
 
     # icp = parser.add_argument_group('ICP options')
-    # icp.add_argument('--source_match_thresh', help='Portion of source points that need to be matched to a target point', type=float, default=0.5)
+    parser.add_argument('--source_match_thresh', help='Portion of source points that need to be matched to a target point', type=float, default=0.5)
     # icp.add_argument('--epochs', help='Number of iterations to run fitting (training).', type=int, default=100)
-    # icp.add_argument('--xentropy_loss_wt', help='For ICP + xentropy, the weight of the xentropy penalty', type=float, default=10)
+    parser.add_argument('--xentropy_loss_wt', help='For ICP + xentropy, the weight of the xentropy penalty', type=float, default=10)
     # icp.add_argument('--nlayers', help='Number of layers in neural network data transformer.', type=int, choices=[1, 2], default=1)
     # icp.add_argument('--act', help='Activation function to use in neural network (only for 2 layer nets).', )
-    # icp.add_argument('--bias', help='Use bias term in neural nets.', action='store_true')
+    parser.add_argument('--bias', help='Use bias term in neural nets.', action='store_true')
     # icp.add_argument('--lr', help='Learning rate in fitting.', type=float, default=1e-3)
     # icp.add_argument('--plot_every_n', help='Plot the data using the neural net aligner every n steps.', type=int, default=5)
     
@@ -59,6 +59,7 @@ def get_parser():
 
     return parser
 
+# TODO: move to a 'method_info.py' file
 IN_SPACES = {
     'None': 'GENE',
     'MNN': 'GENE',
@@ -68,6 +69,8 @@ IN_SPACES = {
     'ICP2_xentropy': 'PCA',
     'ScAlign': 'PCA'
 }
+
+
 
 if __name__ == '__main__':
     args = get_parser().parse_args()
@@ -79,48 +82,18 @@ if __name__ == '__main__':
     for method in args.methods:
         run_dir = root / method.lower()
         input_space = IN_SPACES[method]
-        if 'Kowalcyzk' in args.datasets:
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset Kowalcyzk --source {} --target {} --input_space {}'.format(run_dir, method, 'young', 'old', input_space))
-            for ct in celltypes_available['Kowalcyzk']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset Kowalcyzk --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'young', 'old', ct, input_space))
-
-        if 'CellBench' in args.datasets:
-            # Dropseq -> CELseq2
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --input_space {}'.format(run_dir, method, 'Dropseq', 'CELseq2', input_space))
-            for ct in celltypes_available['CellBench']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'Dropseq', 'CELseq2', ct, input_space))
-            # Dropseq -> 10x
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --input_space {}'.format(run_dir, method, 'Dropseq', '10x', input_space))
-            for ct in celltypes_available['CellBench']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'Dropseq', '10x', ct, input_space))
-            # CELseq2 -> 10x
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --input_space {}'.format(run_dir, method, 'CELseq2', '10x', input_space))
-            for ct in celltypes_available['CellBench']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset CellBench --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'CELseq2', '10x', ct, input_space))
-
-        if 'panc8' in args.datasets:
-            # celseq -> fluidigmc1
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'celseq', 'fluidigmc1', input_space))
-            for ct in celltypes_available['panc8']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'celseq', 'fluidigmc1', ct, input_space))
-            # celseq -> celseq2
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'celseq', 'celseq2', input_space))
-            for ct in celltypes_available['panc8']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'celseq', 'celseq2', ct, input_space))
-            # celseq -> smartseq2
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'celseq', 'smartseq2', input_space))
-            for ct in celltypes_available['panc8']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'celseq', 'smartseq2', ct, input_space))
-            # celseq -> indrop1
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'celseq', 'indrop1', input_space))
-            for ct in celltypes_available['panc8']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'celseq', 'indrop1', ct, input_space))
-            # indrop1 -> indrop2
-            job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --input_space {}'.format(run_dir, method, 'indrop1', 'indrop2', input_space))
-            for ct in celltypes_available['panc8']:
-                job_commands.append('python alignment_experiment.py -o {} --method {} --dataset panc8 --source {} --target {} --leaveOut {} --input_space {}'.format(run_dir, method, 'indrop1', 'indrop2', ct, input_space))
-
-    
+        for ds in args.datasets:
+            for source_target in sources_targets_selected[ds]:
+                cmd = 'python alignment_experiment.py -o {} --method {} --dataset {} --source {} --target {} --input_space {} --xentropy_loss_wt {} --source_match_thresh {}'.format(run_dir, method, ds, source_target[0], source_target[1], input_space, args.xentropy_loss_wt, args.source_match_thresh)
+                if args.bias:
+                    cmd += ' --bias'
+                job_commands.append(cmd)
+                for ct in celltypes_available[ds]:
+                    cmd = 'python alignment_experiment.py -o {} --method {} --dataset {} --source {} --target {} --input_space {} --xentropy_loss_wt {} --source_match_thresh {} --leaveOut {}'.format(run_dir, method, ds, source_target[0], source_target[1], input_space, args.xentropy_loss_wt, args.source_match_thresh, ct)
+                    if args.bias:
+                        cmd += ' --bias'
+                    job_commands.append(cmd)
+        
     commands_file = root / Path('_tmp_commands_list.txt')
     with open(commands_file, 'w') as f:
         for command_line in job_commands:
@@ -131,5 +104,3 @@ if __name__ == '__main__':
     submit_cmd = 'sbatch --job-name {} -p {} -n 1 -c {} --mem-per-cpu {} --array=0-{} --mail-user {} --mail-type FAIL --output {} --error {} singularity_execute.sh slurm_array.sh {}'.format('align_exp', args.partition, args.n_cpu, args.mem, len(job_commands)-1, args.email, slurm_out, slurm_err, commands_file)
     print(submit_cmd)
     subprocess.run(submit_cmd.split())
-
-

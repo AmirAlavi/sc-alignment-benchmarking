@@ -21,3 +21,9 @@ celltypes_available = {
     'CellBench': ["H1975", "H2228", "HCC827"],
     'panc8': ["alpha", "beta", "ductal", "acinar"]
 }
+
+sources_targets_selected = {
+    'Kowalcyzk': [('young', 'old')],
+    'CellBench': [('Dropseq', 'CELseq2'), ('Dropseq', '10x'), ('CELseq2', '10x')],
+    'panc8': [('celseq', 'fluidigmc1'), ('celseq', 'fluidigmc1'), ('celseq', 'celseq2'), ('celseq', 'smartseq2'), ('celseq', 'smartseq2'), ('indrop1', 'indrop2')]
+}

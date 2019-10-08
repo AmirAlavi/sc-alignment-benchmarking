@@ -216,6 +216,36 @@ def plot_tsne_tboard(tboard, A, B, type_index_dict):
     plt.legend()
     tboard.add_figure('train/tsne_original_labels', fig)
 
+def log_hparams(tboard, other_args, working_dir,
+        mse_loss_function,
+        n_layers=1,
+        bias=False,
+        act=None,
+        l2_reg=0.,
+        epochs=100,
+        lr=1e-3,
+        momentum=0.9,
+        standardize=True,
+        xentropy_loss_weight=0.,
+        plot_every_n_steps=10):
+    hp = {
+        'log_dir': working_dir,
+        'method_name': other_args.method,
+        'mse_loss_fcn': str(mse_loss_function),
+        'source_match_threshold': other_args.source_match_thresh,
+        'n_layers': n_layers,
+        'bias': bias,
+        'act': act,
+        'l2_reg': l2_reg,
+        'epochs': epochs,
+        'lr': lr,
+        'momentum': momentum,
+        'standardize': standardize,
+        'xentropy_loss_weight': xentropy_loss_weight,
+        'plot_every_n': plot_every_n_steps
+    }
+    tboard.hparams(hp, {'loss': None})
+    
 def ICP(A, B, type_index_dict,
         working_dir,
         mse_loss_function,
@@ -251,6 +281,7 @@ def ICP(A, B, type_index_dict,
         transformer, lin_layer_indices = get_2_layer_affine_transformer(A.shape[1], act=act, bias=bias)
     print(transformer)
     tboard = create_summary_writer(transformer, A[0], working_dir)
+    # when supported, call, log_hparams here
     transformer.to(device)
 
     # Plot the original data in tensorboard for quick visual comparison:
