@@ -34,7 +34,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                             epochs=args.epochs,
                             lr=args.lr,
                             momentum=0.9,
-                            l2_reg=0.,
+                            l2_reg=args.l2_reg,
                             xentropy_loss_weight=0.0,
                             plot_every_n_steps=args.plot_every_n)
     elif method_name == 'ICP2':
@@ -49,7 +49,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                             epochs=args.epochs,
                             lr=args.lr,
                             momentum=0.9,
-                            l2_reg=0.,
+                            l2_reg=args.l2_reg,
                             xentropy_loss_weight=0.0,
                             plot_every_n_steps=args.plot_every_n)
 #             elif method == 'ICP2_act':
@@ -70,7 +70,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                             epochs=args.epochs,
                             lr=args.lr,
                             momentum=0.9,
-                            l2_reg=0.,
+                            l2_reg=args.l2_reg,
                             xentropy_loss_weight=args.xentropy_loss_wt,
                             plot_every_n_steps=args.plot_every_n) 
     aligner_fcn = lambda x: aligner(torch.from_numpy(x).float()).detach().numpy()

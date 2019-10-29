@@ -35,6 +35,7 @@ import comparison_plots
 import metrics
 import runners
 import cli
+from de_test import de_comparison
 # import importlib
 # importlib.reload(icp)
 # importlib.reload(data)
@@ -153,13 +154,9 @@ if __name__ == '__main__':
         task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
         plot_alignment_results(log_dir, task_adata, method_key, task)
         lisi_score = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
-    #clf_score = metrics.classification_test(task_adata, method_key, task, use_PCA=args.input_space=='PCA')
-    # temporary dummy values, don't use classification scoring for now, it's not finished / it's broken
-    clf_score = {
-        'target_acc': 0.,
-        'source_acc': 0.,
-        'source_aligned_acc': 0.,
-    }
+    clf_score = None
+    if args.method != 'ScAlign':
+        clf_score = metrics.knn_classification_test(task_adata, method_key, task, use_PCA=args.input_space=='PCA')
     result = {
         'lisi': lisi_score,
         'clf': clf_score,
@@ -167,6 +164,9 @@ if __name__ == '__main__':
         'method': args.method,
         'log_dir': log_dir
     }
+    if args.method != 'ScAlign' and args.input_space == 'GENE':
+        # Do Differential Expression Test
+        de_comparison(task_adata, method_key, task, log_dir)
     print('iLISI: {}'.format(lisi_score[task.batch_key].mean()))
     print('cLISI: {}'.format(lisi_score[task.ct_key].mean()))
     with open(join(log_dir, 'results.pickle'), 'wb') as f:

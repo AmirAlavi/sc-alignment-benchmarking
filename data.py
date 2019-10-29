@@ -10,13 +10,16 @@ FILTER_MIN_DETECTED = 5
 
 def get_data(dataset, args):
     if dataset == 'Kowalcyzk':
-        return get_kowalcyzk()
+        data = get_kowalcyzk()
     elif dataset == 'CellBench':
-        return get_cellbench()
+        data = get_cellbench()
     elif dataset == 'panc8':
-        return get_panc8(args)
+        data = get_panc8(args)
     elif dataset == 'panc8-all':
-        return get_panc82()
+        data = get_panc82()
+    if args.filter_hvg:
+        data = preprocessing.filter_hvg(data)
+    return data
 
 def get_kowalcyzk():
     # Load and clean

@@ -20,6 +20,7 @@ def get_parser():
     parser.add_argument('--n_cpu', help='Number of CPUs per job.', type=int, default=2)
     parser.add_argument('--mem', help='Amount of memory (per cpu)', default='8G')
     parser.add_argument('--email', help='Email to send slurm status to.', required=True)
+    parser.add_argument('--filter_hvg', help='Filter hvg', action='store_true')
 
     # cellbench = parser.add_argument_group('CellBench Options')
     # cellbench.add_argument('--CellBenchSource', help='Source batch for CellBench data.', default='Dropseq')
@@ -40,6 +41,7 @@ def get_parser():
     parser.add_argument('--source_match_thresh', help='Portion of source points that need to be matched to a target point', type=float, default=0.5)
     # icp.add_argument('--epochs', help='Number of iterations to run fitting (training).', type=int, default=100)
     parser.add_argument('--xentropy_loss_wt', help='For ICP + xentropy, the weight of the xentropy penalty', type=float, default=10)
+    parser.add_argument('--l2_reg', help='l2 reg weight', type=float, default=0.)
     # icp.add_argument('--nlayers', help='Number of layers in neural network data transformer.', type=int, choices=[1, 2], default=1)
     # icp.add_argument('--act', help='Activation function to use in neural network (only for 2 layer nets).', )
     parser.add_argument('--bias', help='Use bias term in neural nets.', action='store_true')
@@ -66,8 +68,8 @@ IN_SPACES = {
     'SeuratV3': 'GENE',
     'ICP': 'PCA',
     'ICP2': 'PCA',
-    'ICP2_xentropy': 'PCA',
-    'ScAlign': 'PCA'
+    'ICP2_xentropy': 'GENE',
+    'ScAlign': 'GENE'
 }
 
 
@@ -84,14 +86,18 @@ if __name__ == '__main__':
         input_space = IN_SPACES[method]
         for ds in args.datasets:
             for source_target in sources_targets_selected[ds]:
-                cmd = 'python alignment_experiment.py -o {} --method {} --dataset {} --source {} --target {} --input_space {} --xentropy_loss_wt {} --source_match_thresh {}'.format(run_dir, method, ds, source_target[0], source_target[1], input_space, args.xentropy_loss_wt, args.source_match_thresh)
+                cmd = 'python alignment_experiment.py -o {} --method {} --dataset {} --source {} --target {} --input_space {} --xentropy_loss_wt {} --source_match_thresh {} --l2_reg {}'.format(run_dir, method, ds, source_target[0], source_target[1], input_space, args.xentropy_loss_wt, args.source_match_thresh, args.l2_reg)
                 if args.bias:
                     cmd += ' --bias'
+                if args.filter_hvg:
+                    cmd += ' --filter_hvg'
                 job_commands.append(cmd)
                 for ct in celltypes_available[ds]:
-                    cmd = 'python alignment_experiment.py -o {} --method {} --dataset {} --source {} --target {} --input_space {} --xentropy_loss_wt {} --source_match_thresh {} --leaveOut {}'.format(run_dir, method, ds, source_target[0], source_target[1], input_space, args.xentropy_loss_wt, args.source_match_thresh, ct)
+                    cmd = 'python alignment_experiment.py -o {} --method {} --dataset {} --source {} --target {} --input_space {} --xentropy_loss_wt {} --source_match_thresh {} --leaveOut {} --l2_reg {}'.format(run_dir, method, ds, source_target[0], source_target[1], input_space, args.xentropy_loss_wt, args.source_match_thresh, ct, args.l2_reg)
                     if args.bias:
                         cmd += ' --bias'
+                    if args.filter_hvg:
+                        cmd += ' --filter_hvg'
                     job_commands.append(cmd)
         
     commands_file = root / Path('_tmp_commands_list.txt')

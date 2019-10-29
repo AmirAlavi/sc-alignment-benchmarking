@@ -1,6 +1,7 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.preprocessing import LabelEncoder
+from sklearn.neighbors import KNeighborsClassifier
 import pandas as pd
 import numpy as np
 
@@ -71,3 +72,39 @@ def classification_test(task_adata, method_key, alignment_task, use_PCA=False):
     }
     return scores
 
+def knn_classification_test(task_adata, method_key, alignment_task, use_PCA=False):
+    #import pdb; pdb.set_trace()
+    # Train a classifier on just the Target batch
+    # Then compare performance of applying it on raw source batch
+    # versus on transformed source batch
+    print('Computing classification performance...')
+    source_aligned_x, source_x, target_x, source_y, target_y = get_source_target(task_adata, method_key, alignment_task, use_PCA)
+
+    #clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
+    clf = KNeighborsClassifier()
+    clf.fit(target_x, target_y)
+    #pred_target_y = clf.predict(target_x)
+    pred_source_y = clf.predict(source_x)
+    pred_source_aligned_y = clf.predict(source_aligned_x)
+
+    #target_acc = accuracy_score(target_y, pred_target_y)
+    source_acc = accuracy_score(source_y, pred_source_y)
+    source_aligned_acc = accuracy_score(source_y, pred_source_aligned_y)
+
+    # score_target_y = clf.predict_proba(target_x)
+    # score_source_y = clf.predict_proba(source_x)
+    # score_source_aligned_y = clf.predict_proba(source_aligned_x)
+
+    # target_auc = roc_auc_score(target_y, score_target_y)
+    # source_auc = roc_auc_score(source_y, score_source_y)
+    # source_aligned_auc = roc_auc_score(source_y, score_source_aligned_y)
+
+    scores = {
+#        'target_acc': target_acc,
+        'source_acc': source_acc,
+        'source_aligned_acc': source_aligned_acc,
+        # 'target_auc': target_auc,
+        # 'source_auc': source_auc,
+        # 'source_aligned_auc': source_aligned_auc
+    }
+    return scores

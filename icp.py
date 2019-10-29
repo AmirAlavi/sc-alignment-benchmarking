@@ -123,7 +123,11 @@ def closest_point_loss(A, B):
 
 def relaxed_match_loss(A, B, source_match_threshold=1.0, target_match_limit=2, do_mean=True):
     # build distance matrix
+    t0 = datetime.datetime.now()
     loss = torch.cdist(A, B, p=2)
+    t1 = datetime.datetime.now()
+    time_str = pretty_tdelta(t1 - t0)
+    print('cdist took ' + time_str)
     loss = loss**2
     if do_mean:
         loss /= A.shape[1]
@@ -131,7 +135,11 @@ def relaxed_match_loss(A, B, source_match_threshold=1.0, target_match_limit=2, d
     # iteratively building up a mask that selects those matches
     mask = np.zeros(loss.shape, dtype=np.float32)
     # sort the distances by smallest->largest
+    t0 = datetime.datetime.now()
     sorted_idx = np.stack(np.unravel_index(np.argsort(loss.detach().numpy().ravel()), loss.shape), axis=1)
+    t1 = datetime.datetime.now()
+    time_str = pretty_tdelta(t1 - t0)
+    print('sorting took ' + time_str)
     target_matched_counts = defaultdict(int)
     source_matched = set()
     matched = 0

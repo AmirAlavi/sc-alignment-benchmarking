@@ -150,8 +150,10 @@ if __name__ == '__main__':
         acc = []
         # auc = []
         for r in results:
-            method.extend([r['method']]*3)
-            for dataset in ['target', 'source', 'source_aligned']:
+            if r['clf'] == None:
+                continue
+            method.extend([r['method']]*2)
+            for dataset in ['source', 'source_aligned']:
                 data.append(dataset)
                 acc.append(r['clf']['{}_acc'.format(dataset)])
                 # auc.append(r['clf']['{}_auc'.format(dataset)])

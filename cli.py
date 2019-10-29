@@ -22,11 +22,13 @@ def get_parser():
     icp.add_argument('--source_match_thresh', help='Portion of source points that need to be matched to a target point', type=float, default=0.5)
     icp.add_argument('--epochs', help='Number of iterations to run fitting (training).', type=int, default=100)
     icp.add_argument('--xentropy_loss_wt', help='For ICP + xentropy, the weight of the xentropy penalty', type=float, default=10)
+    icp.add_argument('--l2_reg', help='L2 regularization weight.', type=float, default=0.)
     icp.add_argument('--nlayers', help='Number of layers in neural network data transformer.', type=int, choices=[1, 2], default=1)
     icp.add_argument('--act', help='Activation function to use in neural network (only for 2 layer nets).', )
     icp.add_argument('--bias', help='Use bias term in neural nets.', action='store_true')
     icp.add_argument('--lr', help='Learning rate in fitting.', type=float, default=1e-3)
     icp.add_argument('--plot_every_n', help='Plot the data using the neural net aligner every n steps.', type=int, default=5)
+    icp.add_argument('--filter_hvg', help='Filter down to only highly variable genes.', action='store_true')
     
     scalign = parser.add_argument_group('ScAlign options')
     scalign.add_argument('--scalign_max_steps', help='Maximum epochs.', type=int, default=15000)
