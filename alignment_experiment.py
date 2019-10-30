@@ -1,5 +1,6 @@
 # import pdb; pdb.set_trace()
 # To add a new cell, type '#%%'
+
 # To add a new markdown cell, type '#%% [markdown]'
 #%%
 #from IPython import get_ipython
@@ -164,11 +165,15 @@ if __name__ == '__main__':
         'method': args.method,
         'log_dir': log_dir
     }
-    if args.method != 'ScAlign' and args.input_space == 'GENE':
+    if args.method != 'ScAlign' and args.input_space == 'GENE' and args.do_DE_test:
         # Do Differential Expression Test
         de_comparison(task_adata, method_key, task, log_dir)
+    print('LISI averages:')
     print('iLISI: {}'.format(lisi_score[task.batch_key].mean()))
     print('cLISI: {}'.format(lisi_score[task.ct_key].mean()))
+    print('\nLISI medians:')
+    print('iLISI: {}'.format(lisi_score[task.batch_key].median()))
+    print('cLISI: {}'.format(lisi_score[task.ct_key].median()))
     with open(join(log_dir, 'results.pickle'), 'wb') as f:
         pickle.dump(result, f)
 

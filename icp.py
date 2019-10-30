@@ -47,6 +47,18 @@ def Hbeta(D, beta):
     P = P / sumP
     return H, P
 
+def compute_Gaussian_kernel_with_precision(X, precisions):
+    n, d = X.shape
+    dist = X.unsqueeze(1) - X.unsqueeze(0)
+    dist = dist**2
+    dist = dist.sum(dim=-1)
+
+    P = torch.zeros((n, n))
+    for i in range(n):
+        H, thisP = Hbeta(dist[i], precisions[i])
+        P[i, :] = thisP
+    return P
+
 def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
     n, d = X.shape
     dist = X.unsqueeze(1) - X.unsqueeze(0)
@@ -82,7 +94,7 @@ def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
             Hdiff = H - logU
             tries += 1
         P[i, :] = thisP
-    return P
+    return P, beta
 
 # ----------------------------------------------------------------------------
 # --------------------------ARCHITECTURES-------------------------------------
@@ -127,7 +139,7 @@ def relaxed_match_loss(A, B, source_match_threshold=1.0, target_match_limit=2, d
     loss = torch.cdist(A, B, p=2)
     t1 = datetime.datetime.now()
     time_str = pretty_tdelta(t1 - t0)
-    print('cdist took ' + time_str)
+    #print('cdist took ' + time_str)
     loss = loss**2
     if do_mean:
         loss /= A.shape[1]
@@ -139,7 +151,7 @@ def relaxed_match_loss(A, B, source_match_threshold=1.0, target_match_limit=2, d
     sorted_idx = np.stack(np.unravel_index(np.argsort(loss.detach().numpy().ravel()), loss.shape), axis=1)
     t1 = datetime.datetime.now()
     time_str = pretty_tdelta(t1 - t0)
-    print('sorting took ' + time_str)
+    #print('sorting took ' + time_str)
     target_matched_counts = defaultdict(int)
     source_matched = set()
     matched = 0
@@ -161,9 +173,10 @@ def relaxed_match_loss(A, B, source_match_threshold=1.0, target_match_limit=2, d
 
 """ Also adds loss terms to enforce that pairwise distances are maintained
 """
-def xentropy_loss(A, original_A_kernel):
+def xentropy_loss(A, original_A_kernel, precisions):
     # Compute cross-entropy loss
-    kernel_mat = compute_Gaussian_kernel(A)
+    #kernel_mat, _ = compute_Gaussian_kernel(A)
+    kernel_mat = compute_Gaussian_kernel_with_precision(A, precisions)
     #kernel_mat_original = compute_Gaussian_kernel(original_A)
     safe_log = torch.log(torch.max(original_A_kernel, torch.tensor(1e-9, dtype=torch.float32)))
     xentropy_loss = torch.sum(torch.sum(-kernel_mat * safe_log, dim=1)) / A.shape[0]
@@ -300,7 +313,7 @@ def ICP(A, B, type_index_dict,
     prev_transformed = A
     if xentropy_loss_weight > 0:
         # Compute the Gaussian kernel for the original data once, reuse later
-        A_kernel = compute_Gaussian_kernel(A)
+        A_kernel, precisions = compute_Gaussian_kernel(A)
     t0 = datetime.datetime.now()
     for i in trange(epochs):
         try:
@@ -324,7 +337,7 @@ def ICP(A, B, type_index_dict,
             tboard.add_scalar('training/uniq_targets_matched', len(unique_target_matches), i)
             total_loss += mse_loss
             if xentropy_loss_weight > 0:
-                source_xentropy_loss = xentropy_loss(A_transformed, A_kernel)
+                source_xentropy_loss = xentropy_loss(A_transformed, A_kernel, precisions)
                 tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), i)
                 total_loss += xentropy_loss_weight * source_xentropy_loss
             tboard.add_scalar('training/total_loss', total_loss.item(), i)
