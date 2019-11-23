@@ -142,7 +142,11 @@ if __name__ == '__main__':
         lisi_score = metrics.lisi2(task_adata.obsm['PCA'], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
     else:
         if 'ICP' in args.method:
-            runners.run_ICP_methods(datasets, task, task_adata, args.method, log_dir, args)
+            if args.method == 'ICP_align':
+                method_key = f'ICP_align_{args.matching_algo[:5]}_x_{args.xentropy_loss_wt}_reg_{args.l2_reg}'
+            else:
+                method_key = args.method
+            runners.run_ICP_methods(datasets, task, task_adata, method_key, log_dir, args)
         elif args.method == 'ScAlign':
             runners.run_scAlign(datasets, task, task_adata, args.method, log_dir, args)
         elif args.method == 'MNN':

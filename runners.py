@@ -1,3 +1,4 @@
+import math
 from functools import partial
 import subprocess
 from pathlib import Path
@@ -16,7 +17,10 @@ import icp
 import alignment_task
 
 def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
-    method_key = '{}_aligned'.format(method_name)
+    if 'ICP_align' in method_name:
+        method_key = method_name
+    else:
+        method_key = '{}_aligned'.format(method_name)
     if args.input_space == 'PCA':
         A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=True)
     else:
@@ -72,7 +76,46 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                             momentum=0.9,
                             l2_reg=args.l2_reg,
                             xentropy_loss_weight=args.xentropy_loss_wt,
-                            plot_every_n_steps=args.plot_every_n) 
+                            plot_every_n_steps=args.plot_every_n)
+    elif 'ICP_align' in method_name:
+        if args.matching_algo == 'closest':
+            assignment_fn = icp.assign_closest_points
+            print('USING MATCHING ALGO: CLOSEST')
+        elif args.matching_algo == 'greedy':
+            assignment_fn = partial(icp.assign_greedy, source_match_threshold=args.source_match_thresh, target_match_limit=args.target_match_limit)
+            print('USING MATCHING ALGO: GREEDY')
+        elif args.matching_algo == 'hungarian':
+            n_to_match = math.floor(args.source_match_thresh * min(A.shape[0], B.shape[0]))
+            assignment_fn = partial(icp.assign_hungarian, n_to_match=n_to_match)
+            print('USING MATCHING ALGO: HUNGARIAN')
+        aligner = icp.ICP_converge(A, B, type_index_dict,
+                                   working_dir=log_dir,
+                                   assignment_fn=assignment_fn,
+                                   n_layers=args.nlayers,
+                                   bias=args.bias,
+                                   act=args.act,
+                                   steps=args.steps,
+                                   max_epochs=args.epochs,
+                                   lr=args.lr,
+                                   momentum=0.9,
+                                   l2_reg=args.l2_reg,
+                                   xentropy_loss_weight=args.xentropy_loss_wt,
+                                   plot_every_n_steps=args.plot_every_n)
+    elif method_name == 'ICP2_xentropy_converge':
+        assignment_fn = partial(icp.assign_greedy, source_match_threshold=args.source_match_thresh)
+        aligner = icp.ICP_converge(A, B, type_index_dict,
+                                   working_dir=log_dir,
+                                   assignment_fn=assignment_fn,
+                                   n_layers=args.nlayers,
+                                   bias=args.bias,
+                                   act=args.act,
+                                   steps=args.steps,
+                                   max_epochs=args.epochs,
+                                   lr=args.lr,
+                                   momentum=0.9,
+                                   l2_reg=args.l2_reg,
+                                   xentropy_loss_weight=args.xentropy_loss_wt,
+                                   plot_every_n_steps=args.plot_every_n)
     aligner_fcn = lambda x: aligner(torch.from_numpy(x).float()).detach().numpy()
     #standardizing because it was fitted with standardized data (see ICP code)
     scaler = StandardScaler().fit(np.concatenate((A,B)))

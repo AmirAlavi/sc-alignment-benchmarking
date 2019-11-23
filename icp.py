@@ -1,5 +1,5 @@
 # Code for ICP methods
-
+import math
 from collections import defaultdict
 import datetime
 
@@ -11,6 +11,9 @@ from torch.utils.tensorboard import SummaryWriter
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+import networkx as nx
+import scipy
+from scipy.optimize import linear_sum_assignment
 import matplotlib.pyplot as plt
 from tqdm import tnrange, trange
 
@@ -121,6 +124,74 @@ def get_2_layer_affine_transformer(ndims, act=None, bias=False):
 # -------------------------LOSS FUNCTIONS-------------------------------------
 # ----------------------------------------------------------------------------
 
+def get_distance_matrix(A, B, do_mean=True):
+    dist = torch.cdist(A, B, p=2)
+    dist = dist**2
+    if do_mean:
+        dist /= A.shape[1]
+    return dist
+
+def assign_closest_points(dist_mat):
+    _, idx = dist_mat.min(dim=1, keepdim=True)
+    return torch.zeros_like(dist_mat).scatter_(1, idx, 1) # converts the indices of the closest points to one-hot binary masks
+
+def assign_greedy(dist_mat, source_match_threshold=1.0, target_match_limit=2):
+    # Select pairs that should be matched between set A and B,
+    # iteratively building up a mask that selects those matches
+    mask = np.zeros(dist_mat.shape, dtype=np.float32)
+    # sort the distances by smallest->largest
+    t0 = datetime.datetime.now()
+    sorted_idx = np.stack(np.unravel_index(np.argsort(dist_mat.detach().numpy().ravel()), dist_mat.shape), axis=1)
+    t1 = datetime.datetime.now()
+    time_str = pretty_tdelta(t1 - t0)
+    #print('sorting took ' + time_str)
+    target_matched_counts = defaultdict(int)
+    source_matched = set()
+    matched = 0
+    for i in range(sorted_idx.shape[0]):
+        match_idx = sorted_idx[i] # A tuple, match_idx[0] is index of the pair in set A, match_idx[1] " " B
+        if target_matched_counts[match_idx[1]] < target_match_limit and match_idx[0] not in source_matched:
+            # if the target point in this pair hasn't been matched to too much, and the source point in this
+            # pair has never been matched to, then select this pair
+            mask[match_idx[0], match_idx[1]] = 1
+            target_matched_counts[match_idx[1]] += 1
+            source_matched.add(match_idx[0])
+        if len(source_matched) > source_match_threshold * dist_mat.shape[0]:
+            # if matched enough of the source set, then stop
+            break
+    return torch.from_numpy(mask)
+
+def assign_hungarian(dist_mat, n_to_match):
+    dist_mat = dist_mat.detach().numpy()
+    row_ind, col_ind = linear_sum_assignment(dist_mat)
+    mask = np.zeros_like(dist_mat)
+    mask[row_ind, col_ind] = 1
+    if n_to_match < dist_mat.shape[0]:
+        to_sort = dist_mat * mask
+        to_sort[np.where(mask == 0)] = float('Inf')
+        sorted_idx = np.stack(np.unravel_index(np.argsort(to_sort.ravel()), dist_mat.shape), axis=1)
+        row_ind, col_ind = map(list, zip(*sorted_idx[:n_to_match]))
+        mask = np.zeros_like(dist_mat)
+        mask[row_ind, col_ind] = 1
+    return torch.from_numpy(mask)
+
+def assign_bipartite_flow(dist_mat, n_to_match):
+    import networkx as nx
+    import scipy
+    G = nx.bipartite.from_biadjacency_matrix(scipy.sparse.csr_matrix(dist_mat), nx.DiGraph)
+    source_nodes = {n for n, d in G.nodes(data=True) if d['bipartite']==0}
+    target_nodes = set(G) - source_nodes
+    G.add_node('s', demand = -1*n_to_match)
+    G.add_node('t', demand = n_to_match)
+    for n in source_nodes:
+        G.add_edge('s', n, weight=0)
+    for n in target_nodes:
+        G.add_edge(n, 't', weight=0)
+    nx.set_edge_attributes(G, 1, 'capacity')
+    flow = nx.min_cost_flow(G)
+    # TODO: convert flow assignment to binary masking matrix
+    
+
 def closest_point_loss(A, B):
     # loss = A.unsqueeze(1) - B.unsqueeze(0)
     # loss = loss**2
@@ -183,6 +254,7 @@ def xentropy_loss(A, original_A_kernel, precisions):
     return xentropy_loss
 
 def plot_step_tboard(tboard, A, B, type_index_dict, pca, step, matched_targets):
+    print(f'Matched targets: {matched_targets}')
     A_pca = pca.transform(A)
     B_pca = pca.transform(B)
     # Scatter, colored by dataset, with matching
@@ -345,6 +417,122 @@ def ICP(A, B, type_index_dict,
                 plot_step_tboard(tboard, A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, unique_target_matches)
             total_loss.backward()
             optimizer.step()
+        except KeyboardInterrupt:
+            break
+    t1 = datetime.datetime.now()
+    time_str = pretty_tdelta(t1 - t0)
+    print('Training took ' + time_str)
+    return transformer
+
+def train_transform(transformer, A, B, correspondence_mask, kernA, kernA_precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0):
+    optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+    transformer.train()
+    global_step += 1
+    for e in range(max_epochs):
+        optimizer.zero_grad()
+        total_loss = torch.tensor(0.)
+        A_transformed = transformer(A)
+        # MSE Loss
+        mse_mat = get_distance_matrix(A_transformed, B)
+        mse_loss = torch.mul(mse_mat, correspondence_mask).sum()
+        mse_loss /= torch.sum(correspondence_mask)
+        total_loss += mse_loss
+        tboard.add_scalar('training/mse_loss', mse_loss.item(), global_step)
+        # Cross-entropy loss
+        if xentropy_loss_weight > 0:
+            source_xentropy_loss = xentropy_loss(A_transformed, kernA, kernA_precisions)
+            total_loss += xentropy_loss_weight * source_xentropy_loss
+            tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), global_step)
+        total_loss.backward()
+        optimizer.step()
+        scheduler.step(total_loss)
+        tboard.add_scalar('training/total_loss', total_loss.item(), global_step)
+        def get_cur_lr(my_optimizer):
+            for param_group in my_optimizer.param_groups:
+                return param_group['lr']
+        print(f'Current LR = {get_cur_lr(optimizer)}')
+        if xentropy_loss_weight > 0:
+            print(f'\tMSE Loss = {mse_loss.item():.4} Xentropy Loss = {source_xentropy_loss.item():.4} Total Loss = {total_loss.item():.4}')
+        else:
+            print(f'\tTotal Loss = {total_loss.item():.4}')         
+        tboard.add_scalar('training/lr', get_cur_lr(optimizer), global_step)
+        global_step += 1
+
+def ICP_converge(A, B, type_index_dict,
+                 working_dir,
+                 assignment_fn,
+                 n_layers=1,
+                 bias=False,
+                 act=None,
+                 l2_reg=0.,
+                 steps=50,
+                 max_epochs=200,
+                 lr=1e-3,
+                 momentum=0.9,
+                 standardize=True,
+                 xentropy_loss_weight=0.,
+                 plot_every_n_steps=10):
+    print('Looking for GPU to use...')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device {}'.format(device))
+    if standardize:
+        scaler = StandardScaler().fit(np.concatenate((A, B)))
+        A = scaler.transform(A)
+        B = scaler.transform(B)
+    # Fit a PCA model on the original data and use this same model for all
+    # PCA visualizations so that we have a constant coordinate system to track changes in
+    combined = np.concatenate((A, B))
+    pca = PCA(n_components=2).fit(combined)
+    # Prepare for processing by pytorch
+    A = torch.from_numpy(A).float()
+    B = torch.from_numpy(B).float()
+    assert(not isnan(A).any() and not isnan(B).any())
+    # Get transformer (a neural net)
+    if n_layers == 1:
+        transformer, lin_layer_indices = get_affine_transformer(A.shape[1], bias=bias)
+    elif n_layers == 2:
+        transformer, lin_layer_indices = get_2_layer_affine_transformer(A.shape[1], act=act, bias=bias)
+    print(transformer)
+    tboard = create_summary_writer(transformer, A[0], working_dir)
+    # when supported, call, log_hparams here
+    transformer.to(device)
+
+    # Plot the original data in tensorboard for quick visual comparison:
+    plot_tsne_tboard(tboard, A.detach().numpy(), B.detach().numpy(), type_index_dict)
+
+    prev_transformed = A
+    A_kernel = None
+    precisions = None
+    if xentropy_loss_weight > 0:
+        # Compute the Gaussian kernel for the original data once, reuse later
+        A_kernel, precisions = compute_Gaussian_kernel(A)
+    t0 = datetime.datetime.now()
+    for i in range(steps):
+        try:
+            print(f'Step {i}') 
+            # do matching
+            for idx, lin_idx in enumerate(lin_layer_indices):
+                if isnan(transformer[lin_idx].weight).any():
+                    print('encountered NaNs in weights')
+                    break
+                tboard.add_histogram('weights/lin_{}'.format(idx), values=transformer[lin_idx].weight.flatten(), global_step=i, bins='auto')
+            A_transformed = transformer(A)
+            mean_shift_norm = torch.norm(A_transformed - prev_transformed, p=1, dim=1).mean()
+            tboard.add_scalar('training/mean_shift_norm', mean_shift_norm, i)
+            prev_transformed = A_transformed
+            if isnan(A_transformed).any():
+                print('encountered NaNs in data')
+                print(transformer[0].weight.data)
+                break
+            dist_mat = get_distance_matrix(A_transformed, B)
+            pair_assignment_mask = assignment_fn(dist_mat)
+            target_hits = torch.unique(torch.where(pair_assignment_mask == 1)[1])
+            tboard.add_scalar('training/uniq_targets_matched', len(target_hits), i)
+            train_transform(transformer, A, B, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
+            if i % plot_every_n_steps == 0:
+                A_transformed = transformer(A)
+                plot_step_tboard(tboard, A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, target_hits)
         except KeyboardInterrupt:
             break
     t1 = datetime.datetime.now()

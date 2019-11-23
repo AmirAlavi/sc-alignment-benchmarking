@@ -5,7 +5,7 @@ def get_parser():
     parser = argparse.ArgumentParser('align-experiment', description='Run benchmarking on methods and datasets for scRNA-Seq dataset batch alignment (data integration)',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter, fromfile_prefix_chars='@')
 
-    parser.add_argument('--method', help='Which method to run.', required=True, choices=['None', 'ScAlign', 'MNN', 'SeuratV3', 'ICP', 'ICP2', 'ICP2_xentropy'])
+    parser.add_argument('--method', help='Which method to run.', required=True, choices=['None', 'ScAlign', 'MNN', 'SeuratV3', 'ICP', 'ICP2', 'ICP2_xentropy', 'ICP_converge', 'ICP2_xentropy_converge', 'ICP_align'])
     parser.add_argument('--dataset', help='Which dataset to run the alignment method on.', required=True, choices=['Kowalcyzk', 'CellBench', 'panc8'])
     parser.add_argument('-o', '--output_folder', help='Output folder for this experiment.')
     parser.add_argument('--standardize', help='StandardScale the input to PCA.', action='store_true')
@@ -20,8 +20,11 @@ def get_parser():
     cellbench.add_argument('--leaveOut', help='Leave-out cell type.')
 
     icp = parser.add_argument_group('ICP options')
+    icp.add_argument('--matching_algo', help='Which matching algorithm to use to pair up source points to target points.', choices=['closest', 'greedy', 'hungarian'], default='greedy')
     icp.add_argument('--source_match_thresh', help='Portion of source points that need to be matched to a target point', type=float, default=0.5)
-    icp.add_argument('--epochs', help='Number of iterations to run fitting (training).', type=int, default=100)
+    icp.add_argument('--target_match_limit', help='Maximum number of times a target point can be assigned to.', type=int, default=2)
+    icp.add_argument('--steps', help='Number of steps to run iterative point-cloud registration algorithm.', type=int, default=50)
+    icp.add_argument('--epochs', help='Number of iterations to run fitting for affine transformation.', type=int, default=200)
     icp.add_argument('--xentropy_loss_wt', help='For ICP + xentropy, the weight of the xentropy penalty', type=float, default=10)
     icp.add_argument('--l2_reg', help='L2 regularization weight.', type=float, default=0.)
     icp.add_argument('--nlayers', help='Number of layers in neural network data transformer.', type=int, choices=[1, 2], default=1)
