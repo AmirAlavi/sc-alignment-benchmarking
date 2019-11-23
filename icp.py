@@ -103,14 +103,16 @@ def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
 # --------------------------ARCHITECTURES-------------------------------------
 # ----------------------------------------------------------------------------
 
-def get_affine_transformer(ndims, bias=False):
+def get_affine_transformer(ndims, bias=False, relu_out=False):
     model = nn.Sequential()
     model.add_module('lin', nn.Linear(ndims, ndims, bias=bias))
     # The transform is initialized to be the identity transform
     model[0].weight.data.copy_(torch.eye(ndims))
+    if relu_out:
+        model.add_module('relu_final', activations['relu']())
     return model, [0]
 
-def get_2_layer_affine_transformer(ndims, act=None, bias=False):
+def get_2_layer_affine_transformer(ndims, act=None, bias=False, relu_out=False):
     model = nn.Sequential()
     model.add_module('lin_0', nn.Linear(ndims, ndims, bias=bias))
     model[0].weight.data.copy_(torch.eye(ndims))
@@ -118,7 +120,10 @@ def get_2_layer_affine_transformer(ndims, act=None, bias=False):
         model.add_module('{}_0'.format(act), activations[act]())
     model.add_module('lin_1', nn.Linear(ndims, ndims, bias=bias))
     model[-1].weight.data.copy_(torch.eye(ndims))
-    return model, [0, len(model)-1]
+    last_lin_layer_idx = len(model)-1
+    if relu_out:
+        model.add_module('relu_final', activations['relu']())
+    return model, [0, last_lin_layer_idx]
 
 # ----------------------------------------------------------------------------
 # -------------------------LOSS FUNCTIONS-------------------------------------
@@ -462,6 +467,7 @@ def train_transform(transformer, A, B, correspondence_mask, kernA, kernA_precisi
 def ICP_converge(A, B, type_index_dict,
                  working_dir,
                  assignment_fn,
+                 enforce_pos,
                  n_layers=1,
                  bias=False,
                  act=None,
@@ -490,9 +496,9 @@ def ICP_converge(A, B, type_index_dict,
     assert(not isnan(A).any() and not isnan(B).any())
     # Get transformer (a neural net)
     if n_layers == 1:
-        transformer, lin_layer_indices = get_affine_transformer(A.shape[1], bias=bias)
+        transformer, lin_layer_indices = get_affine_transformer(A.shape[1], bias=bias, relu_out=enforce_pos)
     elif n_layers == 2:
-        transformer, lin_layer_indices = get_2_layer_affine_transformer(A.shape[1], act=act, bias=bias)
+        transformer, lin_layer_indices = get_2_layer_affine_transformer(A.shape[1], act=act, bias=bias, relu_out=enforce_pos)
     print(transformer)
     tboard = create_summary_writer(transformer, A[0], working_dir)
     # when supported, call, log_hparams here

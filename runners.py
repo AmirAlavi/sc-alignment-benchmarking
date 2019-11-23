@@ -88,9 +88,14 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
             n_to_match = math.floor(args.source_match_thresh * min(A.shape[0], B.shape[0]))
             assignment_fn = partial(icp.assign_hungarian, n_to_match=n_to_match)
             print('USING MATCHING ALGO: HUNGARIAN')
+        if args.input_space == 'GENE':
+            enforce_pos=True
+        else:
+            enforce_pos=False
         aligner = icp.ICP_converge(A, B, type_index_dict,
                                    working_dir=log_dir,
                                    assignment_fn=assignment_fn,
+                                   enforce_pos=enforce_pos,
                                    n_layers=args.nlayers,
                                    bias=args.bias,
                                    act=args.act,
