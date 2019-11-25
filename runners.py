@@ -121,13 +121,15 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                                    l2_reg=args.l2_reg,
                                    xentropy_loss_weight=args.xentropy_loss_wt,
                                    plot_every_n_steps=args.plot_every_n)
-    aligner_fcn = lambda x: aligner(torch.from_numpy(x).float()).detach().numpy()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    aligner_fcn = lambda x: aligner(torch.from_numpy(x).float().to(device)).detach().cpu().numpy()
     #standardizing because it was fitted with standardized data (see ICP code)
     scaler = StandardScaler().fit(np.concatenate((A,B)))
     A = scaler.transform(A)
     B = scaler.transform(B)
     A = aligner_fcn(A)
     print(A.shape)
+    print(type(A))
     n_samples = task_adata.shape[0]
     n_dims = A.shape[1]
     task_adata.obsm[method_key] = np.zeros((n_samples, n_dims))

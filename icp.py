@@ -50,13 +50,13 @@ def Hbeta(D, beta):
     P = P / sumP
     return H, P
 
-def compute_Gaussian_kernel_with_precision(X, precisions):
+def compute_Gaussian_kernel_with_precision(X, precisions, device):
     n, d = X.shape
     dist = X.unsqueeze(1) - X.unsqueeze(0)
     dist = dist**2
     dist = dist.sum(dim=-1)
 
-    P = torch.zeros((n, n))
+    P = torch.zeros((n, n), device=device)
     for i in range(n):
         H, thisP = Hbeta(dist[i], precisions[i])
         P[i, :] = thisP
@@ -249,12 +249,12 @@ def relaxed_match_loss(A, B, source_match_threshold=1.0, target_match_limit=2, d
 
 """ Also adds loss terms to enforce that pairwise distances are maintained
 """
-def xentropy_loss(A, original_A_kernel, precisions):
+def xentropy_loss(A, original_A_kernel, precisions, device):
     # Compute cross-entropy loss
     #kernel_mat, _ = compute_Gaussian_kernel(A)
-    kernel_mat = compute_Gaussian_kernel_with_precision(A, precisions)
+    kernel_mat = compute_Gaussian_kernel_with_precision(A, precisions, device)
     #kernel_mat_original = compute_Gaussian_kernel(original_A)
-    safe_log = torch.log(torch.max(original_A_kernel, torch.tensor(1e-9, dtype=torch.float32)))
+    safe_log = torch.log(torch.max(original_A_kernel, torch.tensor(1e-9, dtype=torch.float32, device=device)))
     xentropy_loss = torch.sum(torch.sum(-kernel_mat * safe_log, dim=1)) / A.shape[0]
     return xentropy_loss
 
@@ -429,14 +429,15 @@ def ICP(A, B, type_index_dict,
     print('Training took ' + time_str)
     return transformer
 
-def train_transform(transformer, A, B, correspondence_mask, kernA, kernA_precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0):
+def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA_precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0):
     optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
     transformer.train()
     global_step += 1
+    A, B, correspondence_mask, kernA, kernA_precisions = A.to(device), B.to(device), correspondence_mask.to(device), kernA.to(device), kernA_precisions.to(device)
     for e in range(max_epochs):
         optimizer.zero_grad()
-        total_loss = torch.tensor(0.)
+        total_loss = torch.tensor(0., device=device)
         A_transformed = transformer(A)
         # MSE Loss
         mse_mat = get_distance_matrix(A_transformed, B)
@@ -446,7 +447,7 @@ def train_transform(transformer, A, B, correspondence_mask, kernA, kernA_precisi
         tboard.add_scalar('training/mse_loss', mse_loss.item(), global_step)
         # Cross-entropy loss
         if xentropy_loss_weight > 0:
-            source_xentropy_loss = xentropy_loss(A_transformed, kernA, kernA_precisions)
+            source_xentropy_loss = xentropy_loss(A_transformed, kernA, kernA_precisions, device)
             total_loss += xentropy_loss_weight * source_xentropy_loss
             tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), global_step)
         total_loss.backward()
@@ -505,7 +506,7 @@ def ICP_converge(A, B, type_index_dict,
     transformer.to(device)
 
     # Plot the original data in tensorboard for quick visual comparison:
-    plot_tsne_tboard(tboard, A.detach().numpy(), B.detach().numpy(), type_index_dict)
+    plot_tsne_tboard(tboard, A.detach().cpu().numpy(), B.detach().cpu().numpy(), type_index_dict)
 
     prev_transformed = A
     A_kernel = None
@@ -523,7 +524,8 @@ def ICP_converge(A, B, type_index_dict,
                     print('encountered NaNs in weights')
                     break
                 tboard.add_histogram('weights/lin_{}'.format(idx), values=transformer[lin_idx].weight.flatten(), global_step=i, bins='auto')
-            A_transformed = transformer(A)
+            A_transformed = transformer(A.to(device)).cpu()
+            print(type(A_transformed))
             mean_shift_norm = torch.norm(A_transformed - prev_transformed, p=1, dim=1).mean()
             tboard.add_scalar('training/mean_shift_norm', mean_shift_norm, i)
             prev_transformed = A_transformed
@@ -533,11 +535,12 @@ def ICP_converge(A, B, type_index_dict,
                 break
             dist_mat = get_distance_matrix(A_transformed, B)
             pair_assignment_mask = assignment_fn(dist_mat)
-            target_hits = torch.unique(torch.where(pair_assignment_mask == 1)[1])
+            
+            target_hits = np.unique(np.where(pair_assignment_mask.numpy() == 1)[1])
             tboard.add_scalar('training/uniq_targets_matched', len(target_hits), i)
-            train_transform(transformer, A, B, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
+            train_transform(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
             if i % plot_every_n_steps == 0:
-                A_transformed = transformer(A)
+                A_transformed = transformer(A.to(device)).cpu()
                 plot_step_tboard(tboard, A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, target_hits)
         except KeyboardInterrupt:
             break
