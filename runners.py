@@ -99,8 +99,9 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                                    n_layers=args.nlayers,
                                    bias=args.bias,
                                    act=args.act,
-                                   steps=args.steps,
-                                   max_epochs=args.epochs,
+                                   max_steps=args.max_steps,
+                                   tolerance=args.tolerance,
+                                   max_epochs=args.max_epochs,
                                    lr=args.lr,
                                    momentum=0.9,
                                    l2_reg=args.l2_reg,
@@ -129,7 +130,6 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
     B = scaler.transform(B)
     A = aligner_fcn(A)
     print(A.shape)
-    print(type(A))
     n_samples = task_adata.shape[0]
     n_dims = A.shape[1]
     task_adata.obsm[method_key] = np.zeros((n_samples, n_dims))

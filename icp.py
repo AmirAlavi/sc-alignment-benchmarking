@@ -473,7 +473,8 @@ def ICP_converge(A, B, type_index_dict,
                  bias=False,
                  act=None,
                  l2_reg=0.,
-                 steps=50,
+                 max_steps=50,
+                 tolerance=1e-2,
                  max_epochs=200,
                  lr=1e-3,
                  momentum=0.9,
@@ -515,7 +516,7 @@ def ICP_converge(A, B, type_index_dict,
         # Compute the Gaussian kernel for the original data once, reuse later
         A_kernel, precisions = compute_Gaussian_kernel(A)
     t0 = datetime.datetime.now()
-    for i in range(steps):
+    for i in range(max_steps):
         try:
             print(f'Step {i}') 
             # do matching
@@ -527,6 +528,9 @@ def ICP_converge(A, B, type_index_dict,
             A_transformed = transformer(A.to(device)).cpu()
             print(type(A_transformed))
             mean_shift_norm = torch.norm(A_transformed - prev_transformed, p=1, dim=1).mean()
+            if mean_shift_norm <= tolerance:
+                print(f'Stopping criterion satisfied, data shift norm mean = {mean_shift_norm.item()} <= {tolerance}')
+                break
             tboard.add_scalar('training/mean_shift_norm', mean_shift_norm, i)
             prev_transformed = A_transformed
             if isnan(A_transformed).any():
