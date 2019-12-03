@@ -6,6 +6,6 @@ mapfile -t job_commands < $COMMANDS_FILE
 
 . /home/aalavi/anaconda2/etc/profile.d/conda.sh
 echo "conda sourced"
-conda activate point-align-clone-2019-10-17
+conda activate point-align-gpu
 which python
 eval ${job_commands[$SLURM_ARRAY_TASK_ID]}

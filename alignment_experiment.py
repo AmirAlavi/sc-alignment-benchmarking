@@ -136,10 +136,13 @@ if __name__ == '__main__':
     task_adata = datasets[task.ds_key][task_idx]
     method_key = '{}_aligned'.format(args.method)
 
-
+    kbet_stats = None
     if args.method == 'None':
         plot_alignment_results(log_dir, task_adata, args.method, task)
-        lisi_score = metrics.lisi2(task_adata.obsm['PCA'], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
+        lisi_score = metrics.lisi2(task_adata.X, task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
+        if args.do_kBET_test:
+            kbet_stats = metrics.kBET(task_adata.X, task_adata.obs, task.batch_key, args.kBET_env_path)
+            print(kbet_stats)
     else:
         if 'ICP' in args.method:
             if args.method == 'ICP_align':
@@ -159,11 +162,16 @@ if __name__ == '__main__':
         task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
         plot_alignment_results(log_dir, task_adata, method_key, task)
         lisi_score = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
+        if args.do_kBET_test:
+            kbet_stats = metrics.kBET(task_adata.obsm[method_key], task_adata.obs, task.batch_key, args.kBET_env_path)
+            print(kbet_stats)
+            
     clf_score = None
     if args.method != 'ScAlign':
         clf_score = metrics.knn_classification_test(task_adata, method_key, task, use_PCA=args.input_space=='PCA')
     result = {
         'lisi': lisi_score,
+        'kbet_stats': kbet_stats,
         'clf': clf_score,
         'alignment_task': task,
         'method': args.method,

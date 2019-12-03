@@ -12,6 +12,8 @@ def get_parser():
     parser.add_argument('--n_PC', help='Number of Principle Components of data to use.', type=int, default=100)
     parser.add_argument('--input_space', help='Which data input space to use.', choices=['GENE', 'PCA'], default='PCA')
     parser.add_argument('--do_DE_test', help='Do a differential expression test with GO enrichment analysis using the aligned data.', action='store_true')
+    parser.add_argument('--do_kBET_test', help='Compute the k-BET test to quantify batch correction, as a metric.', action='store_true')
+    parser.add_argument('--kBET_env_path', help='Path to k-BET R environment.', default='/home/aalavi/anaconda2/envs/kBET')
     
 
     cellbench = parser.add_argument_group('Alignment Task Options')
