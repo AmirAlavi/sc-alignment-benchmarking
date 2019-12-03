@@ -434,7 +434,10 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
     transformer.train()
     global_step += 1
-    A, B, correspondence_mask, kernA, kernA_precisions = A.to(device), B.to(device), correspondence_mask.to(device), kernA.to(device), kernA_precisions.to(device)
+    if xentropy_loss_weight > 0:
+        A, B, correspondence_mask, kernA, kernA_precisions = A.to(device), B.to(device), correspondence_mask.to(device), kernA.to(device), kernA_precisions.to(device)
+    else:
+        A, B, correspondence_mask, = A.to(device), B.to(device), correspondence_mask.to(device)
     for e in range(max_epochs):
         optimizer.zero_grad()
         total_loss = torch.tensor(0., device=device)
