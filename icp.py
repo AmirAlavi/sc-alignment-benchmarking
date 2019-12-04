@@ -259,7 +259,7 @@ def xentropy_loss(A, original_A_kernel, precisions, device):
     return xentropy_loss
 
 def plot_step_tboard(tboard, A, B, type_index_dict, pca, step, matched_targets):
-    print(f'Matched targets: {matched_targets}')
+    #print(f'Matched targets: {matched_targets}')
     A_pca = pca.transform(A)
     B_pca = pca.transform(B)
     # Scatter, colored by dataset, with matching
@@ -431,14 +431,14 @@ def ICP(A, B, type_index_dict,
 
 def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA_precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0):
     optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=False)
     transformer.train()
     global_step += 1
     if xentropy_loss_weight > 0:
         A, B, correspondence_mask, kernA, kernA_precisions = A.to(device), B.to(device), correspondence_mask.to(device), kernA.to(device), kernA_precisions.to(device)
     else:
         A, B, correspondence_mask, = A.to(device), B.to(device), correspondence_mask.to(device)
-    for e in range(max_epochs):
+    for e in trange(max_epochs):
         optimizer.zero_grad()
         total_loss = torch.tensor(0., device=device)
         A_transformed = transformer(A)
@@ -460,11 +460,11 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
         def get_cur_lr(my_optimizer):
             for param_group in my_optimizer.param_groups:
                 return param_group['lr']
-        print(f'Current LR = {get_cur_lr(optimizer)}')
-        if xentropy_loss_weight > 0:
-            print(f'\tMSE Loss = {mse_loss.item():.4} Xentropy Loss = {source_xentropy_loss.item():.4} Total Loss = {total_loss.item():.4}')
-        else:
-            print(f'\tTotal Loss = {total_loss.item():.4}')         
+        # print(f'Current LR = {get_cur_lr(optimizer)}')
+        # if xentropy_loss_weight > 0:
+        #     print(f'\tMSE Loss = {mse_loss.item():.4} Xentropy Loss = {source_xentropy_loss.item():.4} Total Loss = {total_loss.item():.4}')
+        # else:
+        #     print(f'\tTotal Loss = {total_loss.item():.4}')         
         tboard.add_scalar('training/lr', get_cur_lr(optimizer), global_step)
         global_step += 1
 
@@ -529,9 +529,9 @@ def ICP_converge(A, B, type_index_dict,
                     break
                 tboard.add_histogram('weights/lin_{}'.format(idx), values=transformer[lin_idx].weight.flatten(), global_step=i, bins='auto')
             A_transformed = transformer(A.to(device)).cpu()
-            print(type(A_transformed))
             mean_shift_norm = torch.norm(A_transformed - prev_transformed, p=1, dim=1).mean()
-            if mean_shift_norm <= tolerance:
+            print(f'shift: {mean_shift_norm.item()}')
+            if mean_shift_norm <= tolerance and i > 0:
                 print(f'Stopping criterion satisfied, data shift norm mean = {mean_shift_norm.item()} <= {tolerance}')
                 break
             tboard.add_scalar('training/mean_shift_norm', mean_shift_norm, i)
