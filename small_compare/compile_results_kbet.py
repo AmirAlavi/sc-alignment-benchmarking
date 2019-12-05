@@ -120,6 +120,22 @@ def plot_seaborn_lisi(df, alignment_task, output_folder):
     plt.savefig(output_folder / '{}_sns.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
     plt.close()
 
+def plot_seaborn_kBET(df, alignment_task, output_folder):
+    df['ord'] = df.apply(lambda row: SORT_ORDER[row['method']], axis=1)
+    df.sort_values('ord', inplace=True)
+    sns.set(style="whitegrid")
+
+    ax = sns.boxplot(x="value", y="method", hue="metric", data=df, showfliers=True, hue_order=['kBET.expected', 'kBET.observed', 'kBET.signif'])
+
+    plt.legend(loc='upper left', bbox_to_anchor=(1,1))
+
+    ax.set_title('kBET Rejection Rates on Task: {}'.format(alignment_task.as_plot_string()))
+
+    plt.savefig(output_folder / '{}_kbet.png'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.savefig(output_folder / '{}_kbet.svg'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.savefig(output_folder / '{}_kbet.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.close()
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('compile-results', description='Combine LISI scores from multiple experiments into summarizing plots.')
     parser.add_argument('root_folder', help='Root folder to search for result files.')
@@ -137,12 +153,17 @@ if __name__ == '__main__':
     for task, results in results_by_task.items():
         print(task)
         print(len(results))
-        scores = [r['kbet_stats'] for r in results]
+        # scores = [r['kbet_stats'] for r in results]
         methods = [r['method'] for r in results]
         print(methods)
-        for score_, method_ in zip(scores, methods):
-            ax = sns.boxplot(data=score_, )
-            task_and_method = f"{results[0]['alignment_task'].as_path()}_{method_}"
-            ax.set_title('kBET rejection rates, {}'.format(task_and_method))
-            plt.savefig(Path(args.output_folder) / '{}_sns.png'.format(task_and_method), bbox_inches='tight')
-            plt.close()
+        method = []
+        metric = []
+        value = []
+        for r in results:
+            kbet = r['kbet_stats']
+            method.extend([r['method']]*kbet.size)
+            for col in kbet.columns:
+                metric.extend([col]*kbet.shape[0])
+                value.extend(kbet[col])
+        df = pd.DataFrame(data={'method': method, 'metric': metric, 'value': value})
+        plot_seaborn_kBET(df, results[0]['alignment_task'], Path(args.output_folder))
