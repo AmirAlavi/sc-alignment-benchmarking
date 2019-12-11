@@ -46,7 +46,7 @@ from de_test import de_comparison
 # importlib.reload(runners)
 # importlib.reload(cli)
 
-#%%
+
 if __name__ == '__main__':
     parser = cli.get_parser()
 
@@ -70,8 +70,7 @@ if __name__ == '__main__':
             out_path = tempfile.mkdtemp(prefix='{}_{}_'.format(out_path, time_str), dir='.')
         return out_path
 
-    experiment_name = 'experiment' if args.output_folder is None else args.output_folder
-    log_dir = create_working_directory(experiment_name)
+    log_dir = create_working_directory(args.output_folder)
     log_dir = Path(log_dir)
     print('Working Directory: {}\n\n'.format(log_dir))
 
@@ -143,6 +142,8 @@ if __name__ == '__main__':
         if args.do_kBET_test:
             kbet_stats = metrics.kBET(task_adata.X, task_adata.obs, task.batch_key, args.kBET_env_path)
             print(kbet_stats)
+            print('kBET medians:')
+            print(kbet_stats.median(axis=0))
     else:
         if 'ICP' in args.method:
             if args.method == 'ICP_align':
@@ -165,6 +166,8 @@ if __name__ == '__main__':
         if args.do_kBET_test:
             kbet_stats = metrics.kBET(task_adata.obsm[method_key], task_adata.obs, task.batch_key, args.kBET_env_path)
             print(kbet_stats)
+            print('kBET medians:')
+            print(kbet_stats.median(axis=0))
             
     clf_score = None
     if args.method != 'ScAlign':
@@ -174,7 +177,7 @@ if __name__ == '__main__':
         'kbet_stats': kbet_stats,
         'clf': clf_score,
         'alignment_task': task,
-        'method': args.method,
+        'method': args.name,
         'log_dir': log_dir
     }
     if args.method != 'ScAlign' and args.input_space == 'GENE' and args.do_DE_test:

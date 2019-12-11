@@ -88,7 +88,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
             n_to_match = math.floor(args.source_match_thresh * min(A.shape[0], B.shape[0]))
             assignment_fn = partial(icp.assign_hungarian, n_to_match=n_to_match)
             print('USING MATCHING ALGO: HUNGARIAN')
-        if args.input_space == 'GENE':
+        if args.input_space == 'GENE' and args.enforce_pos:
             enforce_pos=True
         else:
             enforce_pos=False

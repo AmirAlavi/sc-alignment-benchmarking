@@ -103,13 +103,15 @@ def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
 # --------------------------ARCHITECTURES-------------------------------------
 # ----------------------------------------------------------------------------
 
-def get_affine_transformer(ndims, bias=False, relu_out=False):
+def get_affine_transformer(ndims, bias=False, relu_out=False, act=None):
     model = nn.Sequential()
     model.add_module('lin', nn.Linear(ndims, ndims, bias=bias))
     # The transform is initialized to be the identity transform
     model[0].weight.data.copy_(torch.eye(ndims))
     if relu_out:
         model.add_module('relu_final', activations['relu']())
+    elif act is not None:
+        model.add_module(f'{act}_final', activations[act]())
     return model, [0]
 
 def get_2_layer_affine_transformer(ndims, act=None, bias=False, relu_out=False):
@@ -123,6 +125,8 @@ def get_2_layer_affine_transformer(ndims, act=None, bias=False, relu_out=False):
     last_lin_layer_idx = len(model)-1
     if relu_out:
         model.add_module('relu_final', activations['relu']())
+    elif act is not None:
+        model.add_module(f'{act}_final', activations[act]())
     return model, [0, last_lin_layer_idx]
 
 # ----------------------------------------------------------------------------
@@ -435,6 +439,7 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
     transformer.train()
     global_step += 1
     if xentropy_loss_weight > 0:
+        print('move to device')
         A, B, correspondence_mask, kernA, kernA_precisions = A.to(device), B.to(device), correspondence_mask.to(device), kernA.to(device), kernA_precisions.to(device)
     else:
         A, B, correspondence_mask, = A.to(device), B.to(device), correspondence_mask.to(device)
@@ -501,7 +506,7 @@ def ICP_converge(A, B, type_index_dict,
     assert(not isnan(A).any() and not isnan(B).any())
     # Get transformer (a neural net)
     if n_layers == 1:
-        transformer, lin_layer_indices = get_affine_transformer(A.shape[1], bias=bias, relu_out=enforce_pos)
+        transformer, lin_layer_indices = get_affine_transformer(A.shape[1], bias=bias, relu_out=enforce_pos, act=act)
     elif n_layers == 2:
         transformer, lin_layer_indices = get_2_layer_affine_transformer(A.shape[1], act=act, bias=bias, relu_out=enforce_pos)
     print(transformer)
@@ -523,28 +528,36 @@ def ICP_converge(A, B, type_index_dict,
         try:
             print(f'Step {i}') 
             # do matching
-            for idx, lin_idx in enumerate(lin_layer_indices):
-                if isnan(transformer[lin_idx].weight).any():
-                    print('encountered NaNs in weights')
-                    break
-                tboard.add_histogram('weights/lin_{}'.format(idx), values=transformer[lin_idx].weight.flatten(), global_step=i, bins='auto')
+            # for idx, lin_idx in enumerate(lin_layer_indices):
+            #     if isnan(transformer[lin_idx].weight).any():
+            #         print('encountered NaNs in weights')
+            #         break
+            #     print('adding histogram')
+            #     tboard.add_histogram('weights/lin_{}'.format(idx), values=transformer[lin_idx].weight.flatten(), global_step=i, bins='auto')
+            print('transforming...')
             A_transformed = transformer(A.to(device)).cpu()
+            print('done.')
+            print('computing mean shift norm')
             mean_shift_norm = torch.norm(A_transformed - prev_transformed, p=1, dim=1).mean()
             print(f'shift: {mean_shift_norm.item()}')
             if mean_shift_norm <= tolerance and i > 0:
                 print(f'Stopping criterion satisfied, data shift norm mean = {mean_shift_norm.item()} <= {tolerance}')
                 break
+            print('adding scalar')
             tboard.add_scalar('training/mean_shift_norm', mean_shift_norm, i)
             prev_transformed = A_transformed
             if isnan(A_transformed).any():
                 print('encountered NaNs in data')
                 print(transformer[0].weight.data)
                 break
+            print('compute dist mat')
             dist_mat = get_distance_matrix(A_transformed, B)
+            print('get assignments')
             pair_assignment_mask = assignment_fn(dist_mat)
             
             target_hits = np.unique(np.where(pair_assignment_mask.numpy() == 1)[1])
             tboard.add_scalar('training/uniq_targets_matched', len(target_hits), i)
+            print('start train')
             train_transform(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
             if i % plot_every_n_steps == 0:
                 A_transformed = transformer(A.to(device)).cpu()
