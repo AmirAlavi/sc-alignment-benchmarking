@@ -11,6 +11,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from submit_experiments import get_method_info
+
 SORT_ORDER = {
     'None': 0,
     'MNN': 1,

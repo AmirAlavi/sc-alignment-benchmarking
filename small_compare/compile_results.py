@@ -11,44 +11,34 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-SORT_ORDER = {
-    'None': 0,
-    'MNN': 1,
-    'SeuratV3': 2,
-    'ScAlign': 3,
-    'closest': 4,
-    'greedy_thresh_0.25_limit_02': 5,
-    'hungarian_thresh_0.25': 6,
-    'greedy_thresh_0.50_limit_02': 7,
-    'hungarian_thresh_0.50': 8,
-    'greedy_thresh_0.75_limit_02': 9,
-    'hungarian_thresh_0.75': 10,
-    'greedy_thresh_0.50_limit_01': 11,
-    'greedy_thresh_0.50_limit_05': 12
-}
+from submit_experiments import get_method_info
 
-def plot_lisi(lisi_dfs, method_names, alignment_task, output_folder):
-    fig, (ilisi_ax, clisi_ax) = plt.subplots(1, 2)
-    fig.suptitle(alignment_task)
-    #sub_grid = figure_grid[i,j].subgridspec(1, 2, wspace=0.9)
-    #ilisi_ax = plt.Subplot(fig, sub_grid[0])
-    ilisi_ax.set_title('Dataset mixing')
-    lisi_data = [df[alignment_task.batch_key].values for df in lisi_dfs]
-    ilisi_ax.boxplot(lisi_data, vert=False, labels=method_names, showfliers=False)
-    ilisi_ax.set_xlabel('iLISI')
-    
-    clisi_ax.set_title('Cell-type mixing')
-    lisi_data = [df[alignment_task.ct_key] for df in lisi_dfs]
-    clisi_ax.boxplot(lisi_data, vert=False, labels=method_names, showfliers=False)
-    clisi_ax.set_xlabel('cLISI')
-    plt.subplots_adjust(wspace=0.6)
-    plt.savefig(output_folder / '{}.png'.format(alignment_task.as_path()))
-    plt.savefig(output_folder / '{}.svg'.format(alignment_task.as_path()))
-    plt.savefig(output_folder / '{}.pdf'.format(alignment_task.as_path()))
-    plt.close()
+# SORT_ORDER = {
+#     'None': 0,
+#     'MNN': 1,
+#     'SeuratV3': 2,
+#     'ScAlign': 3,
+#     'closest': 4,
+#     'greedy_thresh_0.25_limit_02': 5,
+#     'hungarian_thresh_0.25': 6,
+#     'greedy_thresh_0.50_limit_02': 7,
+#     'hungarian_thresh_0.50': 8,
+#     'greedy_thresh_0.75_limit_02': 9,
+#     'hungarian_thresh_0.75': 10,
+#     'greedy_thresh_0.50_limit_01': 11,
+#     'greedy_thresh_0.50_limit_05': 12
+# }
+
+def get_sort_order():
+    method_list = get_method_info()
+    order = {}
+    for i, method in enumerate(method_list):
+        order[method['name']] = i
+    return order
 
 def plot_clf(df, alignment_task, output_folder):
-    df['ord'] = df.apply(lambda row: SORT_ORDER[row['method']], axis=1)
+    sort_order = get_sort_order()
+    df['ord'] = df.apply(lambda row: sort_order[row['method']], axis=1)
     df.sort_values('ord', inplace=True)
     sns.set(style="whitegrid")
     ax = sns.barplot(x='data', y='acc', hue='method', data=df)
@@ -67,8 +57,9 @@ def plot_clf(df, alignment_task, output_folder):
     # plt.savefig(output_folder / '{}_auc.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
     # plt.close()
 
-def plot_seaborn_lisi(df, alignment_task, output_folder):
-    df['ord'] = df.apply(lambda row: SORT_ORDER[row['method']], axis=1)
+def plot_lisi(df, alignment_task, output_folder):
+    sort_order = get_sort_order()
+    df['ord'] = df.apply(lambda row: sort_order[row['method']], axis=1)
     df.sort_values('ord', inplace=True)
     sns.set(style="whitegrid")
 
@@ -120,6 +111,23 @@ def plot_seaborn_lisi(df, alignment_task, output_folder):
     plt.savefig(output_folder / '{}_sns.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
     plt.close()
 
+def plot_kBET(df, alignment_task, output_folder):
+    sort_order = get_sort_order()
+    df['ord'] = df.apply(lambda row: sort_order[row['method']], axis=1)
+    df.sort_values('ord', inplace=True)
+    sns.set(style="whitegrid")
+
+    ax = sns.boxplot(x="value", y="method", hue="metric", data=df, showfliers=True, hue_order=['kBET.expected', 'kBET.observed', 'kBET.signif'])
+
+    plt.legend(loc='upper left', bbox_to_anchor=(1,1))
+
+    ax.set_title('kBET Rejection Rates on Task: {}'.format(alignment_task.as_plot_string()))
+
+    plt.savefig(output_folder / '{}_kbet.png'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.savefig(output_folder / '{}_kbet.svg'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.savefig(output_folder / '{}_kbet.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.close()
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('compile-results', description='Combine LISI scores from multiple experiments into summarizing plots.')
     parser.add_argument('root_folder', help='Root folder to search for result files.')
@@ -136,11 +144,6 @@ if __name__ == '__main__':
             results_by_task[str(result['alignment_task'])].append(result)
     for task, results in results_by_task.items():
         print(task)
-        print(len(results))
-        scores = [r['lisi'] for r in results]
-        methods = [r['method'] for r in results]
-        print(methods)
-        plot_lisi(scores, methods, results[0]['alignment_task'], Path(args.output_folder))
         method = []
         metric = []
         score = []
@@ -150,7 +153,7 @@ if __name__ == '__main__':
                 metric.extend([col]*r['lisi'].shape[0])
                 score.extend(r['lisi'][col])
         df = pd.DataFrame(data={'method': method, 'metric': metric, 'score': score})
-        plot_seaborn_lisi(df, results[0]['alignment_task'], Path(args.output_folder))
+        plot_lisi(df, results[0]['alignment_task'], Path(args.output_folder) / 'LISI')
         
     for task, results in results_by_task.items():
         method = []
@@ -167,7 +170,22 @@ if __name__ == '__main__':
                 # auc.append(r['clf']['{}_auc'.format(dataset)])
         # df = pd.DataFrame(data={'method': method, 'data': data, 'acc': acc, 'auc': auc})
         df = pd.DataFrame(data={'method': method, 'data': data, 'acc': acc})
-        plot_clf(df, results[0]['alignment_task'], Path(args.output_folder))
-    
-
-
+        plot_clf(df, results[0]['alignment_task'], Path(args.output_folder) / 'classification')
+        
+    for task, results in results_by_task.items():
+        print(task)
+        print(len(results))
+        # scores = [r['kbet_stats'] for r in results]
+        methods = [r['method'] for r in results]
+        print(methods)
+        method = []
+        metric = []
+        value = []
+        for r in results:
+            kbet = r['kbet_stats']
+            method.extend([r['method']]*kbet.size)
+            for col in kbet.columns:
+                metric.extend([col]*kbet.shape[0])
+                value.extend(kbet[col])
+        df = pd.DataFrame(data={'method': method, 'metric': metric, 'value': value})
+        plot_kBET(df, results[0]['alignment_task'], Path(args.output_folder) / 'kBET)

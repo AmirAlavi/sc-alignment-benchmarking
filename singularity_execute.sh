@@ -6,4 +6,4 @@ SCRIPT=$1
 echo "hi"
 echo ${SCRIPT}
 pwd
-singularity exec ${CONTAINER} /bin/bash ${SCRIPT} ${@:2}
+singularity exec --nv ${CONTAINER} /bin/bash ${SCRIPT} ${@:2}

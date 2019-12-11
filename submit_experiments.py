@@ -62,15 +62,15 @@ def get_parser():
     return parser
 
 # TODO: move to a 'method_info.py' file
-IN_SPACES = {
-    'None': 'GENE',
-    'MNN': 'GENE',
-    'SeuratV3': 'GENE',
-    'ICP': 'PCA',
-    'ICP2': 'PCA',
-    'ICP2_xentropy': 'GENE',
-    'ScAlign': 'GENE'
-}
+# IN_SPACES = {
+#     'None': 'GENE',
+#     'MNN': 'GENE',
+#     'SeuratV3': 'GENE',
+#     'ICP': 'PCA',
+#     'ICP2': 'PCA',
+#     'ICP2_xentropy': 'GENE',
+#     'ScAlign': 'GENE'
+# }
 
 
 
@@ -82,10 +82,10 @@ if __name__ == '__main__':
 
     job_commands = []
     for method in args.methods:
-        run_dir = root / method.lower()
         input_space = IN_SPACES[method]
         for ds in args.datasets:
             for source_target in sources_targets_selected[ds]:
+                run_dir = root / f'{method.lower()}_{ds}_{source_target[0]}_{source_target[1]}'
                 cmd = 'python alignment_experiment.py -o {} --method {} --dataset {} --source {} --target {} --input_space {} --xentropy_loss_wt {} --source_match_thresh {} --l2_reg {}'.format(run_dir, method, ds, source_target[0], source_target[1], input_space, args.xentropy_loss_wt, args.source_match_thresh, args.l2_reg)
                 if args.bias:
                     cmd += ' --bias'
