@@ -439,7 +439,6 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
     transformer.train()
     global_step += 1
     if xentropy_loss_weight > 0:
-        print('move to device')
         A, B, correspondence_mask, kernA, kernA_precisions = A.to(device), B.to(device), correspondence_mask.to(device), kernA.to(device), kernA_precisions.to(device)
     else:
         A, B, correspondence_mask, = A.to(device), B.to(device), correspondence_mask.to(device)
@@ -473,6 +472,33 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
         tboard.add_scalar('training/lr', get_cur_lr(optimizer), global_step)
         global_step += 1
 
+class PlateauStoppingCriterion(object):
+    def __init__(self, patience, max_steps):
+        self.patience = patience
+        self.max_steps = max_steps
+        self.cur_step = 0
+        self.count = 0
+        self.lowest_score = None
+
+    def check_done(self, metric):
+        if self.lowest_score is None:
+            self.lowest_score = metric
+            
+        if self.cur_step >= self.max_steps:
+            print('Max Steps Stopping Criterion triggered, stopping training.')
+            return True
+        elif metric >= self.lowest_score:
+            self.count += 1
+            self.cur_step += 1
+            if self.count >= self.patience:
+                print('Plateau Stopping Criterion triggered, stopping training.')
+                return True
+        else:
+            self.cur_step += 1
+            self.lowest_score = metric
+            self.count = 0
+            return False
+        
 def ICP_converge(A, B, type_index_dict,
                  working_dir,
                  assignment_fn,
@@ -483,6 +509,7 @@ def ICP_converge(A, B, type_index_dict,
                  l2_reg=0.,
                  max_steps=50,
                  tolerance=1e-2,
+                 patience=5,
                  max_epochs=200,
                  lr=1e-3,
                  momentum=0.9,
@@ -524,7 +551,10 @@ def ICP_converge(A, B, type_index_dict,
         # Compute the Gaussian kernel for the original data once, reuse later
         A_kernel, precisions = compute_Gaussian_kernel(A)
     t0 = datetime.datetime.now()
-    for i in range(max_steps):
+    #for i in range(max_steps):
+    stopping_criterion = PlateauStoppingCriterion(patience, max_steps)
+    i = 0
+    while True:
         try:
             print(f'Step {i}') 
             # do matching
@@ -534,34 +564,34 @@ def ICP_converge(A, B, type_index_dict,
             #         break
             #     print('adding histogram')
             #     tboard.add_histogram('weights/lin_{}'.format(idx), values=transformer[lin_idx].weight.flatten(), global_step=i, bins='auto')
-            print('transforming...')
             A_transformed = transformer(A.to(device)).cpu()
-            print('done.')
-            print('computing mean shift norm')
             mean_shift_norm = torch.norm(A_transformed - prev_transformed, p=1, dim=1).mean()
             print(f'shift: {mean_shift_norm.item()}')
-            if mean_shift_norm <= tolerance and i > 0:
-                print(f'Stopping criterion satisfied, data shift norm mean = {mean_shift_norm.item()} <= {tolerance}')
-                break
-            print('adding scalar')
+            # if mean_shift_norm <= tolerance and i > 0:
+            #     print(f'Stopping criterion satisfied, data shift norm mean = {mean_shift_norm.item()} <= {tolerance}')
+            #     break
             tboard.add_scalar('training/mean_shift_norm', mean_shift_norm, i)
             prev_transformed = A_transformed
             if isnan(A_transformed).any():
                 print('encountered NaNs in data')
                 print(transformer[0].weight.data)
                 break
-            print('compute dist mat')
             dist_mat = get_distance_matrix(A_transformed, B)
-            print('get assignments')
             pair_assignment_mask = assignment_fn(dist_mat)
-            
+            # check distances between matched pairs
+            avg_distance = torch.mul(dist_mat, pair_assignment_mask).sum()
+            avg_distance /= torch.sum(pair_assignment_mask)
+            tboard.add_scalar('training/mean_pair_dist', avg_distance, i)
+            print(f'mean dist: {avg_distance}')
+            if stopping_criterion.check_done(avg_distance):
+                break
             target_hits = np.unique(np.where(pair_assignment_mask.numpy() == 1)[1])
             tboard.add_scalar('training/uniq_targets_matched', len(target_hits), i)
-            print('start train')
             train_transform(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
             if i % plot_every_n_steps == 0:
                 A_transformed = transformer(A.to(device)).cpu()
                 plot_step_tboard(tboard, A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, target_hits)
+            i += 1
         except KeyboardInterrupt:
             break
     t1 = datetime.datetime.now()

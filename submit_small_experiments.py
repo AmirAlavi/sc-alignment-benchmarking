@@ -94,8 +94,11 @@ if __name__ == '__main__':
     prefix = 'python alignment_experiment.py'
     # common_ICP_args = '--max_epochs=100 --max_steps=30  --plot_every_n 5 --input_space GENE  --do_kBET_test --filter_hvg --bias --tolerance 1e-4'
     # regularization = '--xentropy_loss_wt 0.1 --l2_reg 0'
-    common_ICP_args = '--max_epochs=100 --max_steps=30  --plot_every_n 5 --input_space GENE  --do_kBET_test --filter_hvg --bias --tolerance 1e-4 --act=tanh'
-    regularization = '--xentropy_loss_wt 1 --l2_reg 0'
+    # common_ICP_args = '--max_epochs=100 --max_steps=30  --plot_every_n 5 --input_space GENE  --do_kBET_test --filter_hvg --bias --tolerance 1e-4 --act=tanh'
+
+    # common_ICP_args = '--max_epochs=15000 --max_steps=4  --plot_every_n 5 --input_space GENE  --do_kBET_test --filter_hvg --bias'
+    common_ICP_args = '--max_epochs=15000 --max_steps=1  --plot_every_n 5 --input_space GENE  --do_kBET_test --filter_hvg --bias'
+    regularization = '--xentropy_loss_wt 0.1 --l2_reg 0'
     
     for ds in args.datasets:
         for source_target in sources_targets_selected[ds]:
@@ -112,14 +115,14 @@ if __name__ == '__main__':
                 else:
                     cpu_job_commands.append(cmd)
 
-                for ct in celltypes_available[ds]:
-                    ct_run_dir = f'{run_dir}_{ct}'
-                    ct_dataset_args = f'{dataset_args} --leaveOut {ct}'
-                    ct_cmd = f'{prefix} {method["name"]} {ct_run_dir} {method["cmd"]} {regularization} {common_ICP_args} {ct_dataset_args}'
-                    if 'ICP' in method['cmd']:
-                        gpu_job_commands.append(ct_cmd)
-                    else:
-                        cpu_job_commands.append(ct_cmd)
+                # for ct in celltypes_available[ds]:
+                #     ct_run_dir = f'{run_dir}_{ct}'
+                #     ct_dataset_args = f'{dataset_args} --leaveOut {ct}'
+                #     ct_cmd = f'{prefix} {method["name"]} {ct_run_dir} {method["cmd"]} {regularization} {common_ICP_args} {ct_dataset_args}'
+                #     if 'ICP' in method['cmd']:
+                #         gpu_job_commands.append(ct_cmd)
+                #     else:
+                #         cpu_job_commands.append(ct_cmd)
 
     cpu_commands_file = root / Path('_tmp_cpu_commands_list.txt')
     gpu_commands_file = root / Path('_tmp_gpu_commands_list.txt')

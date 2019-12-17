@@ -101,6 +101,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                                    act=args.act,
                                    max_steps=args.max_steps,
                                    tolerance=args.tolerance,
+                                   patience=args.patience,
                                    max_epochs=args.max_epochs,
                                    lr=args.lr,
                                    momentum=0.9,

@@ -29,6 +29,7 @@ def get_parser():
     icp.add_argument('--target_match_limit', help='Maximum number of times a target point can be assigned to.', type=int, default=2)
     icp.add_argument('--max_steps', help='Number of steps to run iterative point-cloud registration algorithm.', type=int, default=100)
     icp.add_argument('--tolerance', help='Stopping criterion for algorithm, if norm of difference in transformed data between iterations is less than this, then stop.', type=float, default=0.25)
+    icp.add_argument('--patience', help='Stopping criterion for algorithm, if no improvement in MSE distance of matched points for this many number of steps, then stop.', type=int, default=5)
     icp.add_argument('--max_epochs', help='Number of iterations to run fitting for affine transformation.', type=int, default=10000)
     icp.add_argument('--xentropy_loss_wt', help='For ICP + xentropy, the weight of the xentropy penalty', type=float, default=10)
     icp.add_argument('--l2_reg', help='L2 regularization weight.', type=float, default=0.)
