@@ -107,7 +107,9 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                                    momentum=0.9,
                                    l2_reg=args.l2_reg,
                                    xentropy_loss_weight=args.xentropy_loss_wt,
-                                   plot_every_n_steps=args.plot_every_n)
+                                   plot_every_n_steps=args.plot_every_n,
+                                   mini_batching=args.mini_batching,
+                                   batch_size=args.batch_size)
     elif method_name == 'ICP2_xentropy_converge':
         assignment_fn = partial(icp.assign_greedy, source_match_threshold=args.source_match_thresh)
         aligner = icp.ICP_converge(A, B, type_index_dict,

@@ -31,6 +31,8 @@ def get_parser():
     icp.add_argument('--tolerance', help='Stopping criterion for algorithm, if norm of difference in transformed data between iterations is less than this, then stop.', type=float, default=0.25)
     icp.add_argument('--patience', help='Stopping criterion for algorithm, if no improvement in MSE distance of matched points for this many number of steps, then stop.', type=int, default=5)
     icp.add_argument('--max_epochs', help='Number of iterations to run fitting for affine transformation.', type=int, default=10000)
+    icp.add_argument('--mini_batching', help='Enable batched optimization.', action='store_true')
+    icp.add_argument('--batch_size', help='Mini batch size (if mini_batching enabled).', type=int, default=32)
     icp.add_argument('--xentropy_loss_wt', help='For ICP + xentropy, the weight of the xentropy penalty', type=float, default=10)
     icp.add_argument('--l2_reg', help='L2 regularization weight.', type=float, default=0.)
     icp.add_argument('--nlayers', help='Number of layers in neural network data transformer.', type=int, choices=[1, 2], default=1)

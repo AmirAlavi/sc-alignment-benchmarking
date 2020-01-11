@@ -472,6 +472,122 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
         tboard.add_scalar('training/lr', get_cur_lr(optimizer), global_step)
         global_step += 1
 
+class Batch(object):
+    def __init__(self, source_samples, target_samples):
+        self.source_samples = source_samples
+        self.target_samples = target_samples
+        self.source_kernel, self.source_precisions = compute_Gaussian_kernel(self.source_samples)
+
+        
+def prepare_mini_batches(A, B, correspondence_mask, batch_size):
+    print('\nMINIBATCHING\n')
+    print(f'Recieved {correspondence_mask.sum()} pairs')
+    pairs_A_idx, pairs_B_idx = np.where(correspondence_mask == 1)
+    minibatches = []
+    for i in range(0, len(pairs_A_idx), batch_size):
+        batch_A_idx = pairs_A_idx[i: i + batch_size]
+        batch_B_idx = pairs_B_idx[i: i + batch_size]
+        minibatches.append(Batch(A[batch_A_idx], B[batch_B_idx]))
+    print(f'Generated {len(minibatches)} minibatches, last one has {minibatches[-1].source_samples.shape[0]} pairs')
+    return minibatches
+        
+def train_transform_batched(transformer, A, B, device, correspondence_mask, max_epochs, batch_size, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0):
+    optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=False)
+    stopping_criterion = PlateauStoppingCriterion(15, max_epochs)
+
+    minibatches = prepare_mini_batches(A, B, correspondence_mask, batch_size)
+    
+    global_step += 1
+    
+    # if xentropy_loss_weight > 0:
+    #     A, B, correspondence_mask, kernA, kernA_precisions = A.to(device), B.to(device), correspondence_mask.to(device), kernA.to(device), kernA_precisions.to(device)
+    # else:
+    #     A, B, correspondence_mask, = A.to(device), B.to(device), correspondence_mask.to(device)
+        
+    #for e in trange(max_epochs):
+    e = 0
+    while True:
+    #for e in range(max_epochs):
+        transformer.train()
+        running_loss = 0.0
+        print_every_n_batches = 5
+        for b, batch in enumerate(minibatches):
+            optimizer.zero_grad()
+            batch_A = batch.source_samples.to(device)
+            batch_B = batch.target_samples.to(device)
+            
+            batch_loss = torch.tensor(0., device=device)
+            A_transformed = transformer(batch_A)
+            # MSE Loss
+
+            mse_loss = torch.norm(A_transformed - batch_B, p=2, dim=1)**2
+            mse_loss /= A_transformed.shape[1] # The 'mean' part of MSE, dividing by number of dimensions
+            mse_loss = mse_loss.sum()
+            mse_loss /= batch_A.shape[0] # Averaging over the batch size (n samples)
+            
+            batch_loss += mse_loss
+            
+            #tboard.add_scalar('training/mse_loss', mse_loss.item(), global_step)
+            # Cross-entropy loss
+            if xentropy_loss_weight > 0:
+                kernA = batch.source_kernel.to(device)
+                kernA_precisions = batch.source_precisions.to(device)
+                source_xentropy_loss = xentropy_loss(A_transformed, kernA, kernA_precisions, device)
+                batch_loss += xentropy_loss_weight * source_xentropy_loss
+                #tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), global_step)
+            batch_loss.backward()
+            optimizer.step()
+            running_loss += batch_loss.item()
+            if b % print_every_n_batches == 0:
+                #print(f'[{e}, {b}] loss: {running_loss / print_every_n_batches}')
+                running_loss = 0.0
+        # Now do another pass, with a fixed model, just to compute metrics
+        transformer.eval()
+        total_loss = 0.0
+        for b, batch in enumerate(minibatches):
+            with torch.no_grad():
+                batch_A = batch.source_samples.to(device)
+                batch_B = batch.target_samples.to(device)
+            
+                batch_loss = torch.tensor(0., device=device)
+                A_transformed = transformer(batch_A)
+                # MSE Loss
+                
+                mse_loss = torch.norm(A_transformed - batch_B, p=2, dim=1)**2
+                mse_loss /= A_transformed.shape[1] # The 'mean' part of MSE, dividing by number of dimensions
+                mse_loss = mse_loss.sum()
+                mse_loss /= batch_A.shape[0] # Averaging over the batch size (n samples)
+            
+                batch_loss += mse_loss
+            
+                #tboard.add_scalar('training/mse_loss', mse_loss.item(), global_step)
+                # Cross-entropy loss
+                if xentropy_loss_weight > 0:
+                    kernA = batch.source_kernel.to(device)
+                    kernA_precisions = batch.source_precisions.to(device)
+                    source_xentropy_loss = xentropy_loss(A_transformed, kernA, kernA_precisions, device)
+                    batch_loss += xentropy_loss_weight * source_xentropy_loss
+                #tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), global_step)
+                total_loss += batch_loss.item()
+        #total_loss /= correspondence_mask.sum()
+        scheduler.step(total_loss)
+        tboard.add_scalar('training/total_loss', total_loss, global_step)
+        print(f'[{e}] loss: {total_loss}')
+        def get_cur_lr(my_optimizer):
+            for param_group in my_optimizer.param_groups:
+                return param_group['lr']
+        # print(f'Current LR = {get_cur_lr(optimizer)}')
+        # if xentropy_loss_weight > 0:
+        #     print(f'\tMSE Loss = {mse_loss.item():.4} Xentropy Loss = {source_xentropy_loss.item():.4} Total Loss = {total_loss.item():.4}')
+        # else:
+        #     print(f'\tTotal Loss = {total_loss.item():.4}')         
+        tboard.add_scalar('training/lr', get_cur_lr(optimizer), global_step)
+        e += 1
+        global_step += 1
+        if stopping_criterion.check_done(total_loss):
+            break
+
 class PlateauStoppingCriterion(object):
     def __init__(self, patience, max_steps):
         self.patience = patience
@@ -515,7 +631,9 @@ def ICP_converge(A, B, type_index_dict,
                  momentum=0.9,
                  standardize=True,
                  xentropy_loss_weight=0.,
-                 plot_every_n_steps=10):
+                 plot_every_n_steps=10,
+                 mini_batching=False,
+                 batch_size=32):
     print('Looking for GPU to use...')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device {}'.format(device))
@@ -587,7 +705,10 @@ def ICP_converge(A, B, type_index_dict,
                 break
             target_hits = np.unique(np.where(pair_assignment_mask.numpy() == 1)[1])
             tboard.add_scalar('training/uniq_targets_matched', len(target_hits), i)
-            train_transform(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
+            if mini_batching:
+                train_transform_batched(transformer, A, B, device, pair_assignment_mask, max_epochs, batch_size, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
+            else:
+                train_transform(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
             if i % plot_every_n_steps == 0:
                 A_transformed = transformer(A.to(device)).cpu()
                 plot_step_tboard(tboard, A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, target_hits)
