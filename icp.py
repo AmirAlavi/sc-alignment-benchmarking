@@ -493,7 +493,7 @@ def prepare_mini_batches(A, B, correspondence_mask, batch_size):
         
 def train_transform_batched(transformer, A, B, device, correspondence_mask, max_epochs, batch_size, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0):
     optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=False)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
     stopping_criterion = PlateauStoppingCriterion(15, max_epochs)
 
     minibatches = prepare_mini_batches(A, B, correspondence_mask, batch_size)
@@ -573,7 +573,8 @@ def train_transform_batched(transformer, A, B, device, correspondence_mask, max_
         #total_loss /= correspondence_mask.sum()
         scheduler.step(total_loss)
         tboard.add_scalar('training/total_loss', total_loss, global_step)
-        print(f'[{e}] loss: {total_loss}')
+        if e % 100 == 0:
+            print(f'[{e}] loss: {total_loss}')
         def get_cur_lr(my_optimizer):
             for param_group in my_optimizer.param_groups:
                 return param_group['lr']
