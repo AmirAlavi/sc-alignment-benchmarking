@@ -15,6 +15,8 @@ from pathlib import Path
 from os import makedirs
 from os.path import exists, join
 import tempfile
+import warnings
+warnings.filterwarnings('ignore')
 
 #get_ipython().run_line_magic('matplotlib', 'inline')
 import numpy as np
@@ -140,17 +142,21 @@ if __name__ == '__main__':
         plot_alignment_results(log_dir, task_adata, args.method, task)
         lisi_score = metrics.lisi2(task_adata.X, task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
         if args.do_kBET_test:
-            kbet_stats = metrics.kBET(task_adata.X, task_adata.obs, task.batch_key, args.kBET_env_path)
-            print(kbet_stats)
-            print('kBET medians:')
-            print(kbet_stats.median(axis=0))
+            try:
+                kbet_stats = metrics.kBET(task_adata.X, task_adata.obs, task.batch_key, args.kBET_env_path)
+                print(kbet_stats)
+                print('kBET medians:')
+                print(kbet_stats.median(axis=0))
+            except Exception:
+                print('kBET failed')
     else:
         if 'ICP' in args.method:
             if args.method == 'ICP_align':
-                method_key = f'ICP_align_{args.matching_algo[:5]}_x_{args.xentropy_loss_wt}_reg_{args.l2_reg}'
+                method_name = f'ICP_align_{args.matching_algo[:5]}_x_{args.xentropy_loss_wt}_reg_{args.l2_reg}'
+                method_key = method_name
             else:
-                method_key = args.method
-            runners.run_ICP_methods(datasets, task, task_adata, method_key, log_dir, args)
+                method_name = args.method
+            runners.run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args)
         elif args.method == 'ScAlign':
             runners.run_scAlign(datasets, task, task_adata, args.method, log_dir, args)
         elif args.method == 'MNN':
@@ -164,10 +170,13 @@ if __name__ == '__main__':
         plot_alignment_results(log_dir, task_adata, method_key, task)
         lisi_score = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
         if args.do_kBET_test:
-            kbet_stats = metrics.kBET(task_adata.obsm[method_key], task_adata.obs, task.batch_key, args.kBET_env_path)
-            print(kbet_stats)
-            print('kBET medians:')
-            print(kbet_stats.median(axis=0))
+            try:
+                kbet_stats = metrics.kBET(task_adata.obsm[method_key], task_adata.obs, task.batch_key, args.kBET_env_path)
+                print(kbet_stats)
+                print('kBET medians:')
+                print(kbet_stats.median(axis=0))
+            except Exception:
+                print('kBET failed')
             
     clf_score = None
     if args.method != 'ScAlign':

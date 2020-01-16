@@ -72,7 +72,8 @@ def compute_simpson_index2(knn_dist, knn_idx, batch_labels, n_batches, perplexit
 
 def lisi2(X, meta_data, labels_use, perplexity=30, nn_eps=0):
     print('computing LISI score')
-    if X.shape[1] > 100:
+    if X.shape[1] > 1000:
+        print(X.shape)
         print('Warning: detected high-dimensional (> 100) embedding')
         print('Computing LISI requires nearest-neighbors computations,')
         print('which are expensive in high dimensions.')

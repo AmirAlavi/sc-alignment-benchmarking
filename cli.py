@@ -9,7 +9,7 @@ def get_parser():
     parser.add_argument('output_folder', help='Output folder for this experiment.')
 
     parser.add_argument('--method', help='Which method to run.', required=True, choices=['None', 'ScAlign', 'MNN', 'SeuratV3', 'ICP', 'ICP2', 'ICP2_xentropy', 'ICP_converge', 'ICP2_xentropy_converge', 'ICP_align'])
-    parser.add_argument('--dataset', help='Which dataset to run the alignment method on.', required=True, choices=['Kowalcyzk', 'CellBench', 'panc8'])
+    parser.add_argument('--dataset', help='Which dataset to run the alignment method on.', required=True, choices=['Kowalcyzk', 'CellBench', 'panc8', 'scQuery_retina', 'scQuery_tcell', 'scQuery_lung', 'scQuery_pancreas', 'scQuery_ESC', 'scQuery_HSC', 'scQuery_combined'])
     parser.add_argument('--standardize', help='StandardScale the input to PCA.', action='store_true')
     parser.add_argument('--n_PC', help='Number of Principle Components of data to use.', type=int, default=100)
     parser.add_argument('--input_space', help='Which data input space to use.', choices=['GENE', 'PCA'], default='PCA')
@@ -31,6 +31,7 @@ def get_parser():
     icp.add_argument('--tolerance', help='Stopping criterion for algorithm, if norm of difference in transformed data between iterations is less than this, then stop.', type=float, default=0.25)
     icp.add_argument('--patience', help='Stopping criterion for algorithm, if no improvement in MSE distance of matched points for this many number of steps, then stop.', type=int, default=5)
     icp.add_argument('--max_epochs', help='Number of iterations to run fitting for affine transformation.', type=int, default=10000)
+    icp.add_argument('--input_normalization', help='Type of input normalizatio to apply.', choices=['l2', 'std', 'None'], default='None')
     icp.add_argument('--mini_batching', help='Enable batched optimization.', action='store_true')
     icp.add_argument('--batch_size', help='Mini batch size (if mini_batching enabled).', type=int, default=32)
     icp.add_argument('--xentropy_loss_wt', help='For ICP + xentropy, the weight of the xentropy penalty', type=float, default=10)

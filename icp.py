@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+import sklearn.preprocessing
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -103,25 +104,28 @@ def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
 # --------------------------ARCHITECTURES-------------------------------------
 # ----------------------------------------------------------------------------
 
-def get_affine_transformer(ndims, bias=False, relu_out=False, act=None):
+def get_affine_transformer(ndims, bias=False, relu_out=False, act=None, identity_init=True):
     model = nn.Sequential()
     model.add_module('lin', nn.Linear(ndims, ndims, bias=bias))
-    # The transform is initialized to be the identity transform
-    model[0].weight.data.copy_(torch.eye(ndims))
+    if identity_init:
+        # The transform is initialized to be the identity transform
+        model[0].weight.data.copy_(torch.eye(ndims))
     if relu_out:
         model.add_module('relu_final', activations['relu']())
     elif act is not None:
         model.add_module(f'{act}_final', activations[act]())
     return model, [0]
 
-def get_2_layer_affine_transformer(ndims, act=None, bias=False, relu_out=False):
+def get_2_layer_affine_transformer(ndims, act=None, bias=False, relu_out=False, identity_init=True):
     model = nn.Sequential()
     model.add_module('lin_0', nn.Linear(ndims, ndims, bias=bias))
-    model[0].weight.data.copy_(torch.eye(ndims))
+    if identity_init:
+        model[0].weight.data.copy_(torch.eye(ndims))
     if act is not None:
         model.add_module('{}_0'.format(act), activations[act]())
     model.add_module('lin_1', nn.Linear(ndims, ndims, bias=bias))
-    model[-1].weight.data.copy_(torch.eye(ndims))
+    if identity_init:
+        model[-1].weight.data.copy_(torch.eye(ndims))
     last_lin_layer_idx = len(model)-1
     if relu_out:
         model.add_module('relu_final', activations['relu']())
@@ -418,7 +422,7 @@ def ICP(A, B, type_index_dict,
             tboard.add_scalar('training/uniq_targets_matched', len(unique_target_matches), i)
             total_loss += mse_loss
             if xentropy_loss_weight > 0:
-                source_xentropy_loss = xentropy_loss(A_transformed, A_kernel, precisions)
+                source_xentropy_loss = xentropy_loss(A_transformed, A_kernel, precisions, device=device)
                 tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), i)
                 total_loss += xentropy_loss_weight * source_xentropy_loss
             tboard.add_scalar('training/total_loss', total_loss.item(), i)
@@ -479,10 +483,14 @@ class Batch(object):
         self.source_kernel, self.source_precisions = compute_Gaussian_kernel(self.source_samples)
 
         
-def prepare_mini_batches(A, B, correspondence_mask, batch_size):
+def prepare_mini_batches(A, B, correspondence_mask, batch_size, shuffle=True):
     print('\nMINIBATCHING\n')
     print(f'Recieved {correspondence_mask.sum()} pairs')
     pairs_A_idx, pairs_B_idx = np.where(correspondence_mask == 1)
+    if shuffle:
+        idx = np.random.permutation(len(pairs_A_idx))
+        pairs_A_idx = pairs_A_idx[idx]
+        pairs_B_idx = pairs_B_idx[idx]
     minibatches = []
     for i in range(0, len(pairs_A_idx), batch_size):
         batch_A_idx = pairs_A_idx[i: i + batch_size]
@@ -525,7 +533,7 @@ def train_transform_batched(transformer, A, B, device, correspondence_mask, max_
             mse_loss /= A_transformed.shape[1] # The 'mean' part of MSE, dividing by number of dimensions
             mse_loss = mse_loss.sum()
             mse_loss /= batch_A.shape[0] # Averaging over the batch size (n samples)
-            
+
             batch_loss += mse_loss
             
             #tboard.add_scalar('training/mse_loss', mse_loss.item(), global_step)
@@ -545,6 +553,8 @@ def train_transform_batched(transformer, A, B, device, correspondence_mask, max_
         # Now do another pass, with a fixed model, just to compute metrics
         transformer.eval()
         total_loss = 0.0
+        total_mse_loss = 0.0
+        total_xentropy_loss = 0.0
         for b, batch in enumerate(minibatches):
             with torch.no_grad():
                 batch_A = batch.source_samples.to(device)
@@ -560,6 +570,7 @@ def train_transform_batched(transformer, A, B, device, correspondence_mask, max_
                 mse_loss /= batch_A.shape[0] # Averaging over the batch size (n samples)
             
                 batch_loss += mse_loss
+                total_mse_loss += mse_loss.item()
             
                 #tboard.add_scalar('training/mse_loss', mse_loss.item(), global_step)
                 # Cross-entropy loss
@@ -568,13 +579,14 @@ def train_transform_batched(transformer, A, B, device, correspondence_mask, max_
                     kernA_precisions = batch.source_precisions.to(device)
                     source_xentropy_loss = xentropy_loss(A_transformed, kernA, kernA_precisions, device)
                     batch_loss += xentropy_loss_weight * source_xentropy_loss
+                    total_xentropy_loss += source_xentropy_loss.item()
                 #tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), global_step)
                 total_loss += batch_loss.item()
         #total_loss /= correspondence_mask.sum()
         scheduler.step(total_loss)
         tboard.add_scalar('training/total_loss', total_loss, global_step)
         if e % 100 == 0:
-            print(f'[{e}] loss: {total_loss}')
+            print(f'[{e}] loss: {total_loss} mse_loss: {total_mse_loss} xentropy_loss: {total_xentropy_loss}')
         def get_cur_lr(my_optimizer):
             for param_group in my_optimizer.param_groups:
                 return param_group['lr']
@@ -630,18 +642,22 @@ def ICP_converge(A, B, type_index_dict,
                  max_epochs=200,
                  lr=1e-3,
                  momentum=0.9,
-                 standardize=True,
                  xentropy_loss_weight=0.,
                  plot_every_n_steps=10,
                  mini_batching=False,
-                 batch_size=32):
+                 batch_size=32,
+                 normalization=None):
     print('Looking for GPU to use...')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device {}'.format(device))
-    if standardize:
+    if normalization == 'std':
+    #if standardize:
         scaler = StandardScaler().fit(np.concatenate((A, B)))
         A = scaler.transform(A)
         B = scaler.transform(B)
+    elif normalization == 'l2':
+        A = sklearn.preprocessing.normalize(A)
+        B = sklearn.preprocessing.normalize(B)
     # Fit a PCA model on the original data and use this same model for all
     # PCA visualizations so that we have a constant coordinate system to track changes in
     combined = np.concatenate((A, B))
@@ -675,7 +691,7 @@ def ICP_converge(A, B, type_index_dict,
     i = 0
     while True:
         try:
-            print(f'Step {i}') 
+            print(f'Step {i}/{max_steps}') 
             # do matching
             # for idx, lin_idx in enumerate(lin_layer_indices):
             #     if isnan(transformer[lin_idx].weight).any():
@@ -702,7 +718,9 @@ def ICP_converge(A, B, type_index_dict,
             avg_distance /= torch.sum(pair_assignment_mask)
             tboard.add_scalar('training/mean_pair_dist', avg_distance, i)
             print(f'mean dist: {avg_distance}')
-            if stopping_criterion.check_done(avg_distance):
+            # if stopping_criterion.check_done(avg_distance):
+            #     break
+            if i + 1 >= max_steps:
                 break
             target_hits = np.unique(np.where(pair_assignment_mask.numpy() == 1)[1])
             tboard.add_scalar('training/uniq_targets_matched', len(target_hits), i)

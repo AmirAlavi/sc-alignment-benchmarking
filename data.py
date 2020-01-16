@@ -17,6 +17,20 @@ def get_data(dataset, args):
         data = get_panc8(args)
     elif dataset == 'panc8-all':
         data = get_panc82()
+    elif dataset == 'scQuery_retina':
+        data = get_scQuery_retina()
+    elif dataset == 'scQuery_tcell':
+        data = get_scQuery_tcell()
+    elif dataset == 'scQuery_lung':
+        data = get_scQuery_lung()
+    elif dataset == 'scQuery_pancreas':
+        data = get_scQuery_pancreas()
+    elif dataset == 'scQuery_ESC':
+        data = get_scQuery_ESC()
+    elif dataset == 'scQuery_HSC':
+        data = get_scQuery_HSC()
+    elif dataset == 'scQuery_combined':
+        data = get_scQuery_combined()
     if args.filter_hvg:
         data = preprocessing.filter_hvg(data)
     return data
@@ -103,4 +117,38 @@ def get_panc82():
     # print(counts)
     # selector = adata.obs['celltype'].isin(cell_types[:n_cell_types])
     # adata = adata[selector]
+    return adata
+
+def get_scQuery_retina():
+    adata = anndata.read('data/scQuery/subset_int.h5ad')
+    adata = adata[adata.obs['label_ID'] == 'UBERON:0000966', :]
+    return adata
+
+def get_scQuery_tcell():
+    adata = anndata.read('data/scQuery/subset_int.h5ad')
+    adata = adata[adata.obs['label_ID'] == 'CL:0000084', :]
+    return adata
+
+def get_scQuery_lung():
+    adata = anndata.read('data/scQuery/subset_int.h5ad')
+    adata = adata[adata.obs['label_ID'] == 'UBERON:0002048', :]
+    return adata
+
+def get_scQuery_pancreas():
+    adata = anndata.read('data/scQuery/subset_int.h5ad')
+    adata = adata[adata.obs['label_ID'] == 'UBERON:0001264', :]
+    return adata
+
+def get_scQuery_ESC():
+    adata = anndata.read('data/scQuery/subset_int.h5ad')
+    adata = adata[adata.obs['label_ID'] == 'CL:0002322', :]
+    return adata
+
+def get_scQuery_HSC():
+    adata = anndata.read('data/scQuery/subset_int.h5ad')
+    adata = adata[adata.obs['label_ID'] == 'CL:0000037', :]
+    return adata
+
+def get_scQuery_combined():
+    adata = anndata.read('data/scQuery/artificial_HSC_ESC_pancreas.h5ad')
     return adata

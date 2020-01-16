@@ -6,6 +6,7 @@ import tempfile
 import platform
 
 import torch
+import sklearn.preprocessing
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 import anndata
@@ -63,7 +64,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
 #                 loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=0.5)
 #                 aligner = icp.ICP(A, B, type_index_dict, n_layers=2, act='tanh', loss_function=loss_fcn, max_iters=200, verbose=False)
     elif method_name == 'ICP2_xentropy':
-        loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=args.source_match_thresh, do_mean=False)
+       loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=args.source_match_thresh, do_mean=False)
         # aligner = icp.ICP(A, B, type_index_dict, loss_function=loss_fcn, max_iters=200, verbose=False, use_xentropy_loss=True)
         aligner = icp.ICP(A, B, type_index_dict,
                             working_dir=log_dir,
@@ -71,7 +72,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                             n_layers=args.nlayers,
                             bias=args.bias,
                             act=args.act,
-                            epochs=args.epochs,
+                            epochs=args.max_steps,
                             lr=args.lr,
                             momentum=0.9,
                             l2_reg=args.l2_reg,
@@ -109,7 +110,8 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                                    xentropy_loss_weight=args.xentropy_loss_wt,
                                    plot_every_n_steps=args.plot_every_n,
                                    mini_batching=args.mini_batching,
-                                   batch_size=args.batch_size)
+                                   batch_size=args.batch_size,
+                                   normalization=args.input_normalization)
     elif method_name == 'ICP2_xentropy_converge':
         assignment_fn = partial(icp.assign_greedy, source_match_threshold=args.source_match_thresh)
         aligner = icp.ICP_converge(A, B, type_index_dict,
@@ -128,9 +130,14 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     aligner_fcn = lambda x: aligner(torch.from_numpy(x).float().to(device)).detach().cpu().numpy()
     #standardizing because it was fitted with standardized data (see ICP code)
-    scaler = StandardScaler().fit(np.concatenate((A,B)))
-    A = scaler.transform(A)
-    B = scaler.transform(B)
+    normalization = args.input_normalization
+    if normalization == 'std':
+        scaler = StandardScaler().fit(np.concatenate((A,B)))
+        A = scaler.transform(A)
+        B = scaler.transform(B)
+    elif normalization == 'l2':
+        A = sklearn.preprocessing.normalize(A)
+        B = sklearn.preprocessing.normalize(B)
     A = aligner_fcn(A)
     print(A.shape)
     n_samples = task_adata.shape[0]
@@ -140,6 +147,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
     b_idx = np.where(task_adata.obs[task.batch_key] == task.target_batch)[0]
     task_adata.obsm[method_key][a_idx, :] = A
     task_adata.obsm[method_key][b_idx, :] = B
+    print(f'method_key: {method_key}')
 
 def run_scAlign(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
