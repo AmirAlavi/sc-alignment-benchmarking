@@ -64,7 +64,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
 #                 loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=0.5)
 #                 aligner = icp.ICP(A, B, type_index_dict, n_layers=2, act='tanh', loss_function=loss_fcn, max_iters=200, verbose=False)
     elif method_name == 'ICP2_xentropy':
-       loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=args.source_match_thresh, do_mean=False)
+        loss_fcn = partial(icp.relaxed_match_loss, source_match_threshold=args.source_match_thresh, do_mean=False)
         # aligner = icp.ICP(A, B, type_index_dict, loss_function=loss_fcn, max_iters=200, verbose=False, use_xentropy_loss=True)
         aligner = icp.ICP(A, B, type_index_dict,
                             working_dir=log_dir,
@@ -111,7 +111,10 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                                    plot_every_n_steps=args.plot_every_n,
                                    mini_batching=args.mini_batching,
                                    batch_size=args.batch_size,
-                                   normalization=args.input_normalization)
+                                   normalization=args.input_normalization,
+                                   use_autoencoder=args.use_autoencoder,
+                                   dropout=args.dropout,
+                                   batch_norm=args.batch_norm)
     elif method_name == 'ICP2_xentropy_converge':
         assignment_fn = partial(icp.assign_greedy, source_match_threshold=args.source_match_thresh)
         aligner = icp.ICP_converge(A, B, type_index_dict,
@@ -132,10 +135,12 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
     #standardizing because it was fitted with standardized data (see ICP code)
     normalization = args.input_normalization
     if normalization == 'std':
+        print('Applying Standard Scaling')
         scaler = StandardScaler().fit(np.concatenate((A,B)))
         A = scaler.transform(A)
         B = scaler.transform(B)
     elif normalization == 'l2':
+        print('Applying L2 Normalization')
         A = sklearn.preprocessing.normalize(A)
         B = sklearn.preprocessing.normalize(B)
     A = aligner_fcn(A)

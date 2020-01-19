@@ -32,7 +32,10 @@ def get_data(dataset, args):
     elif dataset == 'scQuery_combined':
         data = get_scQuery_combined()
     if args.filter_hvg:
+        print('Filter to HVG...')
+        print(f'Original       : {data.shape}')
         data = preprocessing.filter_hvg(data)
+        print(f'After filtering: {data.shape}')
     return data
 
 def get_kowalcyzk():
@@ -42,6 +45,9 @@ def get_kowalcyzk():
     counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
     adata = anndata.AnnData(X=counts.values, obs=meta)
     print(adata.X.shape)
+    ages, ages_counts = np.unique(adata.obs['cell_age'], return_counts=True)
+    for age, c in zip(ages, ages_counts):
+        print(f'age: {age}, count: {c}') 
     print(adata.obs.info())
     return adata
 
@@ -63,11 +69,11 @@ def get_cellbench():
     print(adata.obs.info())
     return adata
 
-def get_panc8(args, n_cell_types=5):
+def get_panc8(args):
     #protocols = ['celseq', 'celseq2', 'fluidigmc1']
-    #protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1', 'indrop1', 'indrop2', 'indrop3', 'indrop4']
+    protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1', 'indrop1', 'indrop2', 'indrop3', 'indrop4']
     #protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1']
-    protocols = [args.source, args.target]
+    # protocols = [args.source, args.target]
     adatas = []
     for protocol in protocols:
         print(protocol)
@@ -88,7 +94,7 @@ def get_panc8(args, n_cell_types=5):
     counts = counts[sort_idx]
     print(cell_types)
     print(counts)
-    selector = adata.obs['celltype'].isin(cell_types[:n_cell_types])
+    selector = adata.obs['celltype'].isin(cell_types[:args.panc8_n_cell_types])
     adata = adata[selector]
     return adata
 

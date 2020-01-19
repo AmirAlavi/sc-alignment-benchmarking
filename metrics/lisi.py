@@ -78,7 +78,7 @@ def lisi2(X, meta_data, labels_use, perplexity=30, nn_eps=0):
         print('Computing LISI requires nearest-neighbors computations,')
         print('which are expensive in high dimensions.')
         print('Applying PCA to your data first...')
-        X = PCA(n_components=100).fit_transform(X)
+        X = PCA(n_components=100, random_state=1373).fit_transform(X)
     N = meta_data.shape[0] # n rows (n cells)
     kdtree = KDTree(X)
     knn_d, knn_idx = kdtree.query(X, k=perplexity*3, eps=nn_eps)

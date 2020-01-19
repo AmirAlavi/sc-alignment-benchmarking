@@ -21,7 +21,8 @@ from tqdm import tnrange, trange
 activations = {
     'tanh': nn.Tanh,
     'sigmoid': nn.Sigmoid,
-    'relu': nn.ReLU
+    'relu': nn.ReLU,
+    'leaky_relu': nn.LeakyReLU
 }
 
 # ----------------------------------------------------------------------------
@@ -103,8 +104,99 @@ def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
 # ----------------------------------------------------------------------------
 # --------------------------ARCHITECTURES-------------------------------------
 # ----------------------------------------------------------------------------
+class Autoencoder(nn.Module):
+    def __init__(self, input_size, layer_sizes, act='tanh', dropout=0.0, batch_norm=False):
+        super(Autoencoder, self).__init__()
+        self.input_size = input_size
+        self.layer_sizes = layer_sizes
+        self.act = activations[act]
+        self.dropout = dropout
+        self.batch_norm = batch_norm
+        
+        self.encoder = nn.Sequential()
+        self.decoder = nn.Sequential()
+        prev_size = self.input_size
+        for layer, size in enumerate(layer_sizes):
+            # Apply dropout
+            if self.dropout > 0:
+                self.encoder.add_module('enc_dropout_{}'.format(layer), nn.Dropout(p=self.dropout))
+            # Linearity
+            self.encoder.add_module('enc_lin_{}'.format(layer), nn.Linear(prev_size, size))
+            # BN
+            if self.batch_norm:
+                self.encoder.add_module('enc_batch_norm_{}'.format(layer), nn.BatchNorm1d(size))
+            # Finally, non-linearity
+            self.encoder.add_module('enc_{}_{}'.format(act, layer), activations[act]())
+            prev_size = size
+                
+        reversed_layer_list = list(self.encoder.named_modules())[::-1]
+        decode_layer_count = 0
+        for name, module in reversed_layer_list:
+            if 'lin_' in name:
+                size = module.weight.data.size()[1]
+                if self.dropout > 0:
+                    self.decoder.add_module('dec_dropout_{}'.format(decode_layer_count), nn.Dropout(p=self.dropout))
+                # Linearity
+                linearity = nn.Linear(prev_size, size)
+                linearity.weight.data = module.weight.data.transpose(0, 1)
+                self.decoder.add_module('dec_lin_{}'.format(decode_layer_count), linearity)
+                if decode_layer_count < len(self.layer_sizes) - 1:
+                # if True:
+                    # BN
+                    if self.batch_norm:
+                        self.decoder.add_module('dec_batch_norm_{}'.format(decode_layer_count), nn.BatchNorm1d(size))
+                    # Finally, non-linearity
+                    self.decoder.add_module('dec_{}_{}'.format(act, decode_layer_count), activations[act]())
+                prev_size = size
+                decode_layer_count += 1
+                        
+    def forward(self, x):
+        encoded = self.encoder(x)
+        reconstructed = self.decoder(encoded)
+        return reconstructed
 
-def get_affine_transformer(ndims, bias=False, relu_out=False, act=None, identity_init=True):
+
+class Transformer(nn.Module):
+    def __init__(self, input_size, layer_sizes, act='tanh', dropout=0.0, batch_norm=False):
+        super(Transformer, self).__init__()
+        self.input_size = input_size
+        self.layer_sizes = layer_sizes
+        self.act = activations[act]
+        self.dropout = dropout
+        self.batch_norm = batch_norm
+        
+        self.encoder = nn.Sequential()
+        prev_size = self.input_size
+        for layer, size in enumerate(layer_sizes):
+            # Apply dropout
+            if self.dropout > 0:
+                self.encoder.add_module('enc_dropout_{}'.format(layer), nn.Dropout(p=self.dropout))
+            # Linearity
+            self.encoder.add_module('enc_lin_{}'.format(layer), nn.Linear(prev_size, size))
+            # BN
+            if self.batch_norm:
+                self.encoder.add_module('enc_batch_norm_{}'.format(layer), nn.BatchNorm1d(size))
+            # Finally, non-linearity
+            if act is not None:
+                self.encoder.add_module('enc_{}_{}'.format(act, layer), activations[act]())
+            prev_size = size
+                
+    def forward(self, x):
+        return self.encoder(x)
+    
+def get_autoencoder_transformer(ndims, act=None, dropout=0., batch_norm=False):
+    model = Autoencoder(ndims, layer_sizes=[64], act=act, dropout=dropout, batch_norm=batch_norm)
+    return model
+
+def get_autoencoder_transformer_3(ndims, act=None, dropout=0., batch_norm=False):
+    model = Autoencoder(ndims, layer_sizes=[256, 128, 64], act=act, dropout=dropout, batch_norm=batch_norm)
+    return model
+
+def get_mlp_transformer(ndims, nlayers, act=None, dropout=0., batch_norm=False):
+    model = Transformer(ndims, layer_sizes=[ndims] * nlayers, act=act, dropout=dropout, batch_norm=batch_norm)
+    return model
+
+def get_affine_transformer(ndims, bias=False, relu_out=False, act=None, identity_init=False):
     model = nn.Sequential()
     model.add_module('lin', nn.Linear(ndims, ndims, bias=bias))
     if identity_init:
@@ -116,7 +208,7 @@ def get_affine_transformer(ndims, bias=False, relu_out=False, act=None, identity
         model.add_module(f'{act}_final', activations[act]())
     return model, [0]
 
-def get_2_layer_affine_transformer(ndims, act=None, bias=False, relu_out=False, identity_init=True):
+def get_2_layer_affine_transformer(ndims, act=None, bias=False, relu_out=False, identity_init=False):
     model = nn.Sequential()
     model.add_module('lin_0', nn.Linear(ndims, ndims, bias=bias))
     if identity_init:
@@ -132,6 +224,27 @@ def get_2_layer_affine_transformer(ndims, act=None, bias=False, relu_out=False, 
     elif act is not None:
         model.add_module(f'{act}_final', activations[act]())
     return model, [0, last_lin_layer_idx]
+
+def get_3_layer_affine_transformer(ndims, act=None, bias=False, relu_out=False, identity_init=False):
+    model = nn.Sequential()
+    model.add_module('lin_0', nn.Linear(ndims, ndims, bias=bias))
+    if identity_init:
+        model[0].weight.data.copy_(torch.eye(ndims))
+    if act is not None:
+        model.add_module('{}_0'.format(act), activations[act]())
+    model.add_module('lin_1', nn.Linear(ndims, ndims, bias=bias))
+    if identity_init:
+        model[-1].weight.data.copy_(torch.eye(ndims))
+    if act is not None:
+        model.add_module('{}_1'.format(act), activations[act]())
+    model.add_module('lin_2', nn.Linear(ndims, ndims, bias=bias))
+    if identity_init:
+        model[-1].weight.data.copy_(torch.eye(ndims))
+    if relu_out:
+        model.add_module('relu_final', activations['relu']())
+    elif act is not None:
+        model.add_module(f'{act}_final', activations[act]())
+    return model
 
 # ----------------------------------------------------------------------------
 # -------------------------LOSS FUNCTIONS-------------------------------------
@@ -439,14 +552,19 @@ def ICP(A, B, type_index_dict,
 
 def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA_precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0):
     optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=False)
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True, threshold=1e-8)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+    # stopping_criterion = PlateauStoppingCriterion(15, max_epochs)
     transformer.train()
     global_step += 1
     if xentropy_loss_weight > 0:
         A, B, correspondence_mask, kernA, kernA_precisions = A.to(device), B.to(device), correspondence_mask.to(device), kernA.to(device), kernA_precisions.to(device)
     else:
         A, B, correspondence_mask, = A.to(device), B.to(device), correspondence_mask.to(device)
-    for e in trange(max_epochs):
+    #for e in trange(max_epochs):
+    # e = 0
+    # while True:
+    for e in range(max_epochs):
         optimizer.zero_grad()
         total_loss = torch.tensor(0., device=device)
         A_transformed = transformer(A)
@@ -461,6 +579,11 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
             source_xentropy_loss = xentropy_loss(A_transformed, kernA, kernA_precisions, device)
             total_loss += xentropy_loss_weight * source_xentropy_loss
             tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), global_step)
+        if e % 100 == 0:
+            if xentropy_loss_weight > 0:
+                print(f'[{e}/{max_epochs}] loss: {total_loss.item()} mse_loss: {mse_loss.item()} xentropy_loss: {source_xentropy_loss.item()}')
+            else:
+                print(f'[{e}/{max_epochs}] mse_loss: {mse_loss.item()}')
         total_loss.backward()
         optimizer.step()
         scheduler.step(total_loss)
@@ -475,6 +598,9 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
         #     print(f'\tTotal Loss = {total_loss.item():.4}')         
         tboard.add_scalar('training/lr', get_cur_lr(optimizer), global_step)
         global_step += 1
+        # e += 1
+        # if stopping_criterion.check_done(total_loss):
+        #     break
 
 class Batch(object):
     def __init__(self, source_samples, target_samples):
@@ -646,16 +772,21 @@ def ICP_converge(A, B, type_index_dict,
                  plot_every_n_steps=10,
                  mini_batching=False,
                  batch_size=32,
-                 normalization=None):
+                 normalization=None,
+                 use_autoencoder=False,
+                 dropout=0.,
+                 batch_norm=False):
     print('Looking for GPU to use...')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device {}'.format(device))
     if normalization == 'std':
     #if standardize:
+        print('Applying Standard Scaling')
         scaler = StandardScaler().fit(np.concatenate((A, B)))
         A = scaler.transform(A)
         B = scaler.transform(B)
     elif normalization == 'l2':
+        print('Applying L2 Normalization')
         A = sklearn.preprocessing.normalize(A)
         B = sklearn.preprocessing.normalize(B)
     # Fit a PCA model on the original data and use this same model for all
@@ -667,10 +798,19 @@ def ICP_converge(A, B, type_index_dict,
     B = torch.from_numpy(B).float()
     assert(not isnan(A).any() and not isnan(B).any())
     # Get transformer (a neural net)
-    if n_layers == 1:
-        transformer, lin_layer_indices = get_affine_transformer(A.shape[1], bias=bias, relu_out=enforce_pos, act=act)
-    elif n_layers == 2:
-        transformer, lin_layer_indices = get_2_layer_affine_transformer(A.shape[1], act=act, bias=bias, relu_out=enforce_pos)
+    if use_autoencoder:
+        if n_layers == 1:
+            transformer = get_autoencoder_transformer(A.shape[1], act=act, dropout=dropout, batch_norm=batch_norm)
+        elif n_layers == 3:
+            transformer = get_autoencoder_transformer_3(A.shape[1], act=act, dropout=dropout, batch_norm=batch_norm)
+    else:
+        # if n_layers == 1:
+        #     transformer, lin_layer_indices = get_affine_transformer(A.shape[1], bias=bias, relu_out=enforce_pos, act=act)
+        # elif n_layers == 2:
+        #     transformer, lin_layer_indices = get_2_layer_affine_transformer(A.shape[1], act=act, bias=bias, relu_out=enforce_pos)
+        # elif n_layers == 3:
+        #     transformer = get_3_layer_affine_transformer(A.shape[1], act=act, bias=bias, relu_out=enforce_pos)
+        transformer = get_mlp_transformer(A.shape[1], n_layers, act=act, dropout=dropout, batch_norm=batch_norm)
     print(transformer)
     tboard = create_summary_writer(transformer, A[0], working_dir)
     # when supported, call, log_hparams here
@@ -689,9 +829,12 @@ def ICP_converge(A, B, type_index_dict,
     #for i in range(max_steps):
     stopping_criterion = PlateauStoppingCriterion(patience, max_steps)
     i = 0
+    prev_pair_assignment_mask = None
     while True:
         try:
-            print(f'Step {i}/{max_steps}') 
+            # if i > max_steps:
+            #     break
+            # print(f'Step {i}/{max_steps}') 
             # do matching
             # for idx, lin_idx in enumerate(lin_layer_indices):
             #     if isnan(transformer[lin_idx].weight).any():
@@ -713,14 +856,17 @@ def ICP_converge(A, B, type_index_dict,
                 break
             dist_mat = get_distance_matrix(A_transformed, B)
             pair_assignment_mask = assignment_fn(dist_mat)
+            print(f'Assigned {int(pair_assignment_mask.sum())} pairs')
+            if prev_pair_assignment_mask is not None:
+                print(f'Same pairs as last step: {(prev_pair_assignment_mask.byte() & pair_assignment_mask.byte()).sum()}')
+                print(f'New pairs              : {(~(prev_pair_assignment_mask.byte()) & pair_assignment_mask.byte()).sum()}')
+            prev_pair_assignment_mask = pair_assignment_mask
             # check distances between matched pairs
             avg_distance = torch.mul(dist_mat, pair_assignment_mask).sum()
             avg_distance /= torch.sum(pair_assignment_mask)
             tboard.add_scalar('training/mean_pair_dist', avg_distance, i)
             print(f'mean dist: {avg_distance}')
-            # if stopping_criterion.check_done(avg_distance):
-            #     break
-            if i + 1 >= max_steps:
+            if stopping_criterion.check_done(avg_distance):
                 break
             target_hits = np.unique(np.where(pair_assignment_mask.numpy() == 1)[1])
             tboard.add_scalar('training/uniq_targets_matched', len(target_hits), i)

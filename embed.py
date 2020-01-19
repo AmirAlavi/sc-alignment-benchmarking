@@ -31,11 +31,11 @@ def embed(datasets, key, n_pc, do_standardize, log_dir=None):
     if do_standardize:
         print('fitting PCA (Standardized)')
         X = StandardScaler().fit_transform(datasets[key].X)
-        pca_model = PCA(n_components=n_pc).fit(X)
+        pca_model = PCA(n_components=n_pc, random_state=1373).fit(X)
         datasets[key].obsm['PCA'] = pca_model.transform(X)
     else:
         print('fitting PCA')
-        pca_model = PCA(n_components=n_pc).fit(datasets[key].X)
+        pca_model = PCA(n_components=n_pc, random_state=1373).fit(datasets[key].X)
         datasets[key].obsm['PCA'] = pca_model.transform(datasets[key].X)
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,6))
     ax1.bar(np.arange(n_pc) + 1, pca_model.explained_variance_ratio_)
