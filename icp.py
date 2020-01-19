@@ -18,6 +18,10 @@ from scipy.optimize import linear_sum_assignment
 import matplotlib.pyplot as plt
 from tqdm import tnrange, trange
 
+# seeding for reproduciblity
+torch.manual_seed(1373)
+np.random.seed(1373)
+
 activations = {
     'tanh': nn.Tanh,
     'sigmoid': nn.Sigmoid,
