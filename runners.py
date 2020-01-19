@@ -114,7 +114,9 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                                    normalization=args.input_normalization,
                                    use_autoencoder=args.use_autoencoder,
                                    dropout=args.dropout,
-                                   batch_norm=args.batch_norm)
+                                   batch_norm=args.batch_norm,
+                                   sparse_training=args.sparse,
+                                   cpu_only=args.cpu_only)
     elif method_name == 'ICP2_xentropy_converge':
         assignment_fn = partial(icp.assign_greedy, source_match_threshold=args.source_match_thresh)
         aligner = icp.ICP_converge(A, B, type_index_dict,

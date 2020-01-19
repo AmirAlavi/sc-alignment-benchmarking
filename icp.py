@@ -15,6 +15,7 @@ from sklearn.manifold import TSNE
 import networkx as nx
 import scipy
 from scipy.optimize import linear_sum_assignment
+from scipy.sparse import coo_matrix
 import matplotlib.pyplot as plt
 from tqdm import tnrange, trange
 
@@ -62,6 +63,13 @@ def compute_Gaussian_kernel_with_precision(X, precisions, device):
     dist = dist**2
     dist = dist.sum(dim=-1)
 
+    # n = X.size(0)
+    # m = X.size(0)
+    # d = X.size(1)
+    # x = X.unsqueeze(1).expand(n, m, d)
+    # y = X.unsqueeze(0).expand(n, m, d)
+    # dist = torch.pow(x - y, 2).sum(2)
+    
     P = torch.zeros((n, n), device=device)
     for i in range(n):
         H, thisP = Hbeta(dist[i], precisions[i])
@@ -606,6 +614,79 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
         # if stopping_criterion.check_done(total_loss):
         #     break
 
+def convert_to_sparse(x):
+    coo = coo_matrix(x)
+    values = coo.data
+    indices = np.vstack((coo.row, coo.col))
+    i = torch.LongTensor(indices)
+    v = torch.FloatTensor(values)
+    shape = coo.shape
+    return torch.sparse.FloatTensor(i, v, torch.Size(shape))
+
+def sparse_dense_mul_sum(s, d):
+    i = s._indices()
+    v = s._values()
+    dv = d[i[0,:], i[1,:]]  # get values from relevant entries of dense matrix
+    return  (v * dv).sum()
+        
+def train_transform_sparse(transformer, A, B, device, correspondence_mask, kernA, kernA_precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0):
+    print('SPARSE training')
+    optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True, threshold=1e-8)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+    # stopping_criterion = PlateauStoppingCriterion(15, max_epochs)
+    transformer.train()
+    global_step += 1
+
+    correspondence_mask = convert_to_sparse(correspondence_mask)
+    
+    if xentropy_loss_weight > 0:
+        A, B, correspondence_mask, kernA, kernA_precisions = A.to(device), B.to(device), correspondence_mask.to(device), kernA.to(device), kernA_precisions.to(device)
+    else:
+        A, B, correspondence_mask, = A.to(device), B.to(device), correspondence_mask.to(device)
+    #for e in trange(max_epochs):
+    # e = 0
+    # while True:
+    for e in range(max_epochs):
+        optimizer.zero_grad()
+        total_loss = torch.tensor(0., device=device)
+        A_transformed = transformer(A)
+        # MSE Loss
+        mse_mat = get_distance_matrix(A_transformed, B)
+        # mse_loss = torch.mul(mse_mat, correspondence_mask).sum()
+        mse_loss = sparse_dense_mul_sum(correspondence_mask, mse_mat)
+        # mse_loss /= torch.sum(correspondence_mask)
+        mse_loss /= correspondence_mask._values().sum()
+        total_loss += mse_loss
+        tboard.add_scalar('training/mse_loss', mse_loss.item(), global_step)
+        # Cross-entropy loss
+        if xentropy_loss_weight > 0:
+            source_xentropy_loss = xentropy_loss(A_transformed, kernA, kernA_precisions, device)
+            total_loss += xentropy_loss_weight * source_xentropy_loss
+            tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), global_step)
+        if e % 1 == 0:
+            if xentropy_loss_weight > 0:
+                print(f'[{e}/{max_epochs}] loss: {total_loss.item()} mse_loss: {mse_loss.item()} xentropy_loss: {source_xentropy_loss.item()}')
+            else:
+                print(f'[{e}/{max_epochs}] mse_loss: {mse_loss.item()}')
+        total_loss.backward()
+        optimizer.step()
+        scheduler.step(total_loss)
+        tboard.add_scalar('training/total_loss', total_loss.item(), global_step)
+        def get_cur_lr(my_optimizer):
+            for param_group in my_optimizer.param_groups:
+                return param_group['lr']
+        # print(f'Current LR = {get_cur_lr(optimizer)}')
+        # if xentropy_loss_weight > 0:
+        #     print(f'\tMSE Loss = {mse_loss.item():.4} Xentropy Loss = {source_xentropy_loss.item():.4} Total Loss = {total_loss.item():.4}')
+        # else:
+        #     print(f'\tTotal Loss = {total_loss.item():.4}')         
+        tboard.add_scalar('training/lr', get_cur_lr(optimizer), global_step)
+        global_step += 1
+        # e += 1
+        # if stopping_criterion.check_done(total_loss):
+        #     break
+
 class Batch(object):
     def __init__(self, source_samples, target_samples):
         self.source_samples = source_samples
@@ -674,11 +755,14 @@ def train_transform_batched(transformer, A, B, device, correspondence_mask, max_
                 source_xentropy_loss = xentropy_loss(A_transformed, kernA, kernA_precisions, device)
                 batch_loss += xentropy_loss_weight * source_xentropy_loss
                 #tboard.add_scalar('training/xentropy_loss', source_xentropy_loss.item(), global_step)
+                # print(f'[{e}, {b}] loss: {batch_loss.item()} mse_loss: {mse_loss.item()} xentropy_loss: {source_xentropy_loss}')
+            # else:
+            #     print(f'[{e}, {b}] loss: {batch_loss.item()}')
             batch_loss.backward()
             optimizer.step()
             running_loss += batch_loss.item()
             if b % print_every_n_batches == 0:
-                #print(f'[{e}, {b}] loss: {running_loss / print_every_n_batches}')
+                # print(f'[{e}, {b}] loss: {running_loss / print_every_n_batches}')
                 running_loss = 0.0
         # Now do another pass, with a fixed model, just to compute metrics
         transformer.eval()
@@ -779,9 +863,14 @@ def ICP_converge(A, B, type_index_dict,
                  normalization=None,
                  use_autoencoder=False,
                  dropout=0.,
-                 batch_norm=False):
+                 batch_norm=False,
+                 sparse_training=False,
+                 cpu_only=False):
     print('Looking for GPU to use...')
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if cpu_only:
+        device = 'cpu'
+    else:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device {}'.format(device))
     if normalization == 'std':
     #if standardize:
@@ -876,6 +965,8 @@ def ICP_converge(A, B, type_index_dict,
             tboard.add_scalar('training/uniq_targets_matched', len(target_hits), i)
             if mini_batching:
                 train_transform_batched(transformer, A, B, device, pair_assignment_mask, max_epochs, batch_size, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
+            elif sparse_training:
+                train_transform_sparse(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
             else:
                 train_transform(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
             if i % plot_every_n_steps == 0:
