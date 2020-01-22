@@ -22,10 +22,13 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
         method_key = method_name
     else:
         method_key = '{}_aligned'.format(method_name)
-    if args.input_space == 'PCA':
-        A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=True)
-    else:
-        A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=False)
+
+        
+    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=args.subsample, n_subsample=args.n_subsample)
+    # if args.input_space == 'PCA':
+    #     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=True)
+    # else:
+    #     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=False)
     print(A.shape)
     print(B.shape)
     if method_name == 'ICP':
@@ -100,6 +103,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                                    n_layers=args.nlayers,
                                    bias=args.bias,
                                    act=args.act,
+                                   min_steps=args.min_steps,
                                    max_steps=args.max_steps,
                                    tolerance=args.tolerance,
                                    patience=args.patience,
@@ -113,10 +117,12 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
                                    batch_size=args.batch_size,
                                    normalization=args.input_normalization,
                                    use_autoencoder=args.use_autoencoder,
+                                   last_layer_linear=args.last_layer_linear,
                                    dropout=args.dropout,
                                    batch_norm=args.batch_norm,
                                    sparse_training=args.sparse,
-                                   cpu_only=args.cpu_only)
+                                   cpu_only=args.cpu_only,
+                                   optimizer=args.opt)
     elif method_name == 'ICP2_xentropy_converge':
         assignment_fn = partial(icp.assign_greedy, source_match_threshold=args.source_match_thresh)
         aligner = icp.ICP_converge(A, B, type_index_dict,
@@ -136,6 +142,7 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
     aligner_fcn = lambda x: aligner(torch.from_numpy(x).float().to(device)).detach().cpu().numpy()
     #standardizing because it was fitted with standardized data (see ICP code)
     normalization = args.input_normalization
+    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False)
     if normalization == 'std':
         print('Applying Standard Scaling')
         scaler = StandardScaler().fit(np.concatenate((A,B)))
@@ -250,8 +257,11 @@ def run_Seurat(datasets, task, task_adata, method_name, log_dir, args):
             print('done loading loom')
             print(aligned_adata.shape)
             #print(type(aligned_adata.X))
+            print(aligned_adata.obs.columns)
+            print(aligned_adata.obsm.keys())
             print('todense...')
             task_adata.obsm[method_key] = aligned_adata.X.todense()
+            print(task_adata.obsm[method_key][:5, :])
         except subprocess.CalledProcessError as e:
             print("RUNNING SEURAT FAILED")
             print(e.stdout.decode('UTF-8'))

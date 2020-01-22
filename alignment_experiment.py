@@ -194,7 +194,7 @@ if __name__ == '__main__':
                 print('kBET failed')
             
     clf_score = None
-    if args.method != 'ScAlign':
+    if args.method != 'ScAlign' and args.do_clf_score:
         clf_score = metrics.knn_classification_test(task_adata, method_key, task, use_PCA=args.input_space=='PCA')
     result = {
         'lisi': lisi_score,

@@ -3,10 +3,49 @@ import numpy as np
 import anndata
 
 import preprocessing
+import dataset_info
 
 FILTER_MIN_GENES = 1.8e3
 FILTER_MIN_READS = 10
 FILTER_MIN_DETECTED = 5
+
+def print_data_info(data, args):
+    print()
+    print('-------------------------------')
+    print('--------- Dataset Info --------')
+    print()
+    print(f'\tShape: {data.shape}')
+    print()
+    print('\tBatches:')
+    print()
+    batches, counts = np.unique(data.obs[dataset_info.batch_columns[args.dataset]], return_counts=True)
+    idx = np.argsort(-counts)
+    for b, c in zip(batches[idx], counts[idx]):
+        print(f'\t{b}: {c}')
+    print()
+    print('\tCell Types:')
+    print()
+    celltypes, counts = np.unique(data.obs[dataset_info.celltype_columns[args.dataset]], return_counts=True)
+    idx = np.argsort(-counts)
+    for ct, c in zip(celltypes[idx], counts[idx]):
+        print(f'\t{ct}: {c}')
+    print('-------------------------------')
+    print()
+    print('----------- Task Info ---------')
+    print()
+    task_idx = data.obs[dataset_info.batch_columns[args.dataset]].isin([args.source, args.target])
+    task_data = data[task_idx, :]
+    print(f'\tShape: {task_data.shape}')
+    print()
+    print('\tCell Types:')
+    print()
+    print('\t Type \t count in A \t count in B')
+    for ct in np.unique(task_data.obs[dataset_info.celltype_columns[args.dataset]]):
+        a_count = ((task_data.obs[dataset_info.celltype_columns[args.dataset]] == ct) & (task_data.obs[dataset_info.batch_columns[args.dataset]] == args.source)).sum()
+        b_count = ((task_data.obs[dataset_info.celltype_columns[args.dataset]] == ct) & (task_data.obs[dataset_info.batch_columns[args.dataset]] == args.target)).sum()
+        print(f'\t{ct}\t{a_count}\t{b_count}')
+    print('-------------------------------')
+    print()
 
 def get_data(dataset, args):
     if dataset == 'Kowalcyzk':
@@ -36,6 +75,7 @@ def get_data(dataset, args):
         print(f'Original       : {data.shape}')
         data = preprocessing.filter_hvg(data)
         print(f'After filtering: {data.shape}')
+    print_data_info(data, args)
     return data
 
 def get_kowalcyzk():

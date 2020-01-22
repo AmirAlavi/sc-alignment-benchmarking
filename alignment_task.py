@@ -40,7 +40,7 @@ class AlignmentTask(object):
         else:
             return '{}-{}_to_{}'.format(self.ds_key, self.source_batch, self.target_batch)
 
-def get_source_target(datasets, task_info, use_PCA=False):
+def get_source_target(datasets, task_info, use_PCA=False, subsample=False, n_subsample=500):
     """Get the source data to be projected, as well as the target data on which it will be projected,
     both as np.ndarrays.
     """
@@ -49,6 +49,23 @@ def get_source_target(datasets, task_info, use_PCA=False):
         target_idx = (datasets[task_info.ds_key].obs[task_info.batch_key] == task_info.target_batch) & (datasets[task_info.ds_key].obs[task_info.ct_key] != task_info.leave_out_ct)
     else:
         target_idx = datasets[task_info.ds_key].obs[task_info.batch_key] == task_info.target_batch
+    if subsample:
+        print(source_idx.shape)
+        print(source_idx.sum())
+        print(target_idx.shape)
+        print(target_idx.sum())
+        on = np.where(source_idx == 1)[0]
+        idx = np.random.choice(on, n_subsample, replace=False)
+        source_idx = np.zeros_like(source_idx)
+        source_idx[idx] = 1
+        on = np.where(target_idx == 1)[0]
+        idx = np.random.choice(on, n_subsample, replace=False)
+        target_idx = np.zeros_like(target_idx)
+        target_idx[idx] = 1
+        print(source_idx.shape)
+        print(source_idx.sum())
+        print(target_idx.shape)
+        print(target_idx.sum())
     if use_PCA:
         source = datasets[task_info.ds_key].obsm['PCA'][source_idx]
         target = datasets[task_info.ds_key].obsm['PCA'][target_idx]

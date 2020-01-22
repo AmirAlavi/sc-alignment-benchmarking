@@ -12,6 +12,8 @@ result_file <- args[5]
 print(n_dims)
 
 counts <- read.csv(file = count_file, header = TRUE, sep = ",", row.names = 1, check.names = FALSE)
+print("head(counts, n = 5)")
+print(head(counts, n = 5))
 meta <- read.csv(file = meta_file, header = TRUE, sep = ",", row.names = 1)
 print(dim(counts))
 # str(counts)
@@ -50,11 +52,13 @@ DefaultAssay(data.integrated) <- "integrated"
 
 print("data.integrated shape")
 print(dim(data.integrated))
+print("head(data.integrated, n = 5)")
+print(head(data.integrated, n = 5))
 
  
-data.integrated <- FindVariableFeatures(object = data)
-print("after FindVariableFeatures")
-print(dim(data.integrated))
+## data.integrated <- FindVariableFeatures(object = data)
+## print("after FindVariableFeatures")
+## print(dim(data.integrated))
 fn <- result_file
 if (file.exists(fn)) {
     print("old loom file exists, deleting")

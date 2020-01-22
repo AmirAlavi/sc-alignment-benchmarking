@@ -117,13 +117,14 @@ def compute_Gaussian_kernel(X, tol=1e-5, perplexity=30):
 # --------------------------ARCHITECTURES-------------------------------------
 # ----------------------------------------------------------------------------
 class Autoencoder(nn.Module):
-    def __init__(self, input_size, layer_sizes, act='tanh', dropout=0.0, batch_norm=False):
+    def __init__(self, input_size, layer_sizes, act='tanh', dropout=0.0, batch_norm=False, last_layer_linear=False):
         super(Autoencoder, self).__init__()
         self.input_size = input_size
         self.layer_sizes = layer_sizes
         self.act = activations[act]
         self.dropout = dropout
         self.batch_norm = batch_norm
+        self.last_layer_linear = last_layer_linear
         
         self.encoder = nn.Sequential()
         self.decoder = nn.Sequential()
@@ -152,8 +153,9 @@ class Autoencoder(nn.Module):
                 linearity = nn.Linear(prev_size, size)
                 linearity.weight.data = module.weight.data.transpose(0, 1)
                 self.decoder.add_module('dec_lin_{}'.format(decode_layer_count), linearity)
-                if decode_layer_count < len(self.layer_sizes) - 1:
+                # if decode_layer_count < len(self.layer_sizes) - 1:
                 # if True:
+                if not (decode_layer_count == (len(self.layer_sizes) - 1) and self.last_layer_linear):
                     # BN
                     if self.batch_norm:
                         self.decoder.add_module('dec_batch_norm_{}'.format(decode_layer_count), nn.BatchNorm1d(size))
@@ -173,7 +175,6 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
         self.input_size = input_size
         self.layer_sizes = layer_sizes
-        self.act = activations[act]
         self.dropout = dropout
         self.batch_norm = batch_norm
         
@@ -196,12 +197,16 @@ class Transformer(nn.Module):
     def forward(self, x):
         return self.encoder(x)
     
-def get_autoencoder_transformer(ndims, act=None, dropout=0., batch_norm=False):
-    model = Autoencoder(ndims, layer_sizes=[64], act=act, dropout=dropout, batch_norm=batch_norm)
+def get_autoencoder_transformer(ndims, act=None, dropout=0., batch_norm=False, last_layer_linear=False):
+    model = Autoencoder(ndims, layer_sizes=[64], act=act, dropout=dropout, batch_norm=batch_norm, last_layer_linear=last_layer_linear)
     return model
 
-def get_autoencoder_transformer_3(ndims, act=None, dropout=0., batch_norm=False):
-    model = Autoencoder(ndims, layer_sizes=[256, 128, 64], act=act, dropout=dropout, batch_norm=batch_norm)
+def get_autoencoder_transformer_3(ndims, act=None, dropout=0., batch_norm=False, last_layer_linear=False):
+    model = Autoencoder(ndims, layer_sizes=[256, 128, 64], act=act, dropout=dropout, batch_norm=batch_norm, last_layer_linear=last_layer_linear)
+    return model
+
+def get_autoencoder_transformer_5(ndims, act=None, dropout=0., batch_norm=False, last_layer_linear=False):
+    model = Autoencoder(ndims, layer_sizes=[512, 256, 128, 64, 32], act=act, dropout=dropout, batch_norm=batch_norm, last_layer_linear=last_layer_linear)
     return model
 
 def get_mlp_transformer(ndims, nlayers, act=None, dropout=0., batch_norm=False):
@@ -304,7 +309,7 @@ def assign_hungarian(dist_mat, n_to_match):
     row_ind, col_ind = linear_sum_assignment(dist_mat)
     mask = np.zeros_like(dist_mat)
     mask[row_ind, col_ind] = 1
-    if n_to_match < dist_mat.shape[0]:
+    if n_to_match < min(dist_mat.shape[0], dist_mat.shape[1]):
         to_sort = dist_mat * mask
         to_sort[np.where(mask == 0)] = float('Inf')
         sorted_idx = np.stack(np.unravel_index(np.argsort(to_sort.ravel()), dist_mat.shape), axis=1)
@@ -562,10 +567,13 @@ def ICP(A, B, type_index_dict,
     print('Training took ' + time_str)
     return transformer
 
-def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA_precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0):
-    optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
-    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True, threshold=1e-8)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA_precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=0, opt='sgd'):
+    if opt == 'sgd':
+        optimizer = optim.SGD(transformer.parameters(), lr=lr, momentum=momentum, weight_decay=l2_reg)
+        # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True, threshold=1e-8)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+    elif opt == 'adam':
+        optimizer = optim.Adam(transformer.parameters(), lr=lr)
     # stopping_criterion = PlateauStoppingCriterion(15, max_epochs)
     transformer.train()
     global_step += 1
@@ -598,7 +606,8 @@ def train_transform(transformer, A, B, device, correspondence_mask, kernA, kernA
                 print(f'[{e}/{max_epochs}] mse_loss: {mse_loss.item()}')
         total_loss.backward()
         optimizer.step()
-        scheduler.step(total_loss)
+        if opt == 'sgd':
+            scheduler.step(total_loss)
         tboard.add_scalar('training/total_loss', total_loss.item(), global_step)
         def get_cur_lr(my_optimizer):
             for param_group in my_optimizer.param_groups:
@@ -816,9 +825,10 @@ def train_transform_batched(transformer, A, B, device, correspondence_mask, max_
             break
 
 class PlateauStoppingCriterion(object):
-    def __init__(self, patience, max_steps):
+    def __init__(self, patience, max_steps, min_steps=0):
         self.patience = patience
         self.max_steps = max_steps
+        self.min_steps = min_steps
         self.cur_step = 0
         self.count = 0
         self.lowest_score = None
@@ -827,13 +837,13 @@ class PlateauStoppingCriterion(object):
         if self.lowest_score is None:
             self.lowest_score = metric
             
-        if self.cur_step >= self.max_steps:
+        if self.cur_step >= self.min_steps and self.cur_step >= self.max_steps:
             print('Max Steps Stopping Criterion triggered, stopping training.')
             return True
         elif metric >= self.lowest_score:
             self.count += 1
             self.cur_step += 1
-            if self.count >= self.patience:
+            if self.count >= self.patience and self.cur_step >= self.min_steps:
                 print('Plateau Stopping Criterion triggered, stopping training.')
                 return True
         else:
@@ -850,6 +860,7 @@ def ICP_converge(A, B, type_index_dict,
                  bias=False,
                  act=None,
                  l2_reg=0.,
+                 min_steps=50,
                  max_steps=50,
                  tolerance=1e-2,
                  patience=5,
@@ -862,16 +873,19 @@ def ICP_converge(A, B, type_index_dict,
                  batch_size=32,
                  normalization=None,
                  use_autoencoder=False,
+                 last_layer_linear=False,
                  dropout=0.,
                  batch_norm=False,
                  sparse_training=False,
-                 cpu_only=False):
+                 cpu_only=False,
+                 optimizer='sgd'):
     print('Looking for GPU to use...')
     if cpu_only:
         device = 'cpu'
     else:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device {}'.format(device))
+
     if normalization == 'std':
     #if standardize:
         print('Applying Standard Scaling')
@@ -893,9 +907,11 @@ def ICP_converge(A, B, type_index_dict,
     # Get transformer (a neural net)
     if use_autoencoder:
         if n_layers == 1:
-            transformer = get_autoencoder_transformer(A.shape[1], act=act, dropout=dropout, batch_norm=batch_norm)
+            transformer = get_autoencoder_transformer(A.shape[1], act=act, dropout=dropout, batch_norm=batch_norm, last_layer_linear=last_layer_linear)
         elif n_layers == 3:
-            transformer = get_autoencoder_transformer_3(A.shape[1], act=act, dropout=dropout, batch_norm=batch_norm)
+            transformer = get_autoencoder_transformer_3(A.shape[1], act=act, dropout=dropout, batch_norm=batch_norm, last_layer_linear=last_layer_linear)
+        elif n_layers == 5:
+            transformer = get_autoencoder_transformer_5(A.shape[1], act=act, dropout=dropout, batch_norm=batch_norm, last_layer_linear=last_layer_linear)
     else:
         # if n_layers == 1:
         #     transformer, lin_layer_indices = get_affine_transformer(A.shape[1], bias=bias, relu_out=enforce_pos, act=act)
@@ -920,14 +936,14 @@ def ICP_converge(A, B, type_index_dict,
         A_kernel, precisions = compute_Gaussian_kernel(A)
     t0 = datetime.datetime.now()
     #for i in range(max_steps):
-    stopping_criterion = PlateauStoppingCriterion(patience, max_steps)
+    stopping_criterion = PlateauStoppingCriterion(patience, max_steps, min_steps)
     i = 0
     prev_pair_assignment_mask = None
     while True:
         try:
             # if i > max_steps:
             #     break
-            # print(f'Step {i}/{max_steps}') 
+            print(f'Step {i}/{max_steps}') 
             # do matching
             # for idx, lin_idx in enumerate(lin_layer_indices):
             #     if isnan(transformer[lin_idx].weight).any():
@@ -968,7 +984,7 @@ def ICP_converge(A, B, type_index_dict,
             elif sparse_training:
                 train_transform_sparse(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
             else:
-                train_transform(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs)
+                train_transform(transformer, A, B, device, pair_assignment_mask, A_kernel, precisions, max_epochs, xentropy_loss_weight, lr, momentum, l2_reg, tboard, global_step=i*max_epochs, opt=optimizer)
             if i % plot_every_n_steps == 0:
                 A_transformed = transformer(A.to(device)).cpu()
                 plot_step_tboard(tboard, A_transformed.detach().numpy(), B.detach().numpy(), type_index_dict, pca, i, target_hits)
