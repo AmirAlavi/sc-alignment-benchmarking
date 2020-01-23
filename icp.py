@@ -896,6 +896,10 @@ def ICP_converge(A, B, type_index_dict,
         print('Applying L2 Normalization')
         A = sklearn.preprocessing.normalize(A)
         B = sklearn.preprocessing.normalize(B)
+    elif normalization == 'log':
+        print('Applying log normalization')
+        A  = np.log1p(A / A.sum(axis=1, keepdims=True) * 1e4)
+        B  = np.log1p(B / B.sum(axis=1, keepdims=True) * 1e4)
     # Fit a PCA model on the original data and use this same model for all
     # PCA visualizations so that we have a constant coordinate system to track changes in
     combined = np.concatenate((A, B))

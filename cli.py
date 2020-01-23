@@ -34,7 +34,7 @@ def get_parser():
     icp.add_argument('--tolerance', help='Stopping criterion for algorithm, if norm of difference in transformed data between iterations is less than this, then stop.', type=float, default=0.25)
     icp.add_argument('--patience', help='Stopping criterion for algorithm, if no improvement in MSE distance of matched points for this many number of steps, then stop.', type=int, default=5)
     icp.add_argument('--max_epochs', help='Number of iterations to run fitting for affine transformation.', type=int, default=10000)
-    icp.add_argument('--input_normalization', help='Type of input normalizatio to apply.', choices=['l2', 'std', 'None'], default='None')
+    icp.add_argument('--input_normalization', help='Type of input normalizatio to apply.', choices=['l2', 'std', 'log', 'None'], default='None')
     icp.add_argument('--mini_batching', help='Enable batched optimization.', action='store_true')
     icp.add_argument('--sparse', help='Enable sparse training.', action='store_true')
     icp.add_argument('--cpu_only', help='Only use CPU even if GPU is available', action='store_true')

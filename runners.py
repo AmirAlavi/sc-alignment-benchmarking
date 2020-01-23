@@ -152,6 +152,10 @@ def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
         print('Applying L2 Normalization')
         A = sklearn.preprocessing.normalize(A)
         B = sklearn.preprocessing.normalize(B)
+    elif normalization == 'log':
+        print('Applying log normalization')
+        A  = np.log1p(A / A.sum(axis=1, keepdims=True) * 1e4)
+        B  = np.log1p(B / B.sum(axis=1, keepdims=True) * 1e4)
     A = aligner_fcn(A)
     print(A.shape)
     n_samples = task_adata.shape[0]
