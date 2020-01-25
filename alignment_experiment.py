@@ -163,6 +163,8 @@ if __name__ == '__main__':
     else:
         if args.method == 'ICP_rigid':
             runners.run_ICP_rigid(datasets, task, task_adata, args.method, log_dir, args)
+        elif args.method == 'ICP_affine':
+            runners.run_ICP_affine(datasets, task, task_adata, args.method, log_dir, args)
         elif 'ICP' in args.method:
             if args.method == 'ICP_align':
                 method_name = f'ICP_align_{args.matching_algo[:5]}_x_{args.xentropy_loss_wt}_reg_{args.l2_reg}'

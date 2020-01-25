@@ -49,6 +49,38 @@ def run_ICP_rigid(datasets, task, task_adata, method_name, log_dir, args):
     task_adata.obsm[method_key][b_idx, :] = B
     print(f'method_key: {method_key}')
 
+def run_ICP_affine(datasets, task, task_adata, method_name, log_dir, args):
+    method_key = '{}_aligned'.format(method_name)
+    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=args.subsample, n_subsample=args.n_subsample)
+
+    theta, bias = icp.ICP_affine(A, B, args.max_steps, args.tolerance, args.input_normalization)
+    
+    normalization = args.input_normalization
+    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False)
+    if normalization == 'std':
+        print('Applying Standard Scaling')
+        scaler = StandardScaler().fit(np.concatenate((A,B)))
+        A = scaler.transform(A)
+        B = scaler.transform(B)
+    elif normalization == 'l2':
+        print('Applying L2 Normalization')
+        A = sklearn.preprocessing.normalize(A)
+        B = sklearn.preprocessing.normalize(B)
+    elif normalization == 'log':
+        print('Applying log normalization')
+        A  = np.log1p(A / A.sum(axis=1, keepdims=True) * 1e4)
+        B  = np.log1p(B / B.sum(axis=1, keepdims=True) * 1e4)
+    A = np.dot(theta, A.T).T + bias
+    print(A.shape)
+    n_samples = task_adata.shape[0]
+    n_dims = A.shape[1]
+    task_adata.obsm[method_key] = np.zeros((n_samples, n_dims))
+    a_idx = np.where(task_adata.obs[task.batch_key] == task.source_batch)[0]
+    b_idx = np.where(task_adata.obs[task.batch_key] == task.target_batch)[0]
+    task_adata.obsm[method_key][a_idx, :] = A
+    task_adata.obsm[method_key][b_idx, :] = B
+    print(f'method_key: {method_key}')
+
     
 def run_ICP_methods(datasets, task, task_adata, method_name, log_dir, args):
     if 'ICP_align' in method_name:
