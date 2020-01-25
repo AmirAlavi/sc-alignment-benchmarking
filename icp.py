@@ -999,3 +999,37 @@ def ICP_converge(A, B, type_index_dict,
     time_str = pretty_tdelta(t1 - t0)
     print('Training took ' + time_str)
     return transformer
+
+
+
+def ICP_rigid(A, B,
+              max_steps=50,
+              tolerance=1e-2,
+              normalization=None):
+    
+    import matching
+    import transform
+    
+    if normalization == 'std':
+    #if standardize:
+        print('Applying Standard Scaling')
+        scaler = StandardScaler().fit(np.concatenate((A, B)))
+        A = scaler.transform(A)
+        B = scaler.transform(B)
+    elif normalization == 'l2':
+        print('Applying L2 Normalization')
+        A = sklearn.preprocessing.normalize(A)
+        B = sklearn.preprocessing.normalize(B)
+    elif normalization == 'log':
+        print('Applying log normalization')
+        A  = np.log1p(A / A.sum(axis=1, keepdims=True) * 1e4)
+        B  = np.log1p(B / B.sum(axis=1, keepdims=True) * 1e4)
+    A_orig = A.copy()
+    print(A_orig.shape)
+    for i in range(max_steps):
+        a_idx, b_idx, distances = matching.get_closest_matches(A, B)
+        print(f'Step: {i}, pairs: {len(a_idx)}, mean_dist: {np.mean(distances)}')
+        R, t = transform.fit_transform_rigid(A[a_idx], B[b_idx])
+        A = np.dot(R, A.T).T + t
+    R, t = transform.fit_transform_rigid(A_orig, A)
+    return R, t

@@ -161,7 +161,9 @@ if __name__ == '__main__':
             except Exception:
                 print('kBET failed')
     else:
-        if 'ICP' in args.method:
+        if args.method == 'ICP_rigid':
+            runners.run_ICP_rigid(datasets, task, task_adata, args.method, log_dir, args)
+        elif 'ICP' in args.method:
             if args.method == 'ICP_align':
                 method_name = f'ICP_align_{args.matching_algo[:5]}_x_{args.xentropy_loss_wt}_reg_{args.l2_reg}'
                 method_key = method_name
