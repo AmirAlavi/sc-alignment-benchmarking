@@ -4,6 +4,7 @@
 import math
 from collections import defaultdict
 import datetime
+from functools import partial
 
 import numpy as np
 import torch
@@ -20,6 +21,9 @@ from scipy.optimize import linear_sum_assignment
 from scipy.sparse import coo_matrix
 import matplotlib.pyplot as plt
 from tqdm import tnrange, trange
+
+import matching
+import transform
 
 # seeding for reproduciblity
 torch.manual_seed(1373)
@@ -1004,14 +1008,22 @@ def ICP_converge(A, B, type_index_dict,
 
 
 
-def ICP_rigid(A, B,
+def get_matching_fcn(args):
+    if args.matching_algo == 'closest':
+        print('Using CLOSEST matching')
+        return matching.get_closest_matches
+    elif args.matching_algo == 'hungarian':
+        print('Using HUNGARIAN matching')
+        return partial(matching.get_hungarian_matches, frac_to_match=args.source_match_thresh)
+    elif args.matching_algo == 'greedy':
+        print('Using GREEDY matching')
+        return partial(matching.get_greedy_matches, source_match_threshold=args.source_match_thresh, target_match_limit=args.target_match_limit)
+
+def ICP_rigid(A, B, args,
               max_steps=50,
               tolerance=1e-2,
               normalization=None):
-    
-    import matching
-    import transform
-    
+    matching_fcn = get_matching_fcn(args)
     if normalization == 'std':
     #if standardize:
         print('Applying Standard Scaling')
@@ -1029,17 +1041,22 @@ def ICP_rigid(A, B,
     A_orig = A.copy()
     print(A_orig.shape)
     for i in range(max_steps):
-        a_idx, b_idx, distances = matching.get_closest_matches(A, B)
+        a_idx, b_idx, distances = matching_fcn(A, B)
         print(f'Step: {i}, pairs: {len(a_idx)}, mean_dist: {np.mean(distances)}')
         R, t = transform.fit_transform_rigid(A[a_idx], B[b_idx])
         A = np.dot(R, A.T).T + t
     R, t = transform.fit_transform_rigid(A_orig, A)
     return R, t
 
-def ICP_affine(A, B,
-              max_steps=50,
-              tolerance=1e-2,
-              normalization=None):
+def ICP_affine(A, B, args,
+               max_steps=50,
+               tolerance=1e-2,
+               normalization=None,
+               opt='adam',
+               lr=1e-3,
+               epochs=1000):
+    matching_fcn = get_matching_fcn(args)
+    
     d = A.shape[1]
     import matching
     import transform
@@ -1063,9 +1080,9 @@ def ICP_affine(A, B,
 
     theta = None
     for i in range(max_steps):
-        a_idx, b_idx, distances = matching.get_closest_matches(A, B)
+        a_idx, b_idx, distances = matching_fcn(A, B)
         print(f'Step: {i}, pairs: {len(a_idx)}, mean_dist: {np.mean(distances)}')
-        theta_new, W, bias = transform.fit_transform_affine(A[a_idx], B[b_idx])
+        theta_new, W, bias = transform.fit_transform_affine(A[a_idx], B[b_idx], optim=opt, lr=lr, epochs=epochs)
         A = np.dot(W, A.T).T + bias
         if theta is None:
             theta = theta_new

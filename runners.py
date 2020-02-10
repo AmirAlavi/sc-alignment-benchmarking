@@ -21,7 +21,7 @@ def run_ICP_rigid(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=args.subsample, n_subsample=args.n_subsample)
 
-    R, t = icp.ICP_rigid(A, B, args.max_steps, args.tolerance, args.input_normalization)
+    R, t = icp.ICP_rigid(A, B, args, args.max_steps, args.tolerance, args.input_normalization)
     
     normalization = args.input_normalization
     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False)
@@ -53,7 +53,7 @@ def run_ICP_affine(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=args.subsample, n_subsample=args.n_subsample)
 
-    theta, bias = icp.ICP_affine(A, B, args.max_steps, args.tolerance, args.input_normalization)
+    theta, bias = icp.ICP_affine(A, B, args, args.max_steps, args.tolerance, args.input_normalization, args.opt, args.lr, args.max_epochs)
     
     normalization = args.input_normalization
     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False)
