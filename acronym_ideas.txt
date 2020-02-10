@@ -1,0 +1,25 @@
+SCEPTRE: Single Cell closEst PoinT REgistration
+SCEPTRE: Single CEll PoinT REgistration
+SCOOTR: Single Cell pOint clOud regisTRation
+SCOOT: Single Cell pOint clOud registTration
+CLOSER: CeLl pOint SEt Registration
+RECONNECT: iteRativE Closest pOiNt siNglE Cell inTegration
+SCALE: Single Cell ALignmEnt or Scrna-seq Cloud ALignmEnt
+SPLAT: Scrna-seq Point cLoud AlignmenT
+SPIN: Scrna-seq Point INtegration
+PRESTO: Point REgiStraTiOn
+EPIC: Expression PoInt Cloud
+SMART: Scrna-seq MAtching RegisTration
+sc-TRACTOR: iTeRAtive ClosesT pOint Registration
+sc-POSER: sc POint SEt Registration
+sc-ICP
+
+
+
+
+Fun fonts:
+Orange Juice by Brittney Murphy Design: https://www.dafont.com/orange-juice.font
+Sketch 3D by Galdino Otten: https://www.dafont.com/sketch-3d.font
+Zuka Doodle by cove703: https://www.dafont.com/zuka-doodle.font
+Broken Chalk by Magistr: https://www.dafont.com/broken-chalk.font
+Meatloaf by Brittney Murphy Design: https://www.dafont.com/meatloaf.font
