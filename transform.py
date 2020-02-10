@@ -19,7 +19,6 @@ def fit_transform_rigid(A, B):
 
     return R, t
     
-
 def fit_transform_affine(A, B, optim='adam', lr=1e-3, epochs=1000):
     d = A.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
