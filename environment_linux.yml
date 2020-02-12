@@ -119,7 +119,6 @@ dependencies:
     - keras-preprocessing==1.1.0
     - loompy==3.0.6
     - mnnpy==0.1.9.5
-    - numpy-groupies==0+unknown
     - opt-einsum==3.1.0
     - tensorboard==1.15.0
     - tensorflow==1.15.2

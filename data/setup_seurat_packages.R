@@ -1,3 +1,9 @@
+library(BiocManager)
+Sys.setenv(R_INSTALL_STAGED = FALSE)
+Sys.setenv(TAR = "/bin/tar")
+BiocManager::install('multtest')
+install.packages('Seurat', repos = "http://cran.us.r-project.org")
+
 library(devtools)
 devtools::install_github('satijalab/seurat-data')
 
