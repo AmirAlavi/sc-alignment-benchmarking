@@ -70,7 +70,7 @@ def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch', lo
             idx = np.where((datasets[ds_key].obs[cell_type_key] == cell_type) & (datasets[ds_key].obs[batch_key] == batch))[0]
             for embedding_key, ax in zip(['PCA', 'UMAP', 'TSNE'], [ax1, ax2, ax3]):
                 X_subset = datasets[ds_key].obsm[embedding_key][idx, :2]
-                ax.scatter(X_subset[:,0], X_subset[:,1], s=20, c=cmap(color_idx), edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_type, batch))
+                ax.scatter(X_subset[:,0], X_subset[:,1], s=20, c=[cmap(color_idx)], edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_type, batch))
     plt.legend(markerscale=3., loc="upper left", bbox_to_anchor=(1,1))
     plt.subplots_adjust(right=0.85)
     if log_dir is not None:

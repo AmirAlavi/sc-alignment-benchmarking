@@ -84,29 +84,29 @@ def get_kowalcyzk():
     meta = pd.read_csv('data/Kowalcyzk/Kowalcyzk_meta.csv', index_col=0)
     counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
     adata = anndata.AnnData(X=counts.values, obs=meta)
-    print(adata.X.shape)
+    # print(adata.X.shape)
     ages, ages_counts = np.unique(adata.obs['cell_age'], return_counts=True)
-    for age, c in zip(ages, ages_counts):
-        print(f'age: {age}, count: {c}') 
-    print(adata.obs.info())
+    # for age, c in zip(ages, ages_counts):
+    #     print(f'age: {age}, count: {c}') 
+    # print(adata.obs.info())
     return adata
 
 def get_cellbench():
     protocols = ['10x', 'CELseq2', 'Dropseq']
     adatas = []
     for protocol in protocols:
-        print(protocol)
+        #print(protocol)
         counts = pd.read_csv('data/CellBench/{}_counts.csv'.format(protocol), index_col=0).T
         counts = counts.loc[:, ~counts.columns.duplicated()]
         meta = pd.read_csv('data/CellBench/{}_meta.csv'.format(protocol), index_col=0)
         counts, meta = preprocessing.remove_doublets(counts, meta)
         counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
         adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
-        print(adatas[-1].shape)
-        print(np.unique(adatas[-1].obs['cell_line_demuxlet']))
+        # print(adatas[-1].shape)
+        # print(np.unique(adatas[-1].obs['cell_line_demuxlet']))
     adata = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
-    print(adata.X.shape)
-    print(adata.obs.info())
+    # print(adata.X.shape)
+    # print(adata.obs.info())
     return adata
 
 def get_panc8(args):
@@ -116,24 +116,24 @@ def get_panc8(args):
     # protocols = [args.source, args.target]
     adatas = []
     for protocol in protocols:
-        print(protocol)
+        # print(protocol)
         counts = pd.read_csv('data/panc8/{}_counts.csv'.format(protocol), index_col=0).T
         counts = counts.loc[:, ~counts.columns.duplicated()]
         meta = pd.read_csv('data/panc8/{}_meta.csv'.format(protocol), index_col=0)
         counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
         adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
-        print(adatas[-1].shape)
-        print(np.unique(adatas[-1].obs['celltype']))
+        # print(adatas[-1].shape)
+        # print(np.unique(adatas[-1].obs['celltype']))
         #print(adatas[-1].var)
     adata = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
-    print(adata.X.shape)
-    print(adata.obs.info())
+    # print(adata.X.shape)
+    # print(adata.obs.info())
     cell_types, counts = np.unique(adata.obs['celltype'], return_counts=True)
     sort_idx = np.argsort(counts)[::-1]
     cell_types = cell_types[sort_idx]
     counts = counts[sort_idx]
-    print(cell_types)
-    print(counts)
+    # print(cell_types)
+    # print(counts)
     selector = adata.obs['celltype'].isin(cell_types[:args.panc8_n_cell_types])
     adata = adata[selector]
     return adata
@@ -143,18 +143,18 @@ def get_panc82():
     #protocols = ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1', 'indrop1', 'indrop2', 'indrop3', 'indrop4']
     adatas = []
     for protocol in protocols:
-        print(protocol)
+        # print(protocol)
         counts = pd.read_csv('data/panc8/{}_counts.csv'.format(protocol), index_col=0).T
         counts = counts.loc[:, ~counts.columns.duplicated()]
         meta = pd.read_csv('data/panc8/{}_meta.csv'.format(protocol), index_col=0)
         counts, meta = preprocessing.clean_counts(counts, meta, FILTER_MIN_GENES, FILTER_MIN_READS, FILTER_MIN_DETECTED)
         adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
-        print(adatas[-1].shape)
-        print(np.unique(adatas[-1].obs['celltype']))
+        # print(adatas[-1].shape)
+        # print(np.unique(adatas[-1].obs['celltype']))
         #print(adatas[-1].var)
     adata = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
-    print(adata.X.shape)
-    print(adata.obs.info())
+    # print(adata.X.shape)
+    # print(adata.obs.info())
     # cell_types, counts = np.unique(adata.obs['celltype'], return_counts=True)
     # sort_idx = np.argsort(counts)[::-1]
     # cell_types = cell_types[sort_idx]

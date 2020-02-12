@@ -76,8 +76,8 @@ if __name__ == '__main__':
     log_dir = Path(log_dir)
     print('Working Directory: {}\n\n'.format(log_dir))
 
-    for argument, value in vars(args).items():
-        print('{}: {}'.format(argument, value))
+    # for argument, value in vars(args).items():
+    #     print('{}: {}'.format(argument, value))
 
     with open(log_dir / 'args.txt', 'w') as f:
         f.write('\n'.join(sys.argv[1:]))
@@ -142,16 +142,16 @@ if __name__ == '__main__':
         plot_alignment_results(log_dir, task_adata, args.method, task)
         if args.input_space == 'PCA':
             lisi_score = metrics.lisi2(task_adata.obsm['PCA'], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
-            lisi_score_batch = metrics.lisi2(task_adata.obsm['PCA'], task_adata.obs, [task.batch_key], perplexity=30)
-            batch_A_adata = task_adata[task_adata.obs[task.batch_key] == task.source_batch, :]
-            print(f'batch_A_adata.obsm["PCA"].shape: {batch_A_adata.obsm["PCA"].shape}')
-            lisi_score_celltype = metrics.lisi2(batch_A_adata.obsm['PCA'], batch_A_adata.obs, [task.ct_key], perplexity=30)
+            # lisi_score_batch = metrics.lisi2(task_adata.obsm['PCA'], task_adata.obs, [task.batch_key], perplexity=30)
+            # batch_A_adata = task_adata[task_adata.obs[task.batch_key] == task.source_batch, :]
+            # print(f'batch_A_adata.obsm["PCA"].shape: {batch_A_adata.obsm["PCA"].shape}')
+            # lisi_score_celltype = metrics.lisi2(batch_A_adata.obsm['PCA'], batch_A_adata.obs, [task.ct_key], perplexity=30)
         else:
             lisi_score = metrics.lisi2(task_adata.X, task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
-            lisi_score_batch = metrics.lisi2(task_adata.X, task_adata.obs, [task.batch_key], perplexity=30)
-            batch_A_adata = task_adata[task_adata.obs[task.batch_key] == task.source_batch, :]
-            print(f'batch_A_adata.shape: {batch_A_adata.shape}')
-            lisi_score_celltype = metrics.lisi2(batch_A_adata.X, batch_A_adata.obs, [task.ct_key], perplexity=30)
+            # lisi_score_batch = metrics.lisi2(task_adata.X, task_adata.obs, [task.batch_key], perplexity=30)
+            # batch_A_adata = task_adata[task_adata.obs[task.batch_key] == task.source_batch, :]
+            # print(f'batch_A_adata.shape: {batch_A_adata.shape}')
+            # lisi_score_celltype = metrics.lisi2(batch_A_adata.X, batch_A_adata.obs, [task.ct_key], perplexity=30)
         if args.do_kBET_test:
             try:
                 kbet_stats = metrics.kBET(task_adata.X, task_adata.obs, task.batch_key, args.kBET_env_path)
@@ -184,10 +184,10 @@ if __name__ == '__main__':
         task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
         plot_alignment_results(log_dir, task_adata, method_key, task)
         lisi_score = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
-        lisi_score_batch = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key], perplexity=30)
-        batch_A_adata = task_adata[task_adata.obs[task.batch_key] == task.source_batch, :]
-        print(f'batch_A_adata.shape: {batch_A_adata.shape}')
-        lisi_score_celltype = metrics.lisi2(batch_A_adata.obsm[method_key], batch_A_adata.obs, [task.ct_key], perplexity=30)
+        # lisi_score_batch = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key], perplexity=30)
+        # batch_A_adata = task_adata[task_adata.obs[task.batch_key] == task.source_batch, :]
+        # print(f'batch_A_adata.shape: {batch_A_adata.shape}')
+        # lisi_score_celltype = metrics.lisi2(batch_A_adata.obsm[method_key], batch_A_adata.obs, [task.ct_key], perplexity=30)
         if args.do_kBET_test:
             try:
                 kbet_stats = metrics.kBET(task_adata.obsm[method_key], task_adata.obs, task.batch_key, args.kBET_env_path)
@@ -216,14 +216,16 @@ if __name__ == '__main__':
     print('cLISI: {}'.format(lisi_score[task.ct_key].mean()))
     print('\nLISI medians:')
     print('iLISI: {}'.format(lisi_score[task.batch_key].median()))
+    print(lisi_score[task.batch_key].quantile([0.25, 0.5, 0.75]))
     print('cLISI: {}'.format(lisi_score[task.ct_key].median()))
     print(lisi_score[task.ct_key].quantile([0.25, 0.5, 0.75]))
-    print('\n\n')
-    print('New LISI')
-    print('iLISI: {}'.format(lisi_score_batch[task.batch_key].median()))
-    print(lisi_score_batch[task.batch_key].quantile([0.25, 0.5, 0.75]))
-    print('cLISI: {}'.format(lisi_score_celltype[task.ct_key].median()))
-    print(lisi_score_celltype[task.ct_key].quantile([0.25, 0.5, 0.75]))
+
+    # print('\n\n')
+    # print('New LISI')
+    # print('iLISI: {}'.format(lisi_score_batch[task.batch_key].median()))
+    # print(lisi_score_batch[task.batch_key].quantile([0.25, 0.5, 0.75]))
+    # print('cLISI: {}'.format(lisi_score_celltype[task.ct_key].median()))
+    # print(lisi_score_celltype[task.ct_key].quantile([0.25, 0.5, 0.75]))
     with open(join(log_dir, 'results.pickle'), 'wb') as f:
         pickle.dump(result, f)
 
