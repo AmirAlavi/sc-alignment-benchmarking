@@ -19,6 +19,7 @@ SORT_ORDER = {
     'SeuratV3': 2,
     'ScAlign': 3,
     'ICP-align': 4,
+    'ICP-affine-greedy': 5,
     # 'greedy_thresh_0.25_limit_02': 5,
     # 'hungarian_thresh_0.25': 6,
     # 'greedy_thresh_0.50_limit_02': 7,
@@ -107,7 +108,7 @@ def plot_lisi(df, alignment_task, output_folder):
     current_handles, current_labels = plt.gca().get_legend_handles_labels()
     new_labels = []
     for l in current_labels:
-        if l == 'protocol':
+        if l == 'protocol' or l == 'cell_age' or l == 'dataset':
             new_l = 'iLISI'
         else:
             new_l = 'cLISI'
