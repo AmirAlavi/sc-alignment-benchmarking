@@ -26,7 +26,7 @@ def get_parser():
     cellbench.add_argument('--leaveOut', help='Leave-out cell type.')
 
     icp = parser.add_argument_group('ICP options')
-    icp.add_argument('--matching_algo', help='Which matching algorithm to use to pair up source points to target points.', choices=['closest', 'greedy', 'hungarian'], default='greedy')
+    icp.add_argument('--matching_algo', help='Which matching algorithm to use to pair up source points to target points.', choices=['closest', 'greedy', 'hungarian', 'mnn'], default='greedy')
     icp.add_argument('--source_match_thresh', help='Portion of source points that need to be matched to a target point', type=float, default=0.5)
     icp.add_argument('--target_match_limit', help='Maximum number of times a target point can be assigned to.', type=int, default=2)
     icp.add_argument('--min_steps', help='Min number of steps to run iterative point-cloud registration algorithm.', type=int, default=100)

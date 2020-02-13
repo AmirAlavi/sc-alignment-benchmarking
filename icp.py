@@ -1018,6 +1018,9 @@ def get_matching_fcn(args):
     elif args.matching_algo == 'greedy':
         print('Using GREEDY matching')
         return partial(matching.get_greedy_matches, source_match_threshold=args.source_match_thresh, target_match_limit=args.target_match_limit)
+    elif args.matching_algo == 'mnn':
+        print('Using MNN matching')
+        return partial(matching.get_mnn_matches)
 
 def ICP_rigid(A, B, args,
               max_steps=50,
@@ -1081,7 +1084,7 @@ def ICP_affine(A, B, args,
     theta = None
     for i in range(max_steps):
         a_idx, b_idx, distances = matching_fcn(A, B)
-        print(f'Step: {i}, pairs: {len(a_idx)}, mean_dist: {np.mean(distances)}')
+        print(f'Step: {i}/{max_steps}, pairs: {len(a_idx)}, mean_dist: {np.mean(distances)}')
         theta_new, W, bias = transform.fit_transform_affine(A[a_idx], B[b_idx], optim=opt, lr=lr, epochs=epochs)
         A = np.dot(W, A.T).T + bias
         if theta is None:

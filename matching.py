@@ -82,3 +82,23 @@ def get_hungarian_matches(A, B, frac_to_match=1.0):
     assert(len(np.unique(A_indices)) == len(A_indices))
     assert(len(np.unique(B_indices)) == len(B_indices))
     return A_indices, B_indices, distances
+
+def get_mnn_matches(A, B, k=10):
+    t0 = datetime.datetime.now()
+    kd_A = spatial.KDTree(A)
+    kd_B = spatial.KDTree(B)
+
+    distances_a2b, B_nb_indices = kd_B.query(A, k)
+    distances_b2a, A_nb_indices = kd_A.query(B, k)
+    A_indices, B_indices, distances = [], [], []
+    for a_idx, b_neighbors in enumerate(B_nb_indices):
+        for b_idx, a_neighbors in enumerate(A_nb_indices):
+            if a_idx in a_neighbors and b_idx in b_neighbors:
+                A_indices.append(a_idx)
+                B_indices.append(b_idx)
+                distances.append(kd_B.query(A[a_idx])[0])
+
+    t1 = datetime.datetime.now()
+    time_str = pretty_tdelta(t1 - t0)
+    print('mnn matching took ' + time_str)
+    return np.array(A_indices), np.array(B_indices), np.array(distances)
