@@ -17,6 +17,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import networkx as nx
 import scipy
+from scipy import spatial
 from scipy.optimize import linear_sum_assignment
 from scipy.sparse import coo_matrix
 import matplotlib.pyplot as plt
@@ -1043,8 +1044,13 @@ def ICP_rigid(A, B, args,
         B  = np.log1p(B / B.sum(axis=1, keepdims=True) * 1e4)
     A_orig = A.copy()
     print(A_orig.shape)
+    if args.matching_algo in ['closest', 'mnn']:
+        kd_B = spatial.KDTree(B)
     for i in range(max_steps):
-        a_idx, b_idx, distances = matching_fcn(A, B)
+        if args.matching_algo in ['closest', 'mnn']:
+            a_idx, b_idx, distances = matching_fcn(A, B, kd_B)
+        else:
+            a_idx, b_idx, distances = matching_fcn(A, B)
         print(f'Step: {i}, pairs: {len(a_idx)}, mean_dist: {np.mean(distances)}')
         R, t = transform.fit_transform_rigid(A[a_idx], B[b_idx])
         A = np.dot(R, A.T).T + t
@@ -1081,9 +1087,15 @@ def ICP_affine(A, B, args,
     A_orig = A.copy()
     print(A_orig.shape)
 
+    if args.matching_algo in ['closest', 'mnn']:
+        kd_B = spatial.KDTree(B)
+
     theta = None
     for i in range(max_steps):
-        a_idx, b_idx, distances = matching_fcn(A, B)
+        if args.matching_algo in ['closest', 'mnn']:
+            a_idx, b_idx, distances = matching_fcn(A, B, kd_B)
+        else:
+            a_idx, b_idx, distances = matching_fcn(A, B)
         print(f'Step: {i}/{max_steps}, pairs: {len(a_idx)}, mean_dist: {np.mean(distances)}')
         theta_new, W, bias = transform.fit_transform_affine(A[a_idx], B[b_idx], optim=opt, lr=lr, epochs=epochs)
         A = np.dot(W, A.T).T + bias
