@@ -52,7 +52,7 @@ def get_parser():
     icp.add_argument('--act', help='Activation function to use in neural network (only for 2 layer nets).', )
     icp.add_argument('--bias', help='Use bias term in neural nets.', action='store_true')
     icp.add_argument('--lr', help='Learning rate in fitting.', type=float, default=1e-3)
-    icp.add_argument('--opt', help='Optimizer to use for fitting transform.', choices=['sgd', 'adam'], default='sgd')
+    icp.add_argument('--opt', help='Optimizer to use for fitting transform.', choices=['sgd', 'adam'], default='adam')
     icp.add_argument('--plot_every_n', help='Plot the data using the neural net aligner every n steps.', type=int, default=5)
     icp.add_argument('--filter_hvg', help='Filter down to only highly variable genes.', action='store_true')
     
