@@ -15,7 +15,6 @@ def get_closest_matches(A, B, kd, prune_matches=False):
     # if prune_matches and D_max is None:
     #     raise ValueError('D_max cannot be None if prune_matches is True')
 
-    # kd = spatial.KDTree(B)
     distances, B_indices = kd.query(A)
     A_indices = np.arange(A.shape[0])
 
@@ -85,8 +84,7 @@ def get_hungarian_matches(A, B, frac_to_match=1.0):
 
 def get_mnn_matches(A, B, kd_B, k=10):
     t0 = datetime.datetime.now()
-    kd_A = spatial.KDTree(A)
-    #kd_B = spatial.KDTree(B)
+    kd_A = spatial.cKDTree(A)
 
     distances_a2b, B_nb_indices = kd_B.query(A, k)
     distances_b2a, A_nb_indices = kd_A.query(B, k)

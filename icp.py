@@ -1045,7 +1045,7 @@ def ICP_rigid(A, B, args,
     A_orig = A.copy()
     print(A_orig.shape)
     if args.matching_algo in ['closest', 'mnn']:
-        kd_B = spatial.KDTree(B)
+        kd_B = spatial.cKDTree(B)
     for i in range(max_steps):
         if args.matching_algo in ['closest', 'mnn']:
             a_idx, b_idx, distances = matching_fcn(A, B, kd_B)
@@ -1088,7 +1088,7 @@ def ICP_affine(A, B, args,
     print(A_orig.shape)
 
     if args.matching_algo in ['closest', 'mnn']:
-        kd_B = spatial.KDTree(B)
+        kd_B = spatial.cKDTree(B)
 
     theta = None
     for i in range(max_steps):
