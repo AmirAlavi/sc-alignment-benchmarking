@@ -1,4 +1,4 @@
-# import pdb; pdb.set_trace()
+import pdb; pdb.set_trace()
 import argparse
 import os
 import pickle
@@ -20,6 +20,7 @@ SORT_ORDER = {
     'ScAlign': 3,
     'ICP-align': 4,
     'ICP-affine-greedy': 5,
+    'ICP-affine-mnn': 6
     # 'greedy_thresh_0.25_limit_02': 5,
     # 'hungarian_thresh_0.25': 6,
     # 'greedy_thresh_0.50_limit_02': 7,
@@ -58,8 +59,24 @@ def plot_clf(df, alignment_task, output_folder):
     # plt.savefig(output_folder / '{}_auc.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
     # plt.close()
 
+def get_sort_order_by_score(df, alignment_task):
+    sort_df = df.copy()
+    def negate_iLISI(row):
+        if row['metric'] == alignment_task.ct_key:
+            return -row['score']
+        else:
+            return row['score']
+    sort_df['score'] = df.apply(negate_iLISI, axis=1)
+    sort_df = sort_df.groupby(['method', 'metric']).median().groupby('method').sum().sort_values(by='score', ascending=False)
+    sort_df['order'] = (-sort_df['score']).argsort()
+    sort_dict = {}
+    for k, v in sort_df.to_dict(orient='index').items():
+        sort_dict[k] = v['order']
+    return sort_dict
+
 def plot_lisi(df, alignment_task, output_folder):
-    sort_order = SORT_ORDER
+    # sort_order = SORT_ORDER
+    sort_order = get_sort_order_by_score(df, alignment_task)
     df['ord'] = df.apply(lambda row: sort_order[row['method']], axis=1)
     df.sort_values('ord', inplace=True)
     sns.set(style="whitegrid")
