@@ -9,7 +9,7 @@ def get_parser():
     parser.add_argument('output_folder', help='Output folder for this experiment.')
 
     parser.add_argument('--method', help='Which method to run.', required=True, choices=['None', 'ScAlign', 'MNN', 'SeuratV3', 'ICP', 'ICP2', 'ICP2_xentropy', 'ICP_converge', 'ICP2_xentropy_converge', 'ICP_align', 'ICP_rigid', 'ICP_affine'])
-    parser.add_argument('--dataset', help='Which dataset to run the alignment method on.', required=True, choices=['Kowalcyzk', 'CellBench', 'panc8', 'scQuery_retina', 'scQuery_tcell', 'scQuery_lung', 'scQuery_pancreas', 'scQuery_ESC', 'scQuery_HSC', 'scQuery_combined'])
+    parser.add_argument('--dataset', help='Which dataset to run the alignment method on.', required=True, choices=['Kowalcyzk', 'CellBench', 'panc8', 'scQuery_retina', 'scQuery_tcell', 'scQuery_lung', 'scQuery_pancreas', 'scQuery_ESC', 'scQuery_HSC', 'scQuery_combined', 'pbmcsca_low'])
     parser.add_argument('--panc8_n_cell_types', help='Number of the top most populous cell types to include.', type=int, default=5)
     parser.add_argument('--standardize', help='StandardScale the input to PCA.', action='store_true')
     parser.add_argument('--n_PC', help='Number of Principle Components of data to use.', type=int, default=100)

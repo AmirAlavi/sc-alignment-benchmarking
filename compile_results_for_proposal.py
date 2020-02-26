@@ -125,7 +125,7 @@ def plot_lisi(df, alignment_task, output_folder):
     current_handles, current_labels = plt.gca().get_legend_handles_labels()
     new_labels = []
     for l in current_labels:
-        if l == 'protocol' or l == 'cell_age' or l == 'dataset':
+        if l == 'protocol' or l == 'cell_age' or l == 'dataset' or l == 'batch':
             new_l = 'iLISI'
         else:
             new_l = 'cLISI'

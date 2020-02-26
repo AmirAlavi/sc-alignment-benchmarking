@@ -8,7 +8,8 @@ batch_columns = {
     'scQuery_pancreas': 'accession',
     'scQuery_ESC': 'accession',
     'scQuery_HSC': 'accession',
-    'scQuery_combined': 'batch'
+    'scQuery_combined': 'batch',
+    'pbmcsca_low': 'protocol'
 }
 
 celltype_columns = {
@@ -21,13 +22,15 @@ celltype_columns = {
     'scQuery_pancreas': 'label_name',
     'scQuery_ESC': 'label_name',
     'scQuery_HSC': 'label_name',
-    'scQuery_combined': 'label_name'
+    'scQuery_combined': 'label_name',
+    'pbmcsca_low': 'CellType'
 }
 
 batches_available = {
     'Kowalcyzk': ['young', 'old'],
     'CellBench': ['10x', 'CELseq2', 'Dropseq'],
-    'panc8': ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1', 'indrop1', 'indrop2', 'indrop3', 'indrop4']
+    'panc8': ['celseq', 'celseq2', 'smartseq2', 'fluidigmc1', 'indrop1', 'indrop2', 'indrop3', 'indrop4'],
+    'pbmcsca_low': ['Smart-seq2', 'CEL-Seq2']
 }
 
 celltypes_available = {
