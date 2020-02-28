@@ -200,16 +200,17 @@ if __name__ == '__main__':
     clf_score = None
     if args.method != 'ScAlign' and args.do_clf_score:
         clf_score = metrics.knn_classification_test(task_adata, method_key, task, use_PCA=args.input_space=='PCA')
-    clf_test_report = None
+    clf_test_reports = None
     if args.method != 'ScAlign' and args.do_clf_test:
         test_batch_idx = datasets[task.ds_key].obs[task.batch_key] == args.clf_test_batch
         test_batch = datasets[task.ds_key][test_batch_idx]
-        clf_test_report = metrics.paired_batch_classification_test(task_adata, method_key, task, use_PCA=args.input_space=='PCA')
+        clf_test_reports = metrics.paired_batch_classification_test(test_batch, task_adata, method_key, task, use_PCA=args.input_space=='PCA')
+        print(clf_test_reports)
     result = {
         'lisi': lisi_score,
         'kbet_stats': kbet_stats,
         'clf': clf_score,
-        'clf_test_report': clf_test_report,
+        'clf_test_reports': clf_test_reports,
         'alignment_task': task,
         'method': args.name,
         'log_dir': log_dir
