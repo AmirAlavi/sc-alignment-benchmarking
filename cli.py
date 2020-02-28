@@ -18,6 +18,8 @@ def get_parser():
     parser.add_argument('--do_kBET_test', help='Compute the k-BET test to quantify batch correction, as a metric.', action='store_true')
     parser.add_argument('--kBET_env_path', help='Path to k-BET R environment.', default='/home/aalavi/anaconda2/envs/kBET')
     parser.add_argument('--do_clf_score', help='Do check of improved classifier accuracy.', action='store_true')
+    parser.add_argument('--do_clf_test', help='Do check of improved classifier accuracy.', action='store_true')
+    parser.add_argument('--clf_test_batch', help='Test batch for the "do_clf_test" option.')
     
 
     cellbench = parser.add_argument_group('Alignment Task Options')

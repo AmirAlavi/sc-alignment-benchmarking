@@ -108,3 +108,18 @@ def knn_classification_test(task_adata, method_key, alignment_task, use_PCA=Fals
         # 'source_aligned_auc': source_aligned_auc
     }
     return scores
+
+def geosketch_sample(x, n):
+    # from 
+
+def paired_batch_classification_test(test_batch, task_adata, method_key, alignment_task, use_PCA=False):
+    source_aligned_x, source_x, target_x, source_y, target_y = get_source_target(task_adata, method_key, alignment_task, use_PCA)
+    # clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
+    train_size = min(source_x.shape[0], target_x.shape[0])
+    # model = fit(B1)
+    clf = KNeighborsClassifier()
+    clf.fit(target_x, target_y)
+    # pred_target_y = clf.predict(target_x)
+    pred_source_y = clf.predict(source_x)
+    pred_source_aligned_y = clf.predict(source_aligned_x)
+
