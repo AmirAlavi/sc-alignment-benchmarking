@@ -1,6 +1,6 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, normalize
 from sklearn.neighbors import KNeighborsClassifier
 from geosketch import gs
 from fbpca import pca
@@ -129,6 +129,9 @@ def geosketch_sample_dimred(X, n):
 
 def paired_batch_classification_test(test_batch, task_adata, method_key, alignment_task, use_PCA=False):
     source_aligned_x, source_x, target_x, source_y, target_y, test_X, test_y = get_source_target(task_adata, method_key, alignment_task, use_PCA, test_batch)
+    source_x = normalize(source_x)
+    target_x = normalize(target_x)
+    test_X = normalize(test_X)
     # clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
     train_size = min(source_x.shape[0], target_x.shape[0])
     print('### PAIRED BATCH CLASSIFICATION TESTS')
@@ -138,7 +141,8 @@ def paired_batch_classification_test(test_batch, task_adata, method_key, alignme
             sketch_idx = gs(X_tr, train_size, replace=False)
             X_tr = X_tr[sketch_idx]
             y_tr = y_tr[sketch_idx]
-        clf = KNeighborsClassifier()
+        # clf = KNeighborsClassifier()
+        clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
         clf.fit(X_tr, y_tr)
         y_pred = clf.predict(X_te)
         print(classification_report(y_te, y_pred))
