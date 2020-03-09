@@ -182,8 +182,8 @@ if __name__ == '__main__':
         task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
         task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2, random_state=1373).fit_transform(task_adata.obsm[method_key])
         task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
-        with open(log_dir + 'aligned.pkl', 'wb') as f:
-            pickle.dump(task_adata.obsm[method_key + '_aligned'], f)
+        with open(log_dir / 'aligned.pkl', 'wb') as f:
+            pickle.dump(task_adata.obsm[method_key], f)
         plot_alignment_results(log_dir, task_adata, method_key, task)
         lisi_score = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
         # lisi_score_batch = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key], perplexity=30)

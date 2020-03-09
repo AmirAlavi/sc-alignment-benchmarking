@@ -22,6 +22,7 @@ def fit_transform_rigid(A, B):
 def fit_transform_affine(A, B, optim='adam', lr=1e-3, epochs=1000):
     d = A.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device {}'.format(device))
     A = torch.from_numpy(A).float().to(device)
     B = torch.from_numpy(B).float().to(device)
     f = torch.nn.Sequential()
