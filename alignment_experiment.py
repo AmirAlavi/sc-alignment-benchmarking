@@ -128,7 +128,23 @@ if __name__ == '__main__':
         plot_aligned_embedding(log_dir, adata, method_key+'PCA', alignment_task)
         plot_aligned_embedding(log_dir, adata, method_key+'UMAP', alignment_task)
 
-
+    def save_aligned_data(log_dir, adata, method_key, alignment_task):
+        source_idx = adata.obs[alignment_task.batch_key] == alignment_task.source_batch
+        with open(log_dir / 'source_unaligned_x.pkl', 'wb') as f:
+            pickle.dump(adata.X[source_idx, :], f)
+        with open(log_dir / 'source_aligned_x.pkl', 'wb') as f:
+            if method_key == 'None':
+                pickle.dump(adata.X[source_idx, :], f)
+            else:
+                pickle.dump(adata.obsm[method_key][source_idx, :], f)
+        with open(log_dir / 'source_y.pkl', 'wb') as f:
+            pickle.dump(adata.obs[alignment_task.ct_key][source_idx], f)
+        target_idx = adata.obs[alignment_task.batch_key] == alignment_task.target_batch
+        with open(log_dir / 'target_x.pkl', 'wb') as f:
+            pickle.dump(adata.X[target_idx, :], f)
+        with open(log_dir / 'target_y.pkl', 'wb') as f:
+            pickle.dump(adata.obs[alignment_task.ct_key][target_idx], f)
+        
 
     if task.leave_out_ct is not None:
         task_idx = (datasets[task.ds_key].obs[task.batch_key] == task.source_batch) | ((datasets[task.ds_key].obs[task.batch_key] == task.target_batch) & (datasets[task.ds_key].obs[task.ct_key] != task.leave_out_ct))
@@ -179,11 +195,10 @@ if __name__ == '__main__':
         elif args.method == 'SeuratV3':
             #task_adata = datasets[task.ds_key]
             runners.run_Seurat(datasets, task, task_adata, args.method, log_dir, args)
+        save_aligned_data(log_dir, task_adata, method_key, task)
         task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
         task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2, random_state=1373).fit_transform(task_adata.obsm[method_key])
         task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
-        with open(log_dir / 'aligned.pkl', 'wb') as f:
-            pickle.dump(task_adata.obsm[method_key], f)
         plot_alignment_results(log_dir, task_adata, method_key, task)
         lisi_score = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key, task.ct_key], perplexity=30)
         # lisi_score_batch = metrics.lisi2(task_adata.obsm[method_key], task_adata.obs, [task.batch_key], perplexity=30)
