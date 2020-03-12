@@ -16,6 +16,7 @@ import pandas as pd
 
 import icp
 import alignment_task
+from scipr import AffineSCIPR
 
 def run_ICP_rigid(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
@@ -53,24 +54,19 @@ def run_ICP_affine(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=args.subsample, n_subsample=args.n_subsample)
 
-    theta, bias = icp.ICP_affine(A, B, args, args.max_steps, args.tolerance, args.input_normalization, args.opt, args.lr, args.max_epochs)
+    scipr = AffineSCIPR(n_iter=args.max_steps,
+                        n_epochs_per_iter=args.max_epochs,
+                        matching_algo=args.matching_algo,
+                        opt=args.opt,
+                        lr=args.lr,
+                        input_normalization=args.input_normalization,
+                        frac_matches_to_keep=args.source_match_thresh,
+                        source_match_thresh=args.source_match_thresh,
+                        target_match_limit=args.target_match_limit)
     
-    normalization = args.input_normalization
+    scipr.fit(A, B)
     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False)
-    if normalization == 'std':
-        print('Applying Standard Scaling')
-        scaler = StandardScaler().fit(np.concatenate((A,B)))
-        A = scaler.transform(A)
-        B = scaler.transform(B)
-    elif normalization == 'l2':
-        print('Applying L2 Normalization')
-        A = sklearn.preprocessing.normalize(A)
-        B = sklearn.preprocessing.normalize(B)
-    elif normalization == 'log':
-        print('Applying log normalization')
-        A  = np.log1p(A / A.sum(axis=1, keepdims=True) * 1e4)
-        B  = np.log1p(B / B.sum(axis=1, keepdims=True) * 1e4)
-    A = np.dot(theta, A.T).T + bias
+    A = scipr.transform(A)
     print(A.shape)
     n_samples = task_adata.shape[0]
     n_dims = A.shape[1]
