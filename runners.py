@@ -96,7 +96,6 @@ def run_ICP_stacked_aes(datasets, task, task_adata, method_name, log_dir, args):
                                     target_match_limit=args.target_match_limit)
     
     scipr.fit(A, B)
-    print(scipr.autoencoders_)
     with open(log_dir / 'scipr_model.pkl', 'wb') as f:
         pickle.dump(scipr, f)
     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False)
