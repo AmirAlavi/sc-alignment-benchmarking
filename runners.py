@@ -1,3 +1,4 @@
+# import pdb; pdb.set_trace()
 import math
 from functools import partial
 import subprocess
@@ -17,7 +18,7 @@ import pandas as pd
 
 import icp
 import alignment_task
-from scipr import AffineSCIPR
+from scipr import AffineSCIPR, StackedAutoEncoderSCIPR
 
 def run_ICP_rigid(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
@@ -66,6 +67,36 @@ def run_ICP_affine(datasets, task, task_adata, method_name, log_dir, args):
                         target_match_limit=args.target_match_limit)
     
     scipr.fit(A, B)
+    with open(log_dir / 'scipr_model.pkl', 'wb') as f:
+        pickle.dump(scipr, f)
+    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False)
+    A = scipr.transform(A)
+    print(A.shape)
+    n_samples = task_adata.shape[0]
+    n_dims = A.shape[1]
+    task_adata.obsm[method_key] = np.zeros((n_samples, n_dims))
+    a_idx = np.where(task_adata.obs[task.batch_key] == task.source_batch)[0]
+    b_idx = np.where(task_adata.obs[task.batch_key] == task.target_batch)[0]
+    task_adata.obsm[method_key][a_idx, :] = A
+    task_adata.obsm[method_key][b_idx, :] = B
+    print(f'method_key: {method_key}')
+
+def run_ICP_stacked_aes(datasets, task, task_adata, method_name, log_dir, args):
+    method_key = '{}_aligned'.format(method_name)
+    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=args.subsample, n_subsample=args.n_subsample)
+
+    scipr = StackedAutoEncoderSCIPR(hidden_sizes=[1024, 512, 256, 128, 64], n_iter=args.max_steps,
+                                    n_epochs_per_iter=args.max_epochs,
+                                    matching_algo=args.matching_algo,
+                                    opt=args.opt,
+                                    lr=args.lr,
+                                    input_normalization=args.input_normalization,
+                                    frac_matches_to_keep=args.source_match_thresh,
+                                    source_match_thresh=args.source_match_thresh,
+                                    target_match_limit=args.target_match_limit)
+    
+    scipr.fit(A, B)
+    print(scipr.autoencoders_)
     with open(log_dir / 'scipr_model.pkl', 'wb') as f:
         pickle.dump(scipr, f)
     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False)
