@@ -22,17 +22,42 @@ args = {'dataset': 'panc8', 'panc8_n_cell_types': 5, 'filter_hvg': False, 'sourc
 args = SimpleNamespace(**args)
 
 panc8 = data.get_data(args.dataset, args)
-print(type(panc8))
 
+print('panc8\n\n\n')
 for source in ['indrop1', 'indrop2', 'indrop4']:
     #subset = panc8[(panc8.obs['protocol'] == 'indrop3') | (panc8.obs['protocol'] == source), :]
-    subset = panc8[panc8.obs['protocol'] == source, :]
+    subset = panc8[panc8.obs['dataset'] == source, :]
     print(f'{source}')
     print(subset.shape)
 
     for ct in np.unique(subset.obs['celltype']):
         print(f'{ct}')
         set_group_assignment(subset, ct, 'celltype')
+        test_result = de.test.rank_test(subset, grouping='de_group')
+        enr = de.enrich.test(ref=rs, det=test_result)
+        print(enr.summary().loc[enr.summary()['qval'] < 0.05])
+        print()
+        # B_only_de_results[cell_type] = enr.summary()
+        # enr.summary().to_csv(os.path.join(log_dir, '{}_de_B_only.csv'.format(cell_type)))
+    print()
+    print()
+    print()
+
+args = {'dataset': 'CellBench', 'panc8_n_cell_types': 5, 'filter_hvg': False, 'source': 'Dropseq', 'target':'10x'}
+args = SimpleNamespace(**args)
+
+panc8 = data.get_data(args.dataset, args)
+
+print('CellBench\n\n\n')
+for source in ['CELseq2', 'Dropseq']:
+    #subset = panc8[(panc8.obs['protocol'] == 'indrop3') | (panc8.obs['protocol'] == source), :]
+    subset = panc8[panc8.obs['protocol'] == source, :]
+    print(f'{source}')
+    print(subset.shape)
+
+    for ct in np.unique(subset.obs['cell_line_demuxlet']):
+        print(f'{ct}')
+        set_group_assignment(subset, ct, 'cell_line_demuxlet')
         test_result = de.test.rank_test(subset, grouping='de_group')
         enr = de.enrich.test(ref=rs, det=test_result)
         print(enr.summary().loc[enr.summary()['qval'] < 0.05])

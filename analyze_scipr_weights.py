@@ -15,8 +15,13 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', -1)
 
-GENE_SET_FILE = 'c5.bp.v7.0.symbols.gmt'
-rs = de.enrich.RefSets(fn=GENE_SET_FILE)
+GO_BP_GENE_SET_FILE = 'c5.bp.v7.0.symbols.gmt'
+REACTOME_GENE_SET_FILE = 'c2.cp.reactome.v7.0.symbols.gmt'
+KEGG_GENE_SET_FILE = 'c2.cp.kegg.v7.0.symbols.gmt'
+
+go_bp_rs = de.enrich.RefSets(fn=GO_BP_GENE_SET_FILE)
+reactome_rs = de.enrich.RefSets(fn=REACTOME_GENE_SET_FILE)
+kegg_rs = de.enrich.RefSets(fn=KEGG_GENE_SET_FILE)
 
 
 args = {'dataset': 'panc8', 'panc8_n_cell_types': 5, 'filter_hvg': True, 'source': 'indrop1', 'target':'indrop3'}
@@ -34,6 +39,7 @@ model_files = [
 ]
 
 for model_file in model_files:
+    print(f'\n\n\n{model_file}')
     with open(model_file, 'rb') as f:
         scipr = pickle.load(f)
         assert(scipr.W_.shape[1] == panc8.var_names.shape[0])
@@ -45,5 +51,5 @@ for model_file in model_files:
         rank_sums_sorted = rank_sums.sort_values()
         # print(rank_sums_sorted[:100])
         threshold = np.mean(rank_sums_sorted[[100, 101]])
-        enr = de.enrich.test(ref=rs, scores=rank_sums_sorted, gene_ids=rank_sums_sorted.index, threshold=threshold)
+        enr = de.enrich.test(ref=go_bp_rs, scores=rank_sums_sorted, gene_ids=rank_sums_sorted.index, threshold=threshold)
         print(enr.summary().loc[enr.summary()['qval'] < 0.05])
