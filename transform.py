@@ -109,14 +109,14 @@ class Autoencoder(nn.Module):
         reconstructed = self.decoder(encoded)
         return reconstructed
 
-def fit_transform_autoencoder(A, B, hidden_sizes=[50], optim='adam', lr=1e-3, epochs=1000):
+def fit_transform_autoencoder(A, B, hidden_sizes=[64], act='leaky_relu', optim='adam', lr=1e-3, epochs=1000):
     d = A.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device {}'.format(device))
     A = torch.from_numpy(A).float().to(device)
     B = torch.from_numpy(B).float().to(device)
 
-    f = Autoencoder(input_size=d, layer_sizes=hidden_sizes, act='relu', dropout=0.0, batch_norm=False, last_layer_linear=False, tie_weights=False)
+    f = Autoencoder(input_size=d, layer_sizes=hidden_sizes, act=act, dropout=0.0, batch_norm=False, last_layer_linear=False, tie_weights=True)
     f.to(device)
     if optim == 'adam':
         optimizer = torch.optim.Adam(f.parameters(), lr=lr)

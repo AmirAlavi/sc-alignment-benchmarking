@@ -87,11 +87,14 @@ class AffineSCIPR(object):
 
 
 class StackedAutoEncoderSCIPR(object):
-    def __init__(self, hidden_sizes=[50], n_iter=20, n_epochs_per_iter=1000, matching_algo='mnn',
+    def __init__(self, hidden_sizes=[64], act='leaky_relu', n_iter=20, n_epochs_per_iter=1000, matching_algo='mnn',
                  opt='adam', lr=1e-3, input_normalization='l2',
                  frac_matches_to_keep=1.0, source_match_thresh=0.5,
                  target_match_limit=2):
         self.hidden_sizes = hidden_sizes
+        print(self.hidden_sizes)
+        self.act = act
+        print(self.act)
         self.n_iter = n_iter
         self.n_epochs_per_iter = n_epochs_per_iter
         self.matching_algo = matching_algo
@@ -103,6 +106,8 @@ class StackedAutoEncoderSCIPR(object):
         self.target_match_limit = target_match_limit
     
     def fit(self, A, B):
+        if isinstance(self.hidden_sizes, int):
+            self.hidden_sizes = [self.hidden_sizes]
         self.autoencoders_ = nn.Sequential()
         self.device_ = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         d = A.shape[1]
@@ -118,7 +123,8 @@ class StackedAutoEncoderSCIPR(object):
                 a_idx, b_idx, distances = matching_fcn(A, B)
             print(f'Step: {i+1}/{self.n_iter}, pairs: {len(a_idx)}, mean_dist: {np.mean(distances)}')
 
-            autoencoder = transform.fit_transform_autoencoder(A[a_idx], B[b_idx], hidden_sizes=self.hidden_sizes, optim=self.opt, lr=self.lr, epochs=self.n_epochs_per_iter)
+            autoencoder = transform.fit_transform_autoencoder(A[a_idx], B[b_idx], hidden_sizes=self.hidden_sizes, act=self.act, optim=self.opt, lr=self.lr, epochs=self.n_epochs_per_iter)
+            print(autoencoder)
             self.autoencoders_.add_module(f'autoencoder_{i}', autoencoder)
             new_A = torch.from_numpy(A).float().to(self.device_)
             autoencoder.eval()

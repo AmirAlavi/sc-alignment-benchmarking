@@ -46,6 +46,7 @@ def get_parser():
     icp.add_argument('--xentropy_loss_wt', help='For ICP + xentropy, the weight of the xentropy penalty', type=float, default=10)
     icp.add_argument('--l2_reg', help='L2 regularization weight.', type=float, default=0.)
     icp.add_argument('--nlayers', help='Number of layers in neural network data transformer.', type=int, choices=[1, 2, 3, 5], default=1)
+    icp.add_argument('--stacked_aes_sizes', help='Sizes of hidden layers for each autoencoder in stacked AEs transformer', nargs='+', type=int, default=64)
     icp.add_argument('--dropout', help='Amount of dropout, if any, to use betwen network layers.', type=float, default=0.)
     icp.add_argument('--batch_norm', help='Use batch norm layers betwen network layers.', action='store_true')
     icp.add_argument('--use_autoencoder', help='Use an autoencoder neural network to align the data.', action='store_true')
