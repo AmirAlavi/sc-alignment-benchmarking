@@ -11,8 +11,19 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', -1)
 
-GENE_SET_FILE = 'c5.bp.v7.0.symbols.gmt'
-rs = de.enrich.RefSets(fn=GENE_SET_FILE)
+GO_BP_GENE_SET_FILE = 'c5.bp.v7.0.symbols.gmt'
+REACTOME_GENE_SET_FILE = 'c2.cp.reactome.v7.0.symbols.gmt'
+KEGG_GENE_SET_FILE = 'c2.cp.kegg.v7.0.symbols.gmt'
+
+go_bp_rs = de.enrich.RefSets(fn=GO_BP_GENE_SET_FILE)
+reactome_rs = de.enrich.RefSets(fn=REACTOME_GENE_SET_FILE)
+kegg_rs = de.enrich.RefSets(fn=KEGG_GENE_SET_FILE)
+
+ref_sets = {
+    'GO': go_bp_rs,
+    'Reactome': reactome_rs,
+    'KEGG': kegg_rs
+}
 
 def set_group_assignment(adata, cell_type, ct_key):
     group_assignment = [ct if ct == cell_type else 'other' for ct in adata.obs[ct_key]]
@@ -34,8 +45,10 @@ for source in ['indrop1', 'indrop2', 'indrop4']:
         print(f'{ct}')
         set_group_assignment(subset, ct, 'celltype')
         test_result = de.test.rank_test(subset, grouping='de_group')
-        enr = de.enrich.test(ref=rs, det=test_result)
-        print(enr.summary().loc[enr.summary()['qval'] < 0.05])
+        for rs_key, ref_set in ref_sets.items():
+            print(rs_key)
+            enr = de.enrich.test(ref=ref_set, det=test_result)
+            print(enr.summary().loc[enr.summary()['qval'] < 0.05])
         print()
         # B_only_de_results[cell_type] = enr.summary()
         # enr.summary().to_csv(os.path.join(log_dir, '{}_de_B_only.csv'.format(cell_type)))
@@ -59,8 +72,10 @@ for source in ['CELseq2', 'Dropseq']:
         print(f'{ct}')
         set_group_assignment(subset, ct, 'cell_line_demuxlet')
         test_result = de.test.rank_test(subset, grouping='de_group')
-        enr = de.enrich.test(ref=rs, det=test_result)
-        print(enr.summary().loc[enr.summary()['qval'] < 0.05])
+        for rs_key, ref_set in ref_sets.items():
+            print(rs_key)
+            enr = de.enrich.test(ref=ref_set, det=test_result)
+            print(enr.summary().loc[enr.summary()['qval'] < 0.05])
         print()
         # B_only_de_results[cell_type] = enr.summary()
         # enr.summary().to_csv(os.path.join(log_dir, '{}_de_B_only.csv'.format(cell_type)))
