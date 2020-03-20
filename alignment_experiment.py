@@ -124,7 +124,7 @@ if __name__ == '__main__':
             method_key = ''
         else:
             method_key = method_key + '_'
-        plot_aligned_embedding(log_dir, adata, method_key+'TSNE', alignment_task)
+        #plot_aligned_embedding(log_dir, adata, method_key+'TSNE', alignment_task)
         plot_aligned_embedding(log_dir, adata, method_key+'PCA', alignment_task)
         plot_aligned_embedding(log_dir, adata, method_key+'UMAP', alignment_task)
 
@@ -198,7 +198,7 @@ if __name__ == '__main__':
             #task_adata = datasets[task.ds_key]
             runners.run_Seurat(datasets, task, task_adata, args.method, log_dir, args)
         save_aligned_data(log_dir, task_adata, method_key, task)
-        task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
+        #task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
         task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2, random_state=1373).fit_transform(task_adata.obsm[method_key])
         task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
         plot_alignment_results(log_dir, task_adata, method_key, task)
