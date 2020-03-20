@@ -10,6 +10,9 @@ def remove_doublets(df_counts, df_meta):
 ''' Remove cells which do not have at least min_genes detected genes
 '''
 def filter_cells(df_counts, df_meta, min_genes):
+    # lib_sizes = df_counts.astype(bool).sum(axis=1)
+    # print('Library Sizes of each cell, descriptive statistics:')
+    # print(lib_sizes.describe())
     cell_idx = df_counts.astype(bool).sum(axis=1) > min_genes
     df_counts = df_counts.loc[cell_idx, :]
     df_meta = df_meta.loc[cell_idx, :]
