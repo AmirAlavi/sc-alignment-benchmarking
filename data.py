@@ -1,3 +1,5 @@
+#import pdb; pdb.set_trace()
+
 import pandas as pd
 import numpy as np
 import anndata
@@ -58,6 +60,8 @@ def get_data(dataset, args):
         data = get_panc82()
     elif dataset == 'pbmcsca_low':
         data = get_pbmcsca_low(args)
+    elif dataset == 'pbmcsca_high':
+        data = get_pbmcsca_high(args)
     elif dataset == 'scQuery_retina':
         data = get_scQuery_retina()
     elif dataset == 'scQuery_tcell':
@@ -181,16 +185,42 @@ def get_pbmcsca_low(args):
         # print(np.unique(adatas[-1].obs['celltype']))
         #print(adatas[-1].var)
     adata = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
-    # # print(adata.X.shape)
-    # # print(adata.obs.info())
-    # cell_types, counts = np.unique(adata.obs['CellType'], return_counts=True)
-    # sort_idx = np.argsort(counts)[::-1]
-    # cell_types = cell_types[sort_idx]
-    # counts = counts[sort_idx]
-    # # print(cell_types)
-    # # print(counts)
-    # selector = adata.obs['CellType'].isin(cell_types[:args.panc8_n_cell_types])
-    # adata = adata[selector]
+    # print(adata.X.shape)
+    # print(adata.obs.info())
+    cell_types, counts = np.unique(adata.obs['CellType'], return_counts=True)
+    sort_idx = np.argsort(counts)[::-1]
+    cell_types = cell_types[sort_idx]
+    counts = counts[sort_idx]
+    # print(cell_types)
+    # print(counts)
+    selector = adata.obs['CellType'].isin(cell_types[:args.pbmcsca_high_n_cell_types])
+    adata = adata[selector]
+    return adata
+
+def get_pbmcsca_high(args):
+    protocols = ["10x Chromium (v2) A", "10x Chromium (v2) B", "10x Chromium (v3)", "Drop-seq", "Seq-Well", "inDrops", "10x Chromium (v2)"]
+    adatas = []
+    for protocol in protocols:
+        # print(protocol)
+        counts = pd.read_csv('data/pbmcsca/{}_counts.csv'.format(protocol), index_col=0).T
+        counts = counts.loc[:, ~counts.columns.duplicated()]
+        meta = pd.read_csv('data/pbmcsca/{}_meta.csv'.format(protocol), index_col=0)
+        counts, meta = preprocessing.clean_counts(counts, meta, 250, FILTER_MIN_READS, FILTER_MIN_DETECTED)
+        adatas.append(anndata.AnnData(X=counts.values, obs=meta, var=pd.DataFrame(index=counts.columns)))
+        # print(adatas[-1].shape)
+        # print(np.unique(adatas[-1].obs['celltype']))
+        #print(adatas[-1].var)
+    adata = anndata.AnnData.concatenate(*adatas, join='inner', batch_key='protocol', batch_categories=protocols)
+    # print(adata.X.shape)
+    # print(adata.obs.info())
+    cell_types, counts = np.unique(adata.obs['CellType'], return_counts=True)
+    sort_idx = np.argsort(counts)[::-1]
+    cell_types = cell_types[sort_idx]
+    counts = counts[sort_idx]
+    # print(cell_types)
+    # print(counts)
+    selector = adata.obs['CellType'].isin(cell_types[:args.pbmcsca_high_n_cell_types])
+    adata = adata[selector]
     return adata
 
 def get_scQuery_retina():

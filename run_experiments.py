@@ -11,6 +11,7 @@
 # for each, will run in subprocess and show output live using reader/writers
 # once finished, with exit code 0, will write to comletion hash
 
+# import pdb; pdb.set_trace()
 import argparse
 from pathlib import Path
 import hashlib
@@ -68,12 +69,12 @@ def check_completions(completions_path, job_hashes):
 def run_job_helper(cmd):
     cmd = 'python alignment_experiment.py ' + cmd
     print(cmd)
-    completion = subprocess.run(cmd.split())
+    completion = subprocess.run(shlex.split(cmd))
     return completion.returncode
 
 
 def prefix_workspace_folder(cmd, workspace_folder):
-    cmd = cmd.split()
+    cmd = shlex.split(cmd, posix=False)
     output_path = str(workspace_folder / cmd[1])
     cmd[1] = output_path
     return ' '.join(cmd)

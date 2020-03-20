@@ -9,7 +9,8 @@ batch_columns = {
     'scQuery_ESC': 'accession',
     'scQuery_HSC': 'accession',
     'scQuery_combined': 'batch',
-    'pbmcsca_low': 'protocol'
+    'pbmcsca_low': 'protocol',
+    'pbmcsca_high': 'protocol'
 }
 
 celltype_columns = {
@@ -23,7 +24,8 @@ celltype_columns = {
     'scQuery_ESC': 'label_name',
     'scQuery_HSC': 'label_name',
     'scQuery_combined': 'label_name',
-    'pbmcsca_low': 'CellType'
+    'pbmcsca_low': 'CellType',
+    'pbmcsca_high': 'CellType'
 }
 
 batches_available = {
