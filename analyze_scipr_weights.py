@@ -1,4 +1,4 @@
-# import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
 import sys
 #sys.path.append(r'path/to/whiteboard')
 import pickle
@@ -51,6 +51,30 @@ ref_sets = {
 
 rank_by_smallest_first = False
 
+# for model_file, gene_list in zip(model_files, genes):
+#     print(f'\n\n\n{model_file}')
+#     with open(model_file, 'rb') as f:
+#         scipr = pickle.load(f)
+#         assert(scipr.W_.shape[1] == gene_list.shape[0])
+#         # W_ is (out_dims, in_genes)
+#         df = pd.DataFrame(data=scipr.W_.T, index=gene_list, columns=[f'out:{symbol}' for symbol in gene_list])
+#         df = df.abs()
+#         ranks = df.rank(axis=0, ascending=rank_by_smallest_first)
+#         rank_sums = ranks.sum(axis=1)
+#         rank_sums_sorted = rank_sums.sort_values()
+#         # print(rank_sums_sorted[:100])
+#         lim = 100
+#         threshold = np.mean(rank_sums_sorted[[lim-1, lim]])
+#         for rs_key, ref_set in ref_sets.items():
+#             print(rs_key)
+#             enr = de.enrich.test(ref=ref_set, scores=rank_sums_sorted, gene_ids=rank_sums_sorted.index, clean_ref=True, threshold=threshold)
+#             if enr.summary().loc[enr.summary()['qval'] < 0.05].shape[0] > 0:
+#                 print(enr.summary().loc[enr.summary()['qval'] < 0.05])
+#             else:
+#                 print(enr.summary().iloc[:10])
+            
+#             print()
+
 for model_file, gene_list in zip(model_files, genes):
     print(f'\n\n\n{model_file}')
     with open(model_file, 'rb') as f:
@@ -59,15 +83,21 @@ for model_file, gene_list in zip(model_files, genes):
         # W_ is (out_dims, in_genes)
         df = pd.DataFrame(data=scipr.W_.T, index=gene_list, columns=[f'out:{symbol}' for symbol in gene_list])
         df = df.abs()
-        ranks = df.rank(axis=0, ascending=rank_by_smallest_first)
-        rank_sums = ranks.sum(axis=1)
-        rank_sums_sorted = rank_sums.sort_values()
+        colsums = df.sum(axis=0)
+        df = df.div(colsums, axis=1)
+        diag = np.diag(df)
+        sort_idx = (-diag).argsort()[:200]
+        weights = diag[sort_idx]
+        genes = gene_list[sort_idx]
+        # ranks = df.rank(axis=0, ascending=rank_by_smallest_first)
+        # rank_sums = ranks.sum(axis=1)
+        # rank_sums_sorted = rank_sums.sort_values()
         # print(rank_sums_sorted[:100])
-        lim = 100
-        threshold = np.mean(rank_sums_sorted[[lim-1, lim]])
+        # lim = 100
+        # threshold = np.mean(weights[[lim-1, lim]])
         for rs_key, ref_set in ref_sets.items():
             print(rs_key)
-            enr = de.enrich.test(ref=ref_set, scores=rank_sums_sorted, gene_ids=rank_sums_sorted.index, clean_ref=True, threshold=threshold)
+            enr = de.enrich.test(ref=ref_set, scores=weights, gene_ids=genes, clean_ref=True, all_ids=gene_list)
             if enr.summary().loc[enr.summary()['qval'] < 0.05].shape[0] > 0:
                 print(enr.summary().loc[enr.summary()['qval'] < 0.05])
             else:
