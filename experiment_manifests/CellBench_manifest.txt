@@ -1,0 +1,81 @@
+# Dropseq -> 10x
+None None-PCA-CellBench-Dropseq-10x --method None --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg
+MNN MNN-PCA-CellBench-Dropseq-10x --method MNN --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg
+SeuratV3 SeuratV3-PCA-CellBench-Dropseq-10x --method SeuratV3 --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg
+ScAlign ScAlign-PCA-CellBench-Dropseq-10x --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source Dropseq --target 10x
+ICP-affine-5-greedy ICP-PCA-CellBench-Dropseq-10x --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-20-greedy ICP-PCA-CellBench-Dropseq-10x --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-5-mnn ICP-PCA-CellBench-Dropseq-10x --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg
+ICP-affine-20-mnn ICP-PCA-CellBench-Dropseq-10x --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg
+
+# Dropseq -> 10x \H1975
+None None-PCA-CellBench-Dropseq-10x-H1975 --method None --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --leaveOut H1975
+MNN MNN-PCA-CellBench-Dropseq-10x-H1975 --method MNN --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --leaveOut H1975
+SeuratV3 SeuratV3-PCA-CellBench-Dropseq-10x-H1975 --method SeuratV3 --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --leaveOut H1975
+ScAlign ScAlign-PCA-CellBench-Dropseq-10x-H1975 --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source Dropseq --target 10x --leaveOut H1975
+ICP-affine-5-greedy ICP-PCA-CellBench-Dropseq-10x-H1975 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut H1975
+ICP-affine-20-greedy ICP-PCA-CellBench-Dropseq-10x-H1975 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut H1975
+ICP-affine-5-mnn ICP-PCA-CellBench-Dropseq-10x-H1975 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut H1975
+ICP-affine-20-mnn ICP-PCA-CellBench-Dropseq-10x-H1975 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut H1975
+
+# Dropseq -> 10x \H2228
+None None-PCA-CellBench-Dropseq-10x-H2228 --method None --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --leaveOut H2228
+MNN MNN-PCA-CellBench-Dropseq-10x-H2228 --method MNN --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --leaveOut H2228
+SeuratV3 SeuratV3-PCA-CellBench-Dropseq-10x-H2228 --method SeuratV3 --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --leaveOut H2228
+ScAlign ScAlign-PCA-CellBench-Dropseq-10x-H2228 --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source Dropseq --target 10x --leaveOut H2228
+ICP-affine-5-greedy ICP-PCA-CellBench-Dropseq-10x-H2228 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut H2228
+ICP-affine-20-greedy ICP-PCA-CellBench-Dropseq-10x-H2228 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut H2228
+ICP-affine-5-mnn ICP-PCA-CellBench-Dropseq-10x-H2228 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut H2228
+ICP-affine-20-mnn ICP-PCA-CellBench-Dropseq-10x-H2228 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut H2228
+
+# Dropseq -> 10x \HCC827
+None None-PCA-CellBench-Dropseq-10x-HCC827 --method None --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --leaveOut HCC827
+MNN MNN-PCA-CellBench-Dropseq-10x-HCC827 --method MNN --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --leaveOut HCC827
+SeuratV3 SeuratV3-PCA-CellBench-Dropseq-10x-HCC827 --method SeuratV3 --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --leaveOut HCC827
+ScAlign ScAlign-PCA-CellBench-Dropseq-10x-HCC827 --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source Dropseq --target 10x --leaveOut HCC827
+ICP-affine-greedy ICP-PCA-CellBench-Dropseq-10x-HCC827 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827
+ICP-affine-5-greedy ICP-PCA-CellBench-Dropseq-10x-HCC827 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827
+ICP-affine-20-greedy ICP-PCA-CellBench-Dropseq-10x-HCC827 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827
+ICP-affine-5-mnn ICP-PCA-CellBench-Dropseq-10x-HCC827 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827
+ICP-affine-20-mnn ICP-PCA-CellBench-Dropseq-10x-HCC827 --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827
+
+# CELseq2 -> 10x
+None None-PCA-CellBench-CELseq2-10x --method None --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg
+MNN MNN-PCA-CellBench-CELseq2-10x --method MNN --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg
+SeuratV3 SeuratV3-PCA-CellBench-CELseq2-10x --method SeuratV3 --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg
+ScAlign ScAlign-PCA-CellBench-CELseq2-10x --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source CELseq2 --target 10x
+ICP-affine-5-greedy ICP-PCA-CellBench-CELseq2-10x --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-20-greedy ICP-PCA-CellBench-CELseq2-10x --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-5-mnn ICP-PCA-CellBench-CELseq2-10x --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg
+ICP-affine-20-mnn ICP-PCA-CellBench-CELseq2-10x --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg
+
+# CELseq2 -> 10x \H1975
+None None-PCA-CellBench-CELseq2-10x-H1975 --method None --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --leaveOut H1975
+MNN MNN-PCA-CellBench-CELseq2-10x-H1975 --method MNN --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --leaveOut H1975
+SeuratV3 SeuratV3-PCA-CellBench-CELseq2-10x-H1975 --method SeuratV3 --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --leaveOut H1975
+ScAlign ScAlign-PCA-CellBench-CELseq2-10x-H1975 --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source CELseq2 --target 10x --leaveOut H1975
+ICP-affine-5-greedy ICP-PCA-CellBench-CELseq2-10x-H1975 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut H1975
+ICP-affine-20-greedy ICP-PCA-CellBench-CELseq2-10x-H1975 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut H1975
+ICP-affine-5-mnn ICP-PCA-CellBench-CELseq2-10x-H1975 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut H1975
+ICP-affine-20-mnn ICP-PCA-CellBench-CELseq2-10x-H1975 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut H1975
+
+# CELseq2 -> 10x \H2228
+None None-PCA-CellBench-CELseq2-10x-H2228 --method None --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --leaveOut H2228
+MNN MNN-PCA-CellBench-CELseq2-10x-H2228 --method MNN --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --leaveOut H2228
+SeuratV3 SeuratV3-PCA-CellBench-CELseq2-10x-H2228 --method SeuratV3 --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --leaveOut H2228
+ScAlign ScAlign-PCA-CellBench-CELseq2-10x-H2228 --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source CELseq2 --target 10x --leaveOut H2228
+ICP-affine-5-greedy ICP-PCA-CellBench-CELseq2-10x-H2228 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut H2228
+ICP-affine-20-greedy ICP-PCA-CellBench-CELseq2-10x-H2228 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut H2228
+ICP-affine-5-mnn ICP-PCA-CellBench-CELseq2-10x-H2228 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut H2228
+ICP-affine-20-mnn ICP-PCA-CellBench-CELseq2-10x-H2228 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut H2228
+
+# CELseq2 -> 10x \HCC827
+None None-PCA-CellBench-CELseq2-10x-HCC827 --method None --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --leaveOut HCC827
+MNN MNN-PCA-CellBench-CELseq2-10x-HCC827 --method MNN --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --leaveOut HCC827
+SeuratV3 SeuratV3-PCA-CellBench-CELseq2-10x-HCC827 --method SeuratV3 --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --leaveOut HCC827
+ScAlign ScAlign-PCA-CellBench-CELseq2-10x-HCC827 --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source CELseq2 --target 10x --leaveOut HCC827
+ICP-affine-greedy ICP-PCA-CellBench-CELseq2-10x-HCC827 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827
+ICP-affine-5-greedy ICP-PCA-CellBench-CELseq2-10x-HCC827 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827
+ICP-affine-20-greedy ICP-PCA-CellBench-CELseq2-10x-HCC827 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827
+ICP-affine-5-mnn ICP-PCA-CellBench-CELseq2-10x-HCC827 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827
+ICP-affine-20-mnn ICP-PCA-CellBench-CELseq2-10x-HCC827 --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOut HCC827

@@ -1,0 +1,13 @@
+# Dropseq -> 10x
+None None-PCA-CellBench-Dropseq-10x --method None --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg
+MNN MNN-PCA-CellBench-Dropseq-10x --method MNN --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg
+SeuratV3 SeuratV3-PCA-CellBench-Dropseq-10x --method SeuratV3 --dataset CellBench --source Dropseq --target 10x --input_space PCA --filter_hvg --seurat_env_path /home/amir/miniconda3/envs/seuratV3
+ScAlign ScAlign-PCA-CellBench-Dropseq-10x --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source Dropseq --target 10x
+ICP-affine-greedy ICP-PCA-CellBench-Dropseq-10x --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+
+# CELseq2 -> 10x
+None None-PCA-CellBench-CELseq2-10x --method None --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg
+MNN MNN-PCA-CellBench-CELseq2-10x --method MNN --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg
+SeuratV3 SeuratV3-PCA-CellBench-CELseq2-10x --method SeuratV3 --dataset CellBench --source CELseq2 --target 10x --input_space PCA --filter_hvg --seurat_env_path /home/amir/miniconda3/envs/seuratV3
+ScAlign ScAlign-PCA-CellBench-CELseq2-10x --method ScAlign --input_space PCA --filter_hvg --dataset CellBench --source CELseq2 --target 10x
+ICP-affine-greedy ICP-PCA-CellBench-CELseq2-10x --method ICP_affine --dataset CellBench --source CELseq2 --target 10x --input_space PCA --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
