@@ -48,6 +48,116 @@ from de_test import de_comparison
 # importlib.reload(runners)
 # importlib.reload(cli)
 
+def create_working_directory(out_path):
+    try:
+        makedirs(out_path)
+    except FileExistsError:
+        time_str = time.strftime("%Y_%m_%d-%H_%M_%S")
+        out_path = tempfile.mkdtemp(prefix='{}_{}_'.format(out_path, time_str), dir='.')
+    return out_path
+
+
+def plot_aligned_embedding(**kwargs):
+    if 'log_dir' not in kwargs:
+        raise RuntimeError('Missing kwarg log_dir')
+    if 'embed_name' not in kwargs:
+        raise RuntimeError('Missing kwarg embed_name')
+    if 'embedding' not in kwargs:
+        raise RuntimeError('Missing kwarg embedding')
+    if 'cell_labels' not in kwargs:
+        raise RuntimeError('Missing kwarg cell_labels')
+    if 'batch_labels' not in kwargs:
+        raise RuntimeError('Missing kwarg batch_labels')
+    log_dir = kwargs['log_dir']
+    with open(join(log_dir, 'plot_aligned_embedding_kwargs_{}.pkl'.format(kwargs['embed_name'])), 'wb') as f:
+        pickle.dump(kwargs, f)
+    plt.figure()
+    plt.title('Color by batch', fontsize='small')
+    batch_colors = ['m', 'c']
+    for batch, color in zip(np.unique(kwargs['batch_labels']), batch_colors):
+        idx = np.where(kwargs['batch_labels'] == batch)[0]
+        plt.scatter(kwargs['embedding'][idx, 0], kwargs['embedding'][idx, 1], c=color, label=batch, alpha=0.3)
+    plt.savefig(join(log_dir, '{}_by_batch.png'.format(kwargs['embed_name'])))
+    plt.savefig(join(log_dir, '{}_by_batch.pdf'.format(kwargs['embed_name'])))
+    plt.savefig(join(log_dir, '{}_by_batch.svg'.format(kwargs['embed_name'])))
+    plt.close()
+    # Plot, coloring by the cell type
+    plt.figure()
+    plt.title('Color by cell type', fontsize='small')
+    for ct in np.unique(kwargs['cell_labels']):
+        idx = np.where(kwargs['cell_labels'] == ct)[0]
+        plt.scatter(kwargs['embedding'][idx, 0], kwargs['embedding'][idx, 1], label=ct, alpha=0.3)
+    plt.savefig(join(log_dir, '{}_by_celltype.png'.format(kwargs['embed_name'])))
+    plt.savefig(join(log_dir, '{}_by_celltype.pdf'.format(kwargs['embed_name'])))
+    plt.savefig(join(log_dir, '{}_by_celltype.svg'.format(kwargs['embed_name'])))
+    plt.close()
+
+# def plot_aligned_embedding(log_dir, adata, embed_key, alignment_task):
+
+#     plt.figure()
+#     plt.title('Color by batch', fontsize='small')
+#     batch_colors = ['m', 'c']
+#     for batch, color in zip(np.unique(adata.obs[alignment_task.batch_key]), batch_colors):
+#         idx = np.where(adata.obs[alignment_task.batch_key] == batch)[0]
+#         plt.scatter(adata.obsm[embed_key][idx, 0], adata.obsm[embed_key][idx, 1], c=color, label=batch, alpha=0.3)
+#     plt.savefig(join(log_dir, '{}_by_batch.png'.format(embed_key)))
+#     plt.savefig(join(log_dir, '{}_by_batch.pdf'.format(embed_key)))
+#     plt.savefig(join(log_dir, '{}_by_batch.svg'.format(embed_key)))
+#     plt.close()
+#     # Plot, coloring by the cell type
+#     plt.figure()
+#     plt.title('Color by cell type', fontsize='small')
+#     for ct in np.unique(adata.obs[alignment_task.ct_key]):
+#         idx = np.where(adata.obs[alignment_task.ct_key] == ct)[0]
+#         plt.scatter(adata.obsm[embed_key][idx, 0], adata.obsm[embed_key][idx, 1], label=ct, alpha=0.3)
+#     plt.savefig(join(log_dir, '{}_by_celltype.png'.format(embed_key)))
+#     plt.savefig(join(log_dir, '{}_by_celltype.pdf'.format(embed_key)))
+#     plt.savefig(join(log_dir, '{}_by_celltype.svg'.format(embed_key)))
+#     plt.close()
+
+def plot_alignment_results(log_dir, adata, method_key, alignment_task):
+    if method_key == 'None':
+        method_key = ''
+    else:
+        method_key = method_key + '_'
+    cell_labels = adata.obs[alignment_task.ct_key]
+    batch_labels = adata.obs[alignment_task.batch_key]
+    plot_aligned_embedding(log_dir=log_dir,
+        embed_name=method_key+'TSNE',
+        embedding=adata.obsm[method_key+'TSNE'],
+        cell_labels=cell_labels,
+        batch_labels=batch_labels)
+    plot_aligned_embedding(log_dir=log_dir,
+        embed_name=method_key+'PCA',
+        embedding=adata.obsm[method_key+'PCA'],
+        cell_labels=cell_labels,
+        batch_labels=batch_labels)
+    plot_aligned_embedding(log_dir=log_dir,
+        embed_name=method_key+'UMAP',
+        embedding=adata.obsm[method_key+'UMAP'],
+        cell_labels=cell_labels,
+        batch_labels=batch_labels)
+    # plot_aligned_embedding(log_dir, adata, method_key+'TSNE', alignment_task)
+    # plot_aligned_embedding(log_dir, adata, method_key+'PCA', alignment_task)
+    # plot_aligned_embedding(log_dir, adata, method_key+'UMAP', alignment_task)
+
+def save_aligned_data(log_dir, adata, method_key, alignment_task):
+    source_idx = adata.obs[alignment_task.batch_key] == alignment_task.source_batch
+    with open(log_dir / 'source_unaligned_x.pkl', 'wb') as f:
+        pickle.dump(adata.X[source_idx, :], f)
+    with open(log_dir / 'source_aligned_x.pkl', 'wb') as f:
+        if method_key == 'None':
+            pickle.dump(adata.X[source_idx, :], f)
+        else:
+            pickle.dump(adata.obsm[method_key][source_idx, :], f)
+    with open(log_dir / 'source_y.pkl', 'wb') as f:
+        pickle.dump(adata.obs[alignment_task.ct_key][source_idx], f)
+    target_idx = adata.obs[alignment_task.batch_key] == alignment_task.target_batch
+    with open(log_dir / 'target_x.pkl', 'wb') as f:
+        pickle.dump(adata.X[target_idx, :], f)
+    with open(log_dir / 'target_y.pkl', 'wb') as f:
+        pickle.dump(adata.obs[alignment_task.ct_key][target_idx], f)
+
 
 if __name__ == '__main__':
     parser = cli.get_parser()
@@ -63,14 +173,6 @@ if __name__ == '__main__':
     #arguments = '--methods SeuratV3 --datasets panc8-all --input_space GENE --epochs=10 --seurat_env_path C:\\Users\\Amir\\Anaconda3\\envs\\seuratV3'
     #args = parser.parse_args(arguments.split())
     args = parser.parse_args()
-
-    def create_working_directory(out_path):
-        try:
-            makedirs(out_path)
-        except FileExistsError:
-            time_str = time.strftime("%Y_%m_%d-%H_%M_%S")
-            out_path = tempfile.mkdtemp(prefix='{}_{}_'.format(out_path, time_str), dir='.')
-        return out_path
 
     log_dir = create_working_directory(args.output_folder)
     log_dir = Path(log_dir)
@@ -96,54 +198,6 @@ if __name__ == '__main__':
     # Run Alignment tasks
             
     print('Alignment task: {}'.format(task))
-
-    def plot_aligned_embedding(log_dir, adata, embed_key, alignment_task):
-        plt.figure()
-        plt.title('Color by batch', fontsize='small')
-        batch_colors = ['m', 'c']
-        for batch, color in zip(np.unique(adata.obs[alignment_task.batch_key]), batch_colors):
-            idx = np.where(adata.obs[alignment_task.batch_key] == batch)[0]
-            plt.scatter(adata.obsm[embed_key][idx, 0], adata.obsm[embed_key][idx, 1], c=color, label=batch, alpha=0.3)
-        plt.savefig(join(log_dir, '{}_by_batch.png'.format(embed_key)))
-        plt.savefig(join(log_dir, '{}_by_batch.pdf'.format(embed_key)))
-        plt.savefig(join(log_dir, '{}_by_batch.svg'.format(embed_key)))
-        plt.close()
-        # Plot, coloring by the cell type
-        plt.figure()
-        plt.title('Color by cell type', fontsize='small')
-        for ct in np.unique(adata.obs[alignment_task.ct_key]):
-            idx = np.where(adata.obs[alignment_task.ct_key] == ct)[0]
-            plt.scatter(adata.obsm[embed_key][idx, 0], adata.obsm[embed_key][idx, 1], label=ct, alpha=0.3)
-        plt.savefig(join(log_dir, '{}_by_celltype.png'.format(embed_key)))
-        plt.savefig(join(log_dir, '{}_by_celltype.pdf'.format(embed_key)))
-        plt.savefig(join(log_dir, '{}_by_celltype.svg'.format(embed_key)))
-        plt.close()
-
-    def plot_alignment_results(log_dir, adata, method_key, alignment_task):
-        if method_key == 'None':
-            method_key = ''
-        else:
-            method_key = method_key + '_'
-        #plot_aligned_embedding(log_dir, adata, method_key+'TSNE', alignment_task)
-        plot_aligned_embedding(log_dir, adata, method_key+'PCA', alignment_task)
-        plot_aligned_embedding(log_dir, adata, method_key+'UMAP', alignment_task)
-
-    def save_aligned_data(log_dir, adata, method_key, alignment_task):
-        source_idx = adata.obs[alignment_task.batch_key] == alignment_task.source_batch
-        with open(log_dir / 'source_unaligned_x.pkl', 'wb') as f:
-            pickle.dump(adata.X[source_idx, :], f)
-        with open(log_dir / 'source_aligned_x.pkl', 'wb') as f:
-            if method_key == 'None':
-                pickle.dump(adata.X[source_idx, :], f)
-            else:
-                pickle.dump(adata.obsm[method_key][source_idx, :], f)
-        with open(log_dir / 'source_y.pkl', 'wb') as f:
-            pickle.dump(adata.obs[alignment_task.ct_key][source_idx], f)
-        target_idx = adata.obs[alignment_task.batch_key] == alignment_task.target_batch
-        with open(log_dir / 'target_x.pkl', 'wb') as f:
-            pickle.dump(adata.X[target_idx, :], f)
-        with open(log_dir / 'target_y.pkl', 'wb') as f:
-            pickle.dump(adata.obs[alignment_task.ct_key][target_idx], f)
         
 
     if task.leave_out_ct is not None:
@@ -198,7 +252,7 @@ if __name__ == '__main__':
             #task_adata = datasets[task.ds_key]
             runners.run_Seurat(datasets, task, task_adata, args.method, log_dir, args)
         save_aligned_data(log_dir, task_adata, method_key, task)
-        #task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
+        task_adata.obsm[method_key+'_TSNE'] = TSNE(n_components=2).fit_transform(task_adata.obsm[method_key])
         task_adata.obsm[method_key+'_PCA'] = PCA(n_components=2, random_state=1373).fit_transform(task_adata.obsm[method_key])
         task_adata.obsm[method_key+'_UMAP'] = umap.UMAP().fit_transform(task_adata.obsm[method_key])
         plot_alignment_results(log_dir, task_adata, method_key, task)

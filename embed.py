@@ -50,38 +50,17 @@ def embed(datasets, key, n_pc, do_standardize, log_dir=None):
 
     print('fitting UMAP')
     datasets[key].obsm['UMAP'] = umap.UMAP().fit_transform(datasets[key].obsm['PCA'])
-    # print('fitting tSNE')
-    # datasets[key].obsm['TSNE'] = TSNE(n_components=2).fit_transform(datasets[key].obsm['PCA'])
+    print('fitting tSNE')
+    datasets[key].obsm['TSNE'] = TSNE(n_components=2).fit_transform(datasets[key].obsm['PCA'])
 
 def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch', log_dir=None):
     """Visualize embeddings, colored by cell type, and opacity by batch.
     """
-    # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,6))
-    # fig.suptitle('Embeddings of Original {} Data, color = cell type'.format(ds_key))
-    # ax1.set_title('PCA')
-    # ax2.set_title('t-SNE')
-    # ax3.set_title('UMAP')
-    # num_batches = len(np.unique(datasets[ds_key].obs[batch_key]))
-    # opacities = [0.6, 0.2, 0.2][:num_batches]
-    # markers = ['o', 'o', 'P'][-num_batches:]
-    # cmap = get_cmap(len(np.unique(datasets[ds_key].obs[cell_type_key])), 'jet')
-    # for color_idx, cell_type in enumerate(np.unique(datasets[ds_key].obs[cell_type_key])):
-    #     for batch, opacity, marker in zip(np.unique(datasets[ds_key].obs[batch_key]), opacities, markers):
-    #         idx = np.where((datasets[ds_key].obs[cell_type_key] == cell_type) & (datasets[ds_key].obs[batch_key] == batch))[0]
-    #         for embedding_key, ax in zip(['PCA', 'UMAP', 'TSNE'], [ax1, ax2, ax3]):
-    #             X_subset = datasets[ds_key].obsm[embedding_key][idx, :2]
-    #             ax.scatter(X_subset[:,0], X_subset[:,1], s=20, c=[cmap(color_idx)], edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_type, batch))
-    # plt.legend(markerscale=3., loc="upper left", bbox_to_anchor=(1,1))
-    # plt.subplots_adjust(right=0.85)
-    # if log_dir is not None:
-    #     plt.savefig(log_dir / '{}_embeddings.pdf'.format(ds_key), bbox='tight')
-    # # plt.savefig('{}_embeddings.pdf'.format(ds_key), bbox='tight')
-    # plt.show
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15,6))
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20,6))
     fig.suptitle('Embeddings of Original {} Data, color = cell type'.format(ds_key))
     ax1.set_title('PCA')
-    ax2.set_title('UMAP')
+    ax2.set_title('t-SNE')
+    ax3.set_title('UMAP')
     num_batches = len(np.unique(datasets[ds_key].obs[batch_key]))
     opacities = [0.6, 0.2, 0.2][:num_batches]
     markers = ['o', 'o', 'P'][-num_batches:]
@@ -89,7 +68,7 @@ def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch', lo
     for color_idx, cell_type in enumerate(np.unique(datasets[ds_key].obs[cell_type_key])):
         for batch, opacity, marker in zip(np.unique(datasets[ds_key].obs[batch_key]), opacities, markers):
             idx = np.where((datasets[ds_key].obs[cell_type_key] == cell_type) & (datasets[ds_key].obs[batch_key] == batch))[0]
-            for embedding_key, ax in zip(['PCA', 'UMAP'], [ax1, ax2]):
+            for embedding_key, ax in zip(['PCA', 'UMAP', 'TSNE'], [ax1, ax2, ax3]):
                 X_subset = datasets[ds_key].obsm[embedding_key][idx, :2]
                 ax.scatter(X_subset[:,0], X_subset[:,1], s=20, c=[cmap(color_idx)], edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_type, batch))
     plt.legend(markerscale=3., loc="upper left", bbox_to_anchor=(1,1))
@@ -98,3 +77,24 @@ def visualize(datasets, ds_key, cell_type_key='cell_type', batch_key='batch', lo
         plt.savefig(log_dir / '{}_embeddings.pdf'.format(ds_key), bbox='tight')
     # plt.savefig('{}_embeddings.pdf'.format(ds_key), bbox='tight')
     plt.show
+
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15,6))
+    # fig.suptitle('Embeddings of Original {} Data, color = cell type'.format(ds_key))
+    # ax1.set_title('PCA')
+    # ax2.set_title('UMAP')
+    # num_batches = len(np.unique(datasets[ds_key].obs[batch_key]))
+    # opacities = [0.6, 0.2, 0.2][:num_batches]
+    # markers = ['o', 'o', 'P'][-num_batches:]
+    # cmap = get_cmap(len(np.unique(datasets[ds_key].obs[cell_type_key])), 'jet')
+    # for color_idx, cell_type in enumerate(np.unique(datasets[ds_key].obs[cell_type_key])):
+    #     for batch, opacity, marker in zip(np.unique(datasets[ds_key].obs[batch_key]), opacities, markers):
+    #         idx = np.where((datasets[ds_key].obs[cell_type_key] == cell_type) & (datasets[ds_key].obs[batch_key] == batch))[0]
+    #         for embedding_key, ax in zip(['PCA', 'UMAP'], [ax1, ax2]):
+    #             X_subset = datasets[ds_key].obsm[embedding_key][idx, :2]
+    #             ax.scatter(X_subset[:,0], X_subset[:,1], s=20, c=[cmap(color_idx)], edgecolors='none', marker=marker, alpha=opacity, label='{}_{}'.format(cell_type, batch))
+    # plt.legend(markerscale=3., loc="upper left", bbox_to_anchor=(1,1))
+    # plt.subplots_adjust(right=0.85)
+    # if log_dir is not None:
+    #     plt.savefig(log_dir / '{}_embeddings.pdf'.format(ds_key), bbox='tight')
+    # # plt.savefig('{}_embeddings.pdf'.format(ds_key), bbox='tight')
+    # plt.show
