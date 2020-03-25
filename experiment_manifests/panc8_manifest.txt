@@ -1,0 +1,119 @@
+# indrop1 -> indrop3
+None None-GENE-panc8-indrop1-indrop3 --method None --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg
+MNN MNN-GENE-panc8-indrop1-indrop3 --method MNN --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg
+SeuratV3 SeuratV3-GENE-panc8-indrop1-indrop3 --method SeuratV3 --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg
+ScAlign ScAlign-GENE-panc8-indrop1-indrop3 --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop1 --target indrop3
+ICP-affine-5-greedy ICP-GENE-panc8-indrop1-indrop3 --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-20-greedy ICP-GENE-panc8-indrop1-indrop3 --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-5-mnn ICP-GENE-panc8-indrop1-indrop3 --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg
+ICP-affine-20-mnn ICP-GENE-panc8-indrop1-indrop3 --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg
+
+# indrop1 -> indrop3 \acinar
+None None-GENE-panc8-indrop1-indrop3-acinar --method None --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg --leaveOut acinar
+MNN MNN-GENE-panc8-indrop1-indrop3-acinar --method MNN --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg --leaveOut acinar
+SeuratV3 SeuratV3-GENE-panc8-indrop1-indrop3-acinar --method SeuratV3 --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg --leaveOut acinar
+ScAlign ScAlign-GENE-panc8-indrop1-indrop3-acinar --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop1 --target indrop3 --leaveOut acinar
+ICP-affine-5-greedy ICP-GENE-panc8-indrop1-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut acinar
+ICP-affine-20-greedy ICP-GENE-panc8-indrop1-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut acinar
+ICP-affine-5-mnn ICP-GENE-panc8-indrop1-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut acinar
+ICP-affine-20-mnn ICP-GENE-panc8-indrop1-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut acinar
+
+# indrop1 -> indrop3 \alpha
+None None-GENE-panc8-indrop1-indrop3-alpha --method None --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg --leaveOut alpha
+MNN MNN-GENE-panc8-indrop1-indrop3-alpha --method MNN --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg --leaveOut alpha
+SeuratV3 SeuratV3-GENE-panc8-indrop1-indrop3-alpha --method SeuratV3 --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg --leaveOut alpha
+ScAlign ScAlign-GENE-panc8-indrop1-indrop3-alpha --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop1 --target indrop3 --leaveOut alpha
+ICP-affine-5-greedy ICP-GENE-panc8-indrop1-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut alpha
+ICP-affine-20-greedy ICP-GENE-panc8-indrop1-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut alpha
+ICP-affine-5-mnn ICP-GENE-panc8-indrop1-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut alpha
+ICP-affine-20-mnn ICP-GENE-panc8-indrop1-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut alpha
+
+# indrop1 -> indrop3 \beta
+None None-GENE-panc8-indrop1-indrop3-beta --method None --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg --leaveOut beta
+MNN MNN-GENE-panc8-indrop1-indrop3-beta --method MNN --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg --leaveOut beta
+SeuratV3 SeuratV3-GENE-panc8-indrop1-indrop3-beta --method SeuratV3 --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --filter_hvg --leaveOut beta
+ScAlign ScAlign-GENE-panc8-indrop1-indrop3-beta --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop1 --target indrop3 --leaveOut beta
+ICP-affine-5-greedy ICP-GENE-panc8-indrop1-indrop3-beta --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut beta
+ICP-affine-20-greedy ICP-GENE-panc8-indrop1-indrop3-beta --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut beta
+ICP-affine-5-mnn ICP-GENE-panc8-indrop1-indrop3-beta --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut beta
+ICP-affine-20-mnn ICP-GENE-panc8-indrop1-indrop3-beta --method ICP_affine --dataset panc8 --source indrop1 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut beta
+
+# indrop2 -> indrop3
+None None-GENE-panc8-indrop2-indrop3 --method None --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg
+MNN MNN-GENE-panc8-indrop2-indrop3 --method MNN --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg
+SeuratV3 SeuratV3-GENE-panc8-indrop2-indrop3 --method SeuratV3 --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg
+ScAlign ScAlign-GENE-panc8-indrop2-indrop3 --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop2 --target indrop3
+ICP-affine-5-greedy ICP-GENE-panc8-indrop2-indrop3 --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-20-greedy ICP-GENE-panc8-indrop2-indrop3 --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-5-mnn ICP-GENE-panc8-indrop2-indrop3 --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg
+ICP-affine-20-mnn ICP-GENE-panc8-indrop2-indrop3 --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg
+
+# indrop2 -> indrop3 \acinar
+None None-GENE-panc8-indrop2-indrop3-acinar --method None --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg --leaveOut acinar
+MNN MNN-GENE-panc8-indrop2-indrop3-acinar --method MNN --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg --leaveOut acinar
+SeuratV3 SeuratV3-GENE-panc8-indrop2-indrop3-acinar --method SeuratV3 --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg --leaveOut acinar
+ScAlign ScAlign-GENE-panc8-indrop2-indrop3-acinar --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop2 --target indrop3 --leaveOut acinar
+ICP-affine-5-greedy ICP-GENE-panc8-indrop2-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut acinar
+ICP-affine-20-greedy ICP-GENE-panc8-indrop2-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut acinar
+ICP-affine-5-mnn ICP-GENE-panc8-indrop2-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut acinar
+ICP-affine-20-mnn ICP-GENE-panc8-indrop2-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut acinar
+
+# indrop2 -> indrop3 \alpha
+None None-GENE-panc8-indrop2-indrop3-alpha --method None --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg --leaveOut alpha
+MNN MNN-GENE-panc8-indrop2-indrop3-alpha --method MNN --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg --leaveOut alpha
+SeuratV3 SeuratV3-GENE-panc8-indrop2-indrop3-alpha --method SeuratV3 --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg --leaveOut alpha
+ScAlign ScAlign-GENE-panc8-indrop2-indrop3-alpha --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop2 --target indrop3 --leaveOut alpha
+ICP-affine-5-greedy ICP-GENE-panc8-indrop2-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut alpha
+ICP-affine-20-greedy ICP-GENE-panc8-indrop2-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut alpha
+ICP-affine-5-mnn ICP-GENE-panc8-indrop2-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut alpha
+ICP-affine-20-mnn ICP-GENE-panc8-indrop2-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut alpha
+
+# indrop2 -> indrop3 \beta
+None None-GENE-panc8-indrop2-indrop3-beta --method None --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg --leaveOut beta
+MNN MNN-GENE-panc8-indrop2-indrop3-beta --method MNN --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg --leaveOut beta
+SeuratV3 SeuratV3-GENE-panc8-indrop2-indrop3-beta --method SeuratV3 --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --filter_hvg --leaveOut beta
+ScAlign ScAlign-GENE-panc8-indrop2-indrop3-beta --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop2 --target indrop3 --leaveOut beta
+ICP-affine-5-greedy ICP-GENE-panc8-indrop2-indrop3-beta --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut beta
+ICP-affine-20-greedy ICP-GENE-panc8-indrop2-indrop3-beta --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut beta
+ICP-affine-5-mnn ICP-GENE-panc8-indrop2-indrop3-beta --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut beta
+ICP-affine-20-mnn ICP-GENE-panc8-indrop2-indrop3-beta --method ICP_affine --dataset panc8 --source indrop2 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut beta
+
+# indrop4 -> indrop3
+None None-GENE-panc8-indrop4-indrop3 --method None --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg
+MNN MNN-GENE-panc8-indrop4-indrop3 --method MNN --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg
+SeuratV3 SeuratV3-GENE-panc8-indrop4-indrop3 --method SeuratV3 --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg
+ScAlign ScAlign-GENE-panc8-indrop4-indrop3 --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop4 --target indrop3
+ICP-affine-5-greedy ICP-GENE-panc8-indrop4-indrop3 --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-20-greedy ICP-GENE-panc8-indrop4-indrop3 --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg
+ICP-affine-5-mnn ICP-GENE-panc8-indrop4-indrop3 --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg
+ICP-affine-20-mnn ICP-GENE-panc8-indrop4-indrop3 --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg
+
+# indrop4 -> indrop3 \acinar
+None None-GENE-panc8-indrop4-indrop3-acinar --method None --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg --leaveOut acinar
+MNN MNN-GENE-panc8-indrop4-indrop3-acinar --method MNN --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg --leaveOut acinar
+SeuratV3 SeuratV3-GENE-panc8-indrop4-indrop3-acinar --method SeuratV3 --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg --leaveOut acinar
+ScAlign ScAlign-GENE-panc8-indrop4-indrop3-acinar --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop4 --target indrop3 --leaveOut acinar
+ICP-affine-5-greedy ICP-GENE-panc8-indrop4-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut acinar
+ICP-affine-20-greedy ICP-GENE-panc8-indrop4-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut acinar
+ICP-affine-5-mnn ICP-GENE-panc8-indrop4-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut acinar
+ICP-affine-20-mnn ICP-GENE-panc8-indrop4-indrop3-acinar --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut acinar
+
+# indrop4 -> indrop3 \alpha
+None None-GENE-panc8-indrop4-indrop3-alpha --method None --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg --leaveOut alpha
+MNN MNN-GENE-panc8-indrop4-indrop3-alpha --method MNN --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg --leaveOut alpha
+SeuratV3 SeuratV3-GENE-panc8-indrop4-indrop3-alpha --method SeuratV3 --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg --leaveOut alpha
+ScAlign ScAlign-GENE-panc8-indrop4-indrop3-alpha --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop4 --target indrop3 --leaveOut alpha
+ICP-affine-5-greedy ICP-GENE-panc8-indrop4-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut alpha
+ICP-affine-20-greedy ICP-GENE-panc8-indrop4-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut alpha
+ICP-affine-5-mnn ICP-GENE-panc8-indrop4-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut alpha
+ICP-affine-20-mnn ICP-GENE-panc8-indrop4-indrop3-alpha --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut alpha
+
+# indrop4 -> indrop3 \beta
+None None-GENE-panc8-indrop4-indrop3-beta --method None --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg --leaveOut beta
+MNN MNN-GENE-panc8-indrop4-indrop3-beta --method MNN --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg --leaveOut beta
+SeuratV3 SeuratV3-GENE-panc8-indrop4-indrop3-beta --method SeuratV3 --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --filter_hvg --leaveOut beta
+ScAlign ScAlign-GENE-panc8-indrop4-indrop3-beta --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop4 --target indrop3 --leaveOut beta
+ICP-affine-5-greedy ICP-GENE-panc8-indrop4-indrop3-beta --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut beta
+ICP-affine-20-greedy ICP-GENE-panc8-indrop4-indrop3-beta --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOut beta
+ICP-affine-5-mnn ICP-GENE-panc8-indrop4-indrop3-beta --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut beta
+ICP-affine-20-mnn ICP-GENE-panc8-indrop4-indrop3-beta --method ICP_affine --dataset panc8 --source indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 20 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --leaveOut beta
