@@ -43,10 +43,10 @@ def load_ref_sets():
     }
     return ref_sets
 
-def analyze_model_weights_rank_sums(scipr, gene_list, ref_sets, rank_by_smallest_first=False):
-    assert(scipr.W_.shape[1] == gene_list.shape[0])
+def analyze_model_weights_rank_sums(scipr, model_gene_list, full_gene_list, ref_sets, rank_by_smallest_first=False):
+    assert(scipr.W_.shape[1] == model_gene_list.shape[0])
     # W_ is (out_dims, in_genes)
-    df = pd.DataFrame(data=scipr.W_.T, index=gene_list, columns=[f'out:{symbol}' for symbol in gene_list])
+    df = pd.DataFrame(data=scipr.W_.T, index=model_gene_list, columns=[f'out:{symbol}' for symbol in model_gene_list])
     df = df.abs()
     ranks = df.rank(axis=0, ascending=rank_by_smallest_first)
     rank_sums = ranks.sum(axis=1)
@@ -56,7 +56,7 @@ def analyze_model_weights_rank_sums(scipr, gene_list, ref_sets, rank_by_smallest
     threshold = np.mean(rank_sums_sorted[[lim-1, lim]])
     for rs_key, ref_set in ref_sets.items():
         print(rs_key)
-        enr = de.enrich.test(ref=ref_set, scores=rank_sums_sorted, gene_ids=rank_sums_sorted.index, clean_ref=True, threshold=threshold)
+        enr = de.enrich.test(ref=ref_set, scores=rank_sums_sorted, gene_ids=rank_sums_sorted.index, clean_ref=True, threshold=threshold, all_ids=full_gene_list)
         if enr.summary().loc[enr.summary()['qval'] < 0.05].shape[0] > 0:
             print(enr.summary().loc[enr.summary()['qval'] < 0.05])
         else:
@@ -64,20 +64,20 @@ def analyze_model_weights_rank_sums(scipr, gene_list, ref_sets, rank_by_smallest
             print(enr.summary().iloc[:10])    
         print()    
 
-def analyze_model_weights_normalized_diag(scipr, gene_list, ref_sets):
-    assert(scipr.W_.shape[1] == gene_list.shape[0])
+def analyze_model_weights_normalized_diag(scipr, model_gene_list, full_gene_list, ref_sets):
+    assert(scipr.W_.shape[1] == model_gene_list.shape[0])
     # W_ is (out_dims, in_genes)
-    df = pd.DataFrame(data=scipr.W_.T, index=gene_list, columns=[f'out:{symbol}' for symbol in gene_list])
+    df = pd.DataFrame(data=scipr.W_.T, index=model_gene_list, columns=[f'out:{symbol}' for symbol in model_gene_list])
     df = df.abs()
     colsums = df.sum(axis=0)
     df = df.div(colsums, axis=1)
     diag = np.diag(df)
-    sort_idx = (-diag).argsort()[:200]
+    sort_idx = (-diag).argsort()[:500]
     weights = diag[sort_idx]
-    genes = gene_list[sort_idx]
+    genes = model_gene_list[sort_idx]
     for rs_key, ref_set in ref_sets.items():
         print(rs_key)
-        enr = de.enrich.test(ref=ref_set, scores=weights, gene_ids=genes, clean_ref=True, all_ids=gene_list)
+        enr = de.enrich.test(ref=ref_set, scores=weights, gene_ids=genes, clean_ref=True, all_ids=full_gene_list)
         if enr.summary().loc[enr.summary()['qval'] < 0.05].shape[0] > 0:
             print(enr.summary().loc[enr.summary()['qval'] < 0.05])
         else:
@@ -119,23 +119,30 @@ if __name__ == '__main__':
     ref_sets = load_ref_sets()
     models = load_models(args)
 
-    cached_gene_lists = {}
+    cached_model_gene_lists = {}
+    cached_full_gene_lists = {}
     for model_items in models:
         print(f'\n\n\n{model_items["model_file"]}')
         with open(model_items['model_file'], 'rb') as f:
             scipr = pickle.load(f)
         # load data for this model
         task = model_items['task']
-        if cached_gene_lists.get(task.ds_key) is not None:
-            gene_list = cached_gene_lists.get(task.ds_key)
+        if cached_model_gene_lists.get(task.ds_key) is not None:
+            gene_list = cached_model_gene_lists.get(task.ds_key)
+            full_gene_list = cached_full_gene_lists.get(task.ds_key)
         else:
             data_args = {'dataset': task.ds_key, 'filter_hvg': True, 'source': task.source_batch, 'target': task.target_batch, 'panc8_n_cell_types': 5, 'pbmcsca_high_n_cell_types': 3}
             data_args = SimpleNamespace(**data_args)
             task_data = data.get_data(data_args.dataset, data_args)
             gene_list = task_data.var_names
-            cached_gene_lists[task.ds_key] = gene_list
+            cached_model_gene_lists[task.ds_key] = gene_list
+            data_args = {'dataset': task.ds_key, 'filter_hvg': False, 'source': task.source_batch, 'target': task.target_batch, 'panc8_n_cell_types': 5, 'pbmcsca_high_n_cell_types': 3}
+            data_args = SimpleNamespace(**data_args)
+            task_data = data.get_data(data_args.dataset, data_args)
+            full_gene_list = task_data.var_names
+            cached_full_gene_lists[task.ds_key] = full_gene_list
         
         if args.analysis == 'diag':
-            analyze_model_weights_normalized_diag(scipr, gene_list, ref_sets)
+            analyze_model_weights_normalized_diag(scipr, gene_list, full_gene_list, ref_sets)
         elif args.analysis == 'rank_sum':
-            analyze_model_weights_rank_sums(scipr, gene_list, ref_sets, args.rank_by_smallest_first)
+            analyze_model_weights_rank_sums(scipr, gene_list, full_gene_list, ref_sets, args.rank_by_smallest_first)
