@@ -29,7 +29,7 @@ class AlignmentTask(object):
             return '{}:\n{}->{}'.format(self.ds_key, self.source_batch, self.target_batch)
         
     def __str__(self):
-        return self.as_title().replace('\n', '')
+        return self.as_title().replace('\n', ' ')
     
     def as_plot_string(self):
         return self.__str__().replace('->', r'$\rightarrow$')
