@@ -11,8 +11,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+sns.set_context("talk")
 
-from submit_small_experiments import get_method_info
 
 def rename_method(method, renames):
     for rn in renames:
@@ -54,33 +54,48 @@ def load_embeddings_df(args):
     task_title = []
     leaveOut = []
     method = []
+    dataset = []
     celltype = []
     batch = []
     x1 = []
     x2 = []
+    task_subsample_idx = {}
     for filename in glob.iglob(join(args.root_folder, f'**/plot_aligned_embedding_kwargs_*_{args.embedding}.pkl'), recursive=True):
         filename = Path(filename)
         print(filename)
         with open(filename, 'rb') as f:
             plot_kwargs = pickle.load(f)
             n_points = len(plot_kwargs['cell_labels'])
-            celltype.extend(plot_kwargs['cell_labels'])
-            batch.extend(plot_kwargs['batch_labels'])
-            x1.extend(plot_kwargs['embedding'][:,0])
-            x2.extend(plot_kwargs['embedding'][:,1])
-        with open(filename.parent / 'results.pickle', 'rb') as f:
-            results = pickle.load(f)
+            with open(filename.parent / 'results.pickle', 'rb') as f:
+                results = pickle.load(f)
             cur_method = results['method']
             task = results['alignment_task']
             if args.rename_method is not None:
                 cur_method = rename_method(cur_method, args.rename_method)
-            method.extend([cur_method] * n_points)
             if args.rename_dataset is not None:
                 task = rename_dataset(task, args.rename_dataset)
+            task.source_batch = task.source_batch.replace('Chromium ', '')
+            task.target_batch = task.target_batch.replace('Chromium ', '')
+            task_key = str(task)
+            if n_points > 500:
+                if task_key not in task_subsample_idx:
+                    idx = np.random.choice(n_points, size=500, replace=False)
+                    task_subsample_idx[task_key] = idx
+                else:
+                    idx = task_subsample_idx[task_key]
+                n_points = 500
+            else:
+                idx = np.arange(n_points)
+            celltype.extend(plot_kwargs['cell_labels'][idx])
+            batch.extend(plot_kwargs['batch_labels'][idx])
+            x1.extend(plot_kwargs['embedding'][idx,0])
+            x2.extend(plot_kwargs['embedding'][idx,1])
+            method.extend([cur_method] * n_points)
             task_path.extend([task.as_path()] * n_points)
             task_title.extend([task.as_plot_string()] * n_points)
             leaveOut.extend([task.leave_out_ct] * n_points)
-    df = pd.DataFrame(data={'task_path': task_path, 'task': task_title, 'leaveOut': leaveOut, 'method': method, 'celltype': celltype, 'batch': batch, f'{args.embedding}1': x1, f'{args.embedding}2': x2})
+            dataset.extend([task.ds_key] * n_points)
+    df = pd.DataFrame(data={'task_path': task_path, 'task': task_title, 'dataset': dataset, 'leaveOut': leaveOut, 'method': method, 'Cell type': celltype, 'Batch': batch, f'{args.embedding}1': x1, f'{args.embedding}2': x2})
     return df
 
 def load_embeddings_by_task(args):
@@ -174,15 +189,22 @@ if __name__ == '__main__':
     print(embeddings.shape)
     embeddings = embeddings[pd.isnull(embeddings.leaveOut)]
     print(embeddings.shape)
-    g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', hue='batch', kind='scatter', data=embeddings, alpha=0.5, facet_kws={'margin_titles': True}, palette='husl')
-    plt.savefig(embeddings_folder / 'facetgrid_batch.png')
-    g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', hue='celltype', kind='scatter', data=embeddings, alpha=0.5, facet_kws={'margin_titles': True}, palette='Dark2')
-    plt.savefig(embeddings_folder / 'facetgrid_celltype.png')
-    sns.set_context("talk")
-    g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', hue='batch', kind='scatter', data=embeddings, alpha=0.5, facet_kws={'margin_titles': True}, palette='husl')
-    plt.savefig(embeddings_folder / 'facetgrid_batch_large.png')
-    g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', hue='celltype', kind='scatter', data=embeddings, alpha=0.5, facet_kws={'margin_titles': True}, palette='Dark2')
-    plt.savefig(embeddings_folder / 'facetgrid_celltype_large.png')
+    def change_facet_titles(g):
+        for row in g.axes:
+            row[-1].texts = []
+        return g.set_titles(row_template = '{row_name}', col_template = '{col_name}')
+    for dataset in np.unique(embeddings.dataset):
+        print(dataset)
+        embeddings_subset = embeddings[embeddings.dataset == dataset]
+        print(embeddings_subset.shape)
+        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', hue='Batch', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'margin_titles': True}, palette='husl')
+        g = change_facet_titles(g)
+        plt.savefig(embeddings_folder / f'{dataset}_facetgrid_batch.png')
+        plt.savefig(embeddings_folder / f'{dataset}_facetgrid_batch.svg')
+        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', hue='Cell type', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'margin_titles': True}, palette='Dark2')
+        g = change_facet_titles(g)
+        plt.savefig(embeddings_folder / f'{dataset}_facetgrid_celltype.png')
+        plt.savefig(embeddings_folder / f'{dataset}_facetgrid_celltype.svg')
 
 
 
