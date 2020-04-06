@@ -221,20 +221,33 @@ def plot_lisi_ax(df, ax):
         orient="h", showfliers=False,
         hue_order=[batch_key, ct_key], ax=ax)
 
-    current_handles, current_labels = ax.get_legend_handles_labels()
+    # current_handles, current_labels = ax.get_legend_handles_labels()
+    # new_labels = rename_legend_labels(current_labels)
+    # new_labels = []
+    # for l in current_labels:
+    #     if l == 'protocol' or l == 'cell_age' or l == 'dataset' or l == 'batch':
+    #         new_l = 'iLISI'
+    #     else:
+    #         new_l = 'cLISI'
+    #     print(f'old: {l}, new: {new_l}')
+    #     new_labels.append(new_l)
+    # ax.legend(current_handles, new_labels)
+    plot_title = df.task_plot_string.iloc[0].split(':')[1].strip()
+    plot_title = plot_title.replace('Chromium ', '')
+    ax.set_title(f'{plot_title}')
+    ax.set(xlabel='', ylabel='')
+    ax.get_legend().remove()
+
+def rename_legend_labels(labels):
     new_labels = []
-    for l in current_labels:
+    for l in labels:
         if l == 'protocol' or l == 'cell_age' or l == 'dataset' or l == 'batch':
             new_l = 'iLISI'
         else:
             new_l = 'cLISI'
         print(f'old: {l}, new: {new_l}')
         new_labels.append(new_l)
-    ax.legend(current_handles, new_labels)
-    plot_title = df.task_plot_string.iloc[0].split(':')[1].strip()
-    plot_title = plot_title.replace('Chromium ', '')
-    ax.set_title(f'{plot_title}')
-    ax.set(xlabel='', ylabel='')
+    return new_labels
 
 def plot_overall_LISI_fig(df, output_folder):
     df = df[pd.isnull(df.leaveOut)]
@@ -258,14 +271,91 @@ def plot_overall_LISI_fig(df, output_folder):
                 axs[i, j].set(ylabel=dataset)
             if i == len(datasets) - 1 and j == int(n_cols / 2):
                 axs[i, j].set(xlabel='score')
-            if i != 0 or j != 0:
-                axs[i, j].get_legend().remove()
+            # if i != 0 or j != 0:
+            #     axs[i, j].get_legend().remove()
+    handles, labels = axs[0, 0].get_legend_handles_labels()
+    labels = rename_legend_labels(labels)
+    fig.legend(handles, labels, title='metric')
     plt.savefig(output_folder / 'overall_LISI.png', bbox_inches='tight')
+    plt.savefig(output_folder / 'overall_LISI.svg', bbox_inches='tight')
     #plt.savefig(output_folder / '{}_sns.svg'.format(alignment_task.as_path()), bbox_inches='tight')
     #plt.savefig(output_folder / '{}_sns.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
     plt.close()
 
+def plot_lisi_leaveOut_ax(df, ax):
+    # sort_order = SORT_ORDER
+    if len(np.unique(df.task_plot_string)) != 1:
+        raise RuntimeError('Detected more than one alignment task in LISI plot!')
+    sort_order = get_sort_order_by_score_2(df)
+    df['ord'] = df.apply(lambda row: sort_order[row['method']], axis=1)
+    df.sort_values('ord', inplace=True)
+    sns.set(style="whitegrid")
 
+    batch_key = df.task_batch_key.iloc[0]
+    ct_key = df.task_ct_key.iloc[0]
+    sns.boxplot(x="score", y="method", hue="metric", data=df, palette="Set2",
+        orient="h", showfliers=False,
+        hue_order=[batch_key, ct_key], ax=ax)
+
+    # current_handles, current_labels = ax.get_legend_handles_labels()
+    # new_labels = rename_legend_labels(current_labels)
+    # new_labels = []
+    # for l in current_labels:
+    #     if l == 'protocol' or l == 'cell_age' or l == 'dataset' or l == 'batch':
+    #         new_l = 'iLISI'
+    #     else:
+    #         new_l = 'cLISI'
+    #     print(f'old: {l}, new: {new_l}')
+    #     new_labels.append(new_l)
+    # ax.legend(current_handles, new_labels)
+    # plot_title = df.task_plot_string.iloc[0].split()[-1].strip()
+    # plot_title = plot_title.replace('Chromium ', '')
+    #ax.set_title(f'{df.leaveOut.iloc[0]}')
+    ax.set(xlabel='', ylabel='')
+    ax.get_legend().remove()
+
+def plot_leaveOut_LISI_fig(df, dataset, output_folder):
+    df = df[(pd.notnull(df.leaveOut)) & (df.dataset == dataset)]
+
+
+    # dataset_order = {'CellBench': 0, 'Pancreas': 1, 'PBMC': 2}
+    # datasets = np.unique(df.dataset)
+    # datasets_places = [dataset_order[ds] for ds in datasets]
+    # sort_idx = np.argsort(datasets_places)
+    # datasets = datasets[sort_idx]
+    n_rows = len(sources[dataset])
+    leaveOuts = np.unique(df.leaveOut)
+    n_cols = len(leaveOuts)
+
+    def_figsize = matplotlib.rcParams['figure.figsize']
+    figsize = [s*1.5 for s in def_figsize]
+    if dataset == 'CellBench':
+        hspace = 0.2
+        wspace = 0.75
+    else:
+        hspace = 0.2
+        wspace = 0.75
+    fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols, gridspec_kw={'hspace': hspace, 'wspace': wspace}, figsize=figsize)
+    for i, source in enumerate(sources[dataset]):
+        for j, leaveOut in enumerate(leaveOuts):
+            print(f'{source}: {leaveOut}')
+            df_subset = df[(df.source == source) & (df.leaveOut == leaveOut)]
+
+            plot_lisi_leaveOut_ax(df_subset, axs[i, j])
+            if i == 0:
+                axs[i, j].set_title(leaveOut)
+            if j == 0:
+                axs[i, j].set(ylabel=source.replace('Chromium ', ''))
+            if i == n_rows - 1 and j == int(n_cols / 2):
+                axs[i, j].set(xlabel='score')
+    handles, labels = axs[0, 0].get_legend_handles_labels()
+    labels = rename_legend_labels(labels)
+    fig.legend(handles, labels, title='metric', loc='lower center')
+    plt.savefig(output_folder / f'{dataset}_leaveOut_LISI.png', bbox_inches='tight')
+    plt.savefig(output_folder / f'{dataset}_leaveOut_LISI.svg', bbox_inches='tight')
+    #plt.savefig(output_folder / '{}_sns.svg'.format(alignment_task.as_path()), bbox_inches='tight')
+    #plt.savefig(output_folder / '{}_sns.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('compile-results', description='Combine LISI scores from multiple experiments into summarizing plots.')
@@ -284,6 +374,8 @@ if __name__ == '__main__':
 
     df = load_LISI_df(args)
     plot_overall_LISI_fig(df, lisi_folder)
+    for dataset in np.unique(df.dataset):
+        plot_leaveOut_LISI_fig(df, dataset, lisi_folder)
 
     # results_by_task = defaultdict(list)
     # for filename in glob.iglob(join(args.root_folder, '**/results.pickle'), recursive=True):
