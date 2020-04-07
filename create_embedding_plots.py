@@ -190,6 +190,7 @@ if __name__ == '__main__':
     embeddings = embeddings[pd.isnull(embeddings.leaveOut)]
     print(embeddings.shape)
     def change_facet_titles(g):
+        # Required workaround for set_titles, see https://github.com/mwaskom/seaborn/issues/509#issuecomment-316132303
         for row in g.axes:
             row[-1].texts = []
         return g.set_titles(row_template = '{row_name}', col_template = '{col_name}')
