@@ -1,4 +1,4 @@
-import pdb; pdb.set_trace()
+# import pdb; pdb.set_trace()
 # To add a new cell, type '#%%'
 
 # To add a new markdown cell, type '#%% [markdown]'
@@ -188,6 +188,9 @@ if __name__ == '__main__':
     #%%
     datasets = {}
     datasets[args.dataset] = data.get_data(args.dataset, args)
+    crosstab = data.get_data_crosstabulation(datasets[args.dataset], args)
+    crosstab.to_latex(join(log_dir, 'data_crosstab.tex'))
+    
     # if args.input_space == 'PCA' or args.method == 'None':
     embed.embed(datasets, args.dataset, args.n_PC, do_standardize=args.standardize, log_dir=log_dir)
     embed.visualize(datasets, args.dataset, cell_type_key=celltype_columns[args.dataset], batch_key=batch_columns[args.dataset], log_dir=log_dir)

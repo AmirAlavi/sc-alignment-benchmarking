@@ -1,4 +1,4 @@
-#import pdb; pdb.set_trace()
+# import pdb; pdb.set_trace()
 
 import pandas as pd
 import numpy as np
@@ -10,6 +10,17 @@ import dataset_info
 FILTER_MIN_GENES = 1.8e3
 FILTER_MIN_READS = 10
 FILTER_MIN_DETECTED = 5
+
+def get_data_crosstabulation(data, args):
+    # Print dataset information for publication:
+    meta = data.obs
+    celltype_col = dataset_info.celltype_columns[args.dataset]
+    batch_col = dataset_info.batch_columns[args.dataset]
+    crosstab = pd.crosstab(meta[batch_col], meta[celltype_col])
+    crosstab['total'] = crosstab.sum(axis=1)
+    crosstab.rename_axis("Cell type", axis="columns", inplace=True)
+    crosstab.rename_axis("Batch", inplace=True)
+    return crosstab
 
 def print_data_info(data, args):
     print()
