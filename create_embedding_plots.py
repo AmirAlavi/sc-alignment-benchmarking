@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import anndata
 sns.set_context("talk")
 
 
@@ -60,7 +61,7 @@ def load_embeddings_df(args):
     x1 = []
     x2 = []
     task_subsample_idx = {}
-    for filename in glob.iglob(join(args.root_folder, f'**/plot_aligned_embedding_kwargs_*_{args.embedding}.pkl'), recursive=True):
+    for filename in glob.iglob(join(args.root_folder, f'**/plot_aligned_embedding_kwargs_*{args.embedding}.pkl'), recursive=True):
         filename = Path(filename)
         print(filename)
         with open(filename, 'rb') as f:
