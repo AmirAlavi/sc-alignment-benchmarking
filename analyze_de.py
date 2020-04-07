@@ -9,11 +9,7 @@ import diffxpy.api as de
 
 import data
 from dataset_info import batch_columns, celltype_columns
-
-# pd.set_option('display.max_rows', None)
-# pd.set_option('display.max_columns', None)
-# pd.set_option('display.width', None)
-# pd.set_option('display.max_colwidth', -1)
+import pickle
 
 GO_BP_GENE_SET_FILE = 'c5.bp.v7.0.symbols.gmt'
 REACTOME_GENE_SET_FILE = 'c2.cp.reactome.v7.0.symbols.gmt'
@@ -92,7 +88,10 @@ if __name__ == '__main__':
                     enr_table = enr_table.head(n=20)[['set', 'qval']]
                     enr_table = clean_up_table_for_printing(enr_table, rs_key)
                     print(enr_table)
-                    enr_table.to_latex(de_folder / f'{args.dataset}_{rs_key}_{source}_{ct}.tex', index=False, bold_rows=True)
+                    table_name = f'{args.dataset}_{rs_key}_{source}_{ct}'
+                    enr_table.to_latex(de_folder / f'{table_name}.tex', index=False, bold_rows=True)
+                    with open(de_folder / f'{table_name}.pkl', 'wb') as f:
+                        pickle.dump(enr_table, f)
                 else:
                     print('NONE SIGNIFICANT')
             print()
