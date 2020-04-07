@@ -160,6 +160,8 @@ def plot_aligned_embedding(**kwargs):
     plt.savefig(join(log_dir, f'{task_path}_{kwargs["embed_name"]}_by_celltype.svg'))
     plt.close()
 
+row_order = ['SCIPR-gdy', 'SCIPR-mnn', 'ScAlign', 'SeuratV3', 'MNN', 'None']
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('compile-embeddings', description='Create publication embedding plots')
     parser.add_argument('root_folder', help='Root folder to search for result files.')
@@ -199,11 +201,11 @@ if __name__ == '__main__':
         print(dataset)
         embeddings_subset = embeddings[embeddings.dataset == dataset]
         print(embeddings_subset.shape)
-        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', hue='Batch', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'margin_titles': True}, palette='husl')
+        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', row_order=row_order, hue='Batch', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'margin_titles': True}, palette='husl')
         g = change_facet_titles(g)
         plt.savefig(embeddings_folder / f'{dataset}_facetgrid_batch.png')
         plt.savefig(embeddings_folder / f'{dataset}_facetgrid_batch.svg')
-        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', hue='Cell type', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'margin_titles': True}, palette='Dark2')
+        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', row_order=row_order, hue='Cell type', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'margin_titles': True}, palette='Dark2')
         g = change_facet_titles(g)
         plt.savefig(embeddings_folder / f'{dataset}_facetgrid_celltype.png')
         plt.savefig(embeddings_folder / f'{dataset}_facetgrid_celltype.svg')

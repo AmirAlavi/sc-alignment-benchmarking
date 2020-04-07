@@ -89,7 +89,7 @@ if __name__ == '__main__':
                     enr_table = clean_up_table_for_printing(enr_table, rs_key)
                     print(enr_table)
                     table_name = f'{args.dataset}_{rs_key}_{source}_{ct}'
-                    enr_table.to_latex(de_folder / f'{table_name}.tex', index=False, bold_rows=True)
+                    enr_table.to_latex(de_folder / f'{table_name}.tex', index=False)
                     with open(de_folder / f'{table_name}.pkl', 'wb') as f:
                         pickle.dump(enr_table, f)
                 else:
