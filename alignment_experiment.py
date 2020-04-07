@@ -1,4 +1,4 @@
-# import pdb; pdb.set_trace()
+import pdb; pdb.set_trace()
 # To add a new cell, type '#%%'
 
 # To add a new markdown cell, type '#%% [markdown]'
@@ -69,6 +69,7 @@ def plot_aligned_embedding(**kwargs):
     if 'batch_labels' not in kwargs:
         raise RuntimeError('Missing kwarg batch_labels')
     log_dir = kwargs['log_dir']
+    kwargs['embedding'] = np.array(kwargs['embedding'])
     with open(join(log_dir, 'plot_aligned_embedding_kwargs_{}.pkl'.format(kwargs['embed_name'])), 'wb') as f:
         pickle.dump(kwargs, f)
     plt.figure()
