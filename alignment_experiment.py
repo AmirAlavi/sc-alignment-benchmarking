@@ -78,6 +78,7 @@ def plot_aligned_embedding(**kwargs):
     for batch, color in zip(np.unique(kwargs['batch_labels']), batch_colors):
         idx = np.where(kwargs['batch_labels'] == batch)[0]
         plt.scatter(kwargs['embedding'][idx, 0], kwargs['embedding'][idx, 1], c=color, label=batch, alpha=0.3)
+    plt.legend()
     plt.savefig(join(log_dir, '{}_by_batch.png'.format(kwargs['embed_name'])))
     plt.savefig(join(log_dir, '{}_by_batch.pdf'.format(kwargs['embed_name'])))
     plt.savefig(join(log_dir, '{}_by_batch.svg'.format(kwargs['embed_name'])))
@@ -88,6 +89,7 @@ def plot_aligned_embedding(**kwargs):
     for ct in np.unique(kwargs['cell_labels']):
         idx = np.where(kwargs['cell_labels'] == ct)[0]
         plt.scatter(kwargs['embedding'][idx, 0], kwargs['embedding'][idx, 1], label=ct, alpha=0.3)
+    plt.legend()
     plt.savefig(join(log_dir, '{}_by_celltype.png'.format(kwargs['embed_name'])))
     plt.savefig(join(log_dir, '{}_by_celltype.pdf'.format(kwargs['embed_name'])))
     plt.savefig(join(log_dir, '{}_by_celltype.svg'.format(kwargs['embed_name'])))
@@ -196,7 +198,7 @@ if __name__ == '__main__':
     embed.visualize(datasets, args.dataset, cell_type_key=celltype_columns[args.dataset], batch_key=batch_columns[args.dataset], log_dir=log_dir)
 
     #%%
-    task = alignment_task.AlignmentTask(args.dataset, batch_columns[args.dataset], celltype_columns[args.dataset], args.source, args.target, args.leaveOut)
+    task = alignment_task.AlignmentTask(args.dataset, batch_columns[args.dataset], celltype_columns[args.dataset], args.source, args.target, args.leaveOut, args.leaveOutSource)
 
     #%%
     # Run Alignment tasks
@@ -206,6 +208,8 @@ if __name__ == '__main__':
 
     if task.leave_out_ct is not None:
         task_idx = (datasets[task.ds_key].obs[task.batch_key] == task.source_batch) | ((datasets[task.ds_key].obs[task.batch_key] == task.target_batch) & (datasets[task.ds_key].obs[task.ct_key] != task.leave_out_ct))
+    # elif task.leave_out_source_ct is not None:
+    #     task_idx = ((datasets[task.ds_key].obs[task.batch_key] == task.source_batch) & (datasets[task.ds_key].obs[task.ct_key] != task.leave_out_source_ct)) | (datasets[task.ds_key].obs[task.batch_key] == task.target_batch)
     else:
         task_idx = (datasets[task.ds_key].obs[task.batch_key] == task.source_batch) | (datasets[task.ds_key].obs[task.batch_key] == task.target_batch)
     task_adata = datasets[task.ds_key][task_idx]

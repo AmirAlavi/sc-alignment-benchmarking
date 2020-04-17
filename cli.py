@@ -27,6 +27,7 @@ def get_parser():
     cellbench.add_argument('--source', help='Source batch.', required=True)
     cellbench.add_argument('--target', help='Target batch.', required=True)
     cellbench.add_argument('--leaveOut', help='Leave-out cell type.')
+    cellbench.add_argument('--leaveOutSource', help='Cell type to hide in source set during fitting')
 
     icp = parser.add_argument_group('ICP options')
     icp.add_argument('--matching_algo', help='Which matching algorithm to use to pair up source points to target points.', choices=['closest', 'greedy', 'hungarian', 'mnn'], default='greedy')

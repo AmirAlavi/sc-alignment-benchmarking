@@ -54,7 +54,7 @@ def run_ICP_rigid(datasets, task, task_adata, method_name, log_dir, args):
 
 def run_ICP_affine(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
-    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=args.subsample, n_subsample=args.n_subsample)
+    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=args.subsample, n_subsample=args.n_subsample, leave_out_source_ct=True)
 
     scipr = AffineSCIPR(n_iter=args.max_steps,
                         n_epochs_per_iter=args.max_epochs,
@@ -69,7 +69,7 @@ def run_ICP_affine(datasets, task, task_adata, method_name, log_dir, args):
     scipr.fit(A, B)
     with open(log_dir / 'scipr_model.pkl', 'wb') as f:
         pickle.dump(scipr, f)
-    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False)
+    A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False, leave_out_source_ct=False)
     B = scipr.apply_input_normalization(B)
     A = scipr.transform(A)
     print(A.shape)

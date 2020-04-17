@@ -14,17 +14,20 @@ class AlignmentTask(object):
         target_batch (str):
         leave_out_ct (str, optional): Leave one cell type out of the target set.
     """
-    def __init__(self, ds_key, batch_key, ct_key, source_batch, target_batch, leave_out_ct=None):
+    def __init__(self, ds_key, batch_key, ct_key, source_batch, target_batch, leave_out_ct=None, leave_out_source_ct=None):
         self.ds_key = ds_key # dataset key
         self.batch_key = batch_key
         self.ct_key = ct_key # cell type key
         self.source_batch = source_batch
         self.target_batch = target_batch
         self.leave_out_ct = leave_out_ct
+        self.leave_out_source_ct = leave_out_source_ct
     
     def as_title(self):
         if self.leave_out_ct is not None:
             return '{}:\n{}->{}\n(\\{})'.format(self.ds_key, self.source_batch, self.target_batch, self.leave_out_ct)
+        elif self.leave_out_source_ct is not None:
+            return '{}:\n{} (\\{})->{}'.format(self.ds_key, self.source_batch, self.leave_out_source_ct, self.target_batch)
         else:
             return '{}:\n{}->{}'.format(self.ds_key, self.source_batch, self.target_batch)
         
@@ -37,14 +40,19 @@ class AlignmentTask(object):
     def as_path(self):
         if self.leave_out_ct is not None:
             return '{}-{}_to_{}(out {})'.format(self.ds_key, self.source_batch, self.target_batch, self.leave_out_ct)
+        elif self.leave_out_source_ct is not None:
+            return '{}-{}(out {})_to_{}'.format(self.ds_key, self.source_batch, self.leave_out_source_ct, self.target_batch)
         else:
             return '{}-{}_to_{}'.format(self.ds_key, self.source_batch, self.target_batch)
 
-def get_source_target(datasets, task_info, use_PCA=False, subsample=False, n_subsample=500):
+def get_source_target(datasets, task_info, use_PCA=False, subsample=False, n_subsample=500, leave_out_source_ct=False):
     """Get the source data to be projected, as well as the target data on which it will be projected,
     both as np.ndarrays.
     """
     source_idx = datasets[task_info.ds_key].obs[task_info.batch_key] == task_info.source_batch
+    if task_info.leave_out_source_ct is not None and leave_out_source_ct:
+        print(f'Leaving out {task_info.leave_out_source_ct} from source set')
+        source_idx = (datasets[task_info.ds_key].obs[task_info.batch_key] == task_info.source_batch) & (datasets[task_info.ds_key].obs[task_info.ct_key] != task_info.leave_out_source_ct)
     if task_info.leave_out_ct is not None:
         target_idx = (datasets[task_info.ds_key].obs[task_info.batch_key] == task_info.target_batch) & (datasets[task_info.ds_key].obs[task_info.ct_key] != task_info.leave_out_ct)
     else:
