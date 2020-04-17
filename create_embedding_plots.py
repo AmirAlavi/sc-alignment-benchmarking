@@ -201,14 +201,14 @@ if __name__ == '__main__':
         print(dataset)
         embeddings_subset = embeddings[embeddings.dataset == dataset]
         print(embeddings_subset.shape)
-        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', row_order=row_order, hue='Batch', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'margin_titles': True}, palette='husl')
+        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', row_order=row_order, hue='Batch', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'sharex': False, 'sharey': False, 'margin_titles': True}, palette='husl')
         g = change_facet_titles(g)
-        plt.savefig(embeddings_folder / f'{dataset}_facetgrid_batch.png')
-        plt.savefig(embeddings_folder / f'{dataset}_facetgrid_batch.svg')
-        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', row_order=row_order, hue='Cell type', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'margin_titles': True}, palette='Dark2')
+        plt.savefig(embeddings_folder / f'{dataset}_{args.embedding}_facetgrid_batch.png')
+        plt.savefig(embeddings_folder / f'{dataset}_{args.embedding}_facetgrid_batch.svg')
+        g = sns.relplot(x=f'{args.embedding}1', y=f'{args.embedding}2', col='task', row='method', row_order=row_order, hue='Cell type', kind='scatter', data=embeddings_subset, alpha=0.5, facet_kws={'sharex': False, 'sharey': False, 'margin_titles': True}, palette='Dark2')
         g = change_facet_titles(g)
-        plt.savefig(embeddings_folder / f'{dataset}_facetgrid_celltype.png')
-        plt.savefig(embeddings_folder / f'{dataset}_facetgrid_celltype.svg')
+        plt.savefig(embeddings_folder / f'{dataset}_{args.embedding}_facetgrid_celltype.png')
+        plt.savefig(embeddings_folder / f'{dataset}_{args.embedding}_facetgrid_celltype.svg')
 
 
 
