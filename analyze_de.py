@@ -1,3 +1,4 @@
+# import pdb; pdb.set_trace()
 from types import SimpleNamespace
 import argparse
 from pathlib import Path
@@ -41,10 +42,18 @@ def clean_up_table_for_printing(table, term_set_name):
     return table
 
 
+def find_threshold_for_n_items(det, n=500):
+    df = det.summary()
+    df_sorted = df.sort_values(by=['qval'])
+    threshold = df_sorted['qval'].iloc[499]
+    return threshold
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('analyze-DE', description='Do DE analysis on a dataset')
     parser.add_argument('dataset', help='Which dataset to analyze')
     parser.add_argument('output_folder', help='Path of output folder (created if not exists) to store plots in.')
+    parser.add_argument('--use_top_n', help='Use the top n DE genes rather than taking only those below the 0.5 threshold', action='store_true')
+    parser.add_argument('--top_n', help='Number of top DE genes to use if use_top_n option is enabled.', type=int, default=500)
 
     # parser.add_argument('--embedding', help='Which type of embedding ot use', choices=['PCA', 'TSNE', 'UMAP'], default='UMAP')
     # parser.add_argument('--rename_method', help='Change the text name of a particular method to appear in the plots.', action='append')
@@ -82,12 +91,18 @@ if __name__ == '__main__':
             test_result = de.test.rank_test(subset, grouping='de_group')
             for rs_key, ref_set in ref_sets.items():
                 print(rs_key)
-                enr = de.enrich.test(ref=ref_set, det=test_result)
+                if args.use_top_n:
+                    print(f'Using top {args.top_n} DE genes')
+                    threshold = find_threshold_for_n_items(test_result, args.top_n)
+                    enr = de.enrich.test(ref=ref_set, det=test_result, threshold=threshold, clean_ref=True)
+                else:
+                    enr = de.enrich.test(ref=ref_set, det=test_result, clean_ref=True)
                 enr_table = enr.summary().loc[enr.summary()['qval'] < 0.05]
                 if enr_table.shape[0] > 0:
+                    print(enr_table.head(n=20))
                     enr_table = enr_table.head(n=20)[['set', 'qval']]
                     enr_table = clean_up_table_for_printing(enr_table, rs_key)
-                    print(enr_table)
+                    # print(enr_table)
                     table_name = f'{args.dataset}_{rs_key}_{source}_{ct}'
                     enr_table.to_latex(de_folder / f'{table_name}.tex', index=False)
                     with open(de_folder / f'{table_name}.pkl', 'wb') as f:
