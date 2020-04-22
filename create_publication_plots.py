@@ -146,6 +146,7 @@ def load_LISI_df(args):
     source = []
     target = []
     leaveOut = []
+    sourceLeaveOut = []
     task_plot_string = []
     task_ct_key = []
     task_batch_key = []
@@ -169,6 +170,10 @@ def load_LISI_df(args):
         source.extend([cur_task.source_batch] * n_rows)
         target.extend([cur_task.target_batch] * n_rows)
         leaveOut.extend([cur_task.leave_out_ct] * n_rows)
+        if hasattr(cur_task, 'leave_out_source_ct'):
+            sourceLeaveOut.extend([cur_task.leave_out_source_ct] * n_rows)
+        else:
+            sourceLeaveOut.extend([None] * n_rows)
         task_plot_string.extend([cur_task.as_plot_string()] * n_rows)
         task_ct_key.extend([cur_task.ct_key] * n_rows)
         task_batch_key.extend([cur_task.batch_key] * n_rows)
@@ -180,6 +185,7 @@ def load_LISI_df(args):
         'source': source,
         'target': target,
         'leaveOut': leaveOut,
+        'sourceLeaveOut': sourceLeaveOut,
         'task_plot_string': task_plot_string,
         'task_ct_key': task_ct_key,
         'task_batch_key': task_batch_key})
@@ -357,6 +363,49 @@ def plot_leaveOut_LISI_fig(df, dataset, output_folder):
     #plt.savefig(output_folder / '{}_sns.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
     plt.close()
 
+def plot_sourceLeaveOut_LISI_fig(df, dataset, output_folder):
+    df = df[(pd.notnull(df.sourceLeaveOut)) & (df.dataset == dataset)]
+
+
+    # dataset_order = {'CellBench': 0, 'Pancreas': 1, 'PBMC': 2}
+    # datasets = np.unique(df.dataset)
+    # datasets_places = [dataset_order[ds] for ds in datasets]
+    # sort_idx = np.argsort(datasets_places)
+    # datasets = datasets[sort_idx]
+    n_rows = len(sources[dataset])
+    leaveOuts = np.unique(df.sourceLeaveOut)
+    n_cols = len(leaveOuts)
+
+    def_figsize = matplotlib.rcParams['figure.figsize']
+    figsize = [s*1.5 for s in def_figsize]
+    if dataset == 'CellBench':
+        hspace = 0.2
+        wspace = 0.75
+    else:
+        hspace = 0.2
+        wspace = 0.75
+    fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols, gridspec_kw={'hspace': hspace, 'wspace': wspace}, figsize=figsize)
+    for i, source in enumerate(sources[dataset]):
+        for j, leaveOut in enumerate(leaveOuts):
+            print(f'{source}: {leaveOut}')
+            df_subset = df[(df.source == source) & (df.sourceLeaveOut == leaveOut)]
+
+            plot_lisi_leaveOut_ax(df_subset, axs[i, j])
+            if i == 0:
+                axs[i, j].set_title(leaveOut)
+            if j == 0:
+                axs[i, j].set(ylabel=source.replace('Chromium ', ''))
+            if i == n_rows - 1 and j == int(n_cols / 2):
+                axs[i, j].set(xlabel='score')
+    handles, labels = axs[0, 0].get_legend_handles_labels()
+    labels = rename_legend_labels(labels)
+    fig.legend(handles, labels, title='metric', loc='lower center')
+    plt.savefig(output_folder / f'{dataset}_sourceLeaveOut_LISI.png', bbox_inches='tight')
+    plt.savefig(output_folder / f'{dataset}_sourceLeaveOut_LISI.svg', bbox_inches='tight')
+    #plt.savefig(output_folder / '{}_sns.svg'.format(alignment_task.as_path()), bbox_inches='tight')
+    #plt.savefig(output_folder / '{}_sns.pdf'.format(alignment_task.as_path()), bbox_inches='tight')
+    plt.close()
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('compile-results', description='Combine LISI scores from multiple experiments into summarizing plots.')
     parser.add_argument('root_folder', help='Root folder to search for result files.')
@@ -373,9 +422,10 @@ if __name__ == '__main__':
             os.makedirs(path)
 
     df = load_LISI_df(args)
-    plot_overall_LISI_fig(df, lisi_folder)
+    #plot_overall_LISI_fig(df, lisi_folder)
     for dataset in np.unique(df.dataset):
-        plot_leaveOut_LISI_fig(df, dataset, lisi_folder)
+        # plot_leaveOut_LISI_fig(df, dataset, lisi_folder)
+        plot_sourceLeaveOut_LISI_fig(df, dataset, lisi_folder)
 
     # results_by_task = defaultdict(list)
     # for filename in glob.iglob(join(args.root_folder, '**/results.pickle'), recursive=True):
