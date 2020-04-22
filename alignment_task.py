@@ -26,7 +26,7 @@ class AlignmentTask(object):
     def as_title(self):
         if self.leave_out_ct is not None:
             return '{}:\n{}->{}\n(\\{})'.format(self.ds_key, self.source_batch, self.target_batch, self.leave_out_ct)
-        elif self.leave_out_source_ct is not None:
+        elif hasattr(self, 'leave_out_source_ct') and self.leave_out_source_ct is not None:
             return '{}:\n{} (\\{})->{}'.format(self.ds_key, self.source_batch, self.leave_out_source_ct, self.target_batch)
         else:
             return '{}:\n{}->{}'.format(self.ds_key, self.source_batch, self.target_batch)
@@ -40,7 +40,7 @@ class AlignmentTask(object):
     def as_path(self):
         if self.leave_out_ct is not None:
             return '{}-{}_to_{}(out {})'.format(self.ds_key, self.source_batch, self.target_batch, self.leave_out_ct)
-        elif self.leave_out_source_ct is not None:
+        elif hasattr(self, 'leave_out_source_ct') and self.leave_out_source_ct is not None:
             return '{}-{}(out {})_to_{}'.format(self.ds_key, self.source_batch, self.leave_out_source_ct, self.target_batch)
         else:
             return '{}-{}_to_{}'.format(self.ds_key, self.source_batch, self.target_batch)
