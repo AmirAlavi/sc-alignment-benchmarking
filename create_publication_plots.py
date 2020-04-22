@@ -386,7 +386,9 @@ def plot_sourceLeaveOut_LISI_fig(df, dataset, output_folder):
     n_cols = len(leaveOuts)
 
     def_figsize = matplotlib.rcParams['figure.figsize']
-    figsize = [s*1.5 for s in def_figsize]
+
+    figsize = [6.4, 3]
+    figsize = [s*1.5 for s in figsize]
     if dataset == 'CellBench':
         hspace = 0.2
         wspace = 0.75

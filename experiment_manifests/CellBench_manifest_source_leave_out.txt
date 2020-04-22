@@ -6,7 +6,7 @@ SCIPR-mnn SCIPR-mnn-GENE-CellBench-Dropseq-H1975-10x --method ICP_affine --datas
 SCIPR-gdy SCIPR-gdy-GENE-CellBench-Dropseq-H2228-10x --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOutSource H2228
 SCIPR-mnn SCIPR-mnn-GENE-CellBench-Dropseq-H2228-10x --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOutSource H2228
 
-Dropseq -> 10x \HCC827
+# Dropseq -> 10x \HCC827
 SCIPR-gdy SCIPR-gdy-GENE-CellBench-Dropseq-HCC827-10x --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --leaveOutSource HCC827
 SCIPR-mnn SCIPR-mnn-GENE-CellBench-Dropseq-HCC827-10x --method ICP_affine --dataset CellBench --source Dropseq --target 10x --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --source_match_thresh 0.5 --filter_hvg --leaveOutSource HCC827
 
