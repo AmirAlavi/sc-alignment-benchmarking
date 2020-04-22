@@ -198,6 +198,7 @@ sources = {
 }
 
 def get_sort_order_by_score_2(df):
+    task = df['task_plot_string'].unique()[0]
     sort_df = df.copy()
     def negate_iLISI(row):
         if row['metric'] == row['task_ct_key']:
@@ -205,6 +206,14 @@ def get_sort_order_by_score_2(df):
         else:
             return row['score']
     sort_df['score'] = df.apply(negate_iLISI, axis=1)
+    table = sort_df.groupby(['method', 'metric']).median().reset_index().pivot('method', 'metric', 'score')
+    table['sort_score'] = table[df['task_ct_key'].iloc[0]] + table[df['task_batch_key'].iloc[0]]
+    table = table.sort_values(by='sort_score', ascending=False)
+    table.drop(columns=['sort_score'], inplace=True)
+    table[df['task_ct_key'].iloc[0]] = -table[df['task_ct_key'].iloc[0]]
+    table = table[[df['task_batch_key'].iloc[0], df['task_ct_key'].iloc[0]]]
+    print(task)
+    print(table.to_latex())
     sort_df = sort_df.groupby(['method', 'metric']).median().groupby('method').sum().sort_values(by='score', ascending=False)
     sort_df['order'] = (-sort_df['score']).argsort()
     sort_dict = {}
