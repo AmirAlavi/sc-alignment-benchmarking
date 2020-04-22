@@ -129,17 +129,20 @@ def plot_alignment_results(log_dir, adata, method_key, alignment_task):
         embed_name=method_key+'TSNE',
         embedding=adata.obsm[method_key+'TSNE'],
         cell_labels=cell_labels,
-        batch_labels=batch_labels)
+        batch_labels=batch_labels,
+        original_embedding=adata.obsm['TSNE'])
     plot_aligned_embedding(log_dir=log_dir,
         embed_name=method_key+'PCA',
         embedding=adata.obsm[method_key+'PCA'],
         cell_labels=cell_labels,
-        batch_labels=batch_labels)
+        batch_labels=batch_labels,
+        original_embedding=adata.obsm['PCA'])
     plot_aligned_embedding(log_dir=log_dir,
         embed_name=method_key+'UMAP',
         embedding=adata.obsm[method_key+'UMAP'],
         cell_labels=cell_labels,
-        batch_labels=batch_labels)
+        batch_labels=batch_labels,
+        original_embedding=adata.obsm['UMAP'])
     # plot_aligned_embedding(log_dir, adata, method_key+'TSNE', alignment_task)
     # plot_aligned_embedding(log_dir, adata, method_key+'PCA', alignment_task)
     # plot_aligned_embedding(log_dir, adata, method_key+'UMAP', alignment_task)
