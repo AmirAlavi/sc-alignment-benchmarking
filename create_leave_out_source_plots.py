@@ -32,41 +32,55 @@ def rename_dataset(alignment_task, renames):
 
 
 def create_figure(df, embedding, path):
+    print(df.columns)
+    print(df.shape)
     source_cell_types = np.unique(df.sourceLeaveOut)
-    ct_colors = ['#1b9e77','#d95f02','#7570b3']
-    ct_color_map = {ct: color for ct, color in zip(np.unique(df.celltype), ct_colors)}
-    batch_colors = ['#1A85FF', '#D41159', '#66a61e']
-    batch_color_map = {batch: color for batch, color in zip(np.unique(df.batch), batch_colors)}
-    fig, axs = plt.subplots(nrows=len(source_cell_types), ncols=4)
-    axs[0, 0].set_title('Unaligned Input\ncolor=Batch')
-    axs[0, 1].set_title('Unaligned Input\ncolor=CellType')
-    axs[0, 2].set_title('ََAligned\ncolor=Batch')
-    axs[0, 3].set_title('Aligned\ncolor=CellType')
+    ct_colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e'][:len(np.unique(df['Cell type']))]
+    ct_color_map = {ct: color for ct, color in zip(np.unique(df['Cell type']), ct_colors)}
+    batch_colors = ['#1A85FF', '#D41159', '#e6ab02'][:len(np.unique(df['Batch']))]
+    batch_color_map = {batch: color for batch, color in zip(np.unique(df['Batch']), batch_colors)}
+    print(ct_color_map)
+    print(batch_color_map)
+    def_figsize = mpl.rcParams['figure.figsize']
+    figsize = [s*1.5 for s in def_figsize]
+    fig, axs = plt.subplots(nrows=len(source_cell_types), ncols=4, gridspec_kw={'hspace': 0.3, 'wspace': 0.3}, figsize=figsize)
+    marker_size = 6.0
+    alpha = 0.1
+    axs[0, 0].set_title('Unaligned\ncolor=Batch')
+    axs[0, 1].set_title('Unaligned\ncolor=CellType')
+    axs[0, 2].set_title('Aligned + missing\ncolor=Batch')
+    axs[0, 3].set_title('Aligned + missing\ncolor=CellType')
     for i, ct in enumerate(source_cell_types):
-        subset = df[(df['sourceLeaveOut'] == ct) & (df['celltype'] != ct)]
-        b_colors = [batch_color_map[b] for b in subset['batch']]
-        axs[i, 0].scatter(subset[f'orig_{embedding}1'], subset[f'orig_{embedding}2'], c=b_colors)
+        subset = df[(df['sourceLeaveOut'] == ct) & (df['Cell type'] != ct)]
+        b_colors = [batch_color_map[b] for b in subset['Batch']]
+        axs[i, 0].scatter(subset[f'orig_{embedding}1'], subset[f'orig_{embedding}2'], c=b_colors, alpha=alpha, s=marker_size)
         axs[i, 0].set_ylabel(ct)
-        c_colors = [ct_color_map[ct_] for ct_ in subset['celltype']]
-        axs[i, 1].scatter(subset[f'orig_{embedding}1'], subset[f'orig_{embedding}2'], c=c_colors)
+        c_colors = [ct_color_map[ct_] for ct_ in subset['Cell type']]
+        axs[i, 1].scatter(subset[f'orig_{embedding}1'], subset[f'orig_{embedding}2'], c=c_colors, alpha=alpha, s=marker_size)
 
         subset = df[df['sourceLeaveOut'] == ct]
-        b_colors = [batch_color_map[b] for b in subset['batch']]
-        axs[i, 2].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=b_colors)
-        c_colors = [ct_color_map[ct_] for ct_ in subset['celltype']]
-        axs[i, 3].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=c_colors)
+        b_colors = [batch_color_map[b] for b in subset['Batch']]
+        axs[i, 2].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=b_colors, alpha=alpha, s=marker_size)
+        c_colors = [ct_color_map[ct_] for ct_ in subset['Cell type']]
+        axs[i, 3].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=c_colors, alpha=alpha, s=marker_size)
     legend_elements = []
     # empty_patch = mpl.patches.Rectangle((0,0), 1, 1, fill=False, edgecolor='none', visible=False)
     legend_elements.append(mpl.patches.Rectangle((0,0), 1, 1, fill=False, edgecolor='none', visible=False, label='Batch'))
     for b, c in batch_color_map.items():
-        legend_elements.append(Line2D([0], [0], marker='o', color='w', label=b, markerfacecolor=c, markersize=15))
+        legend_elements.append(Line2D([0], [0], marker='o', color='w', label=b, markerfacecolor=c, markersize=marker_size))
     legend_elements.append(mpl.patches.Rectangle((0,0), 1, 1, fill=False, edgecolor='none', visible=False, label='Cell Type'))
     for ct, c in ct_color_map.items():
-        legend_elements.append(Line2D([0], [0], marker='o', color='w', label=ct, markerfacecolor=c, markersize=15))
-    fig.legend(handles=legend_elements, loc='bottom center')
-    plt.savefig(path + '.png')
+        legend_elements.append(Line2D([0], [0], marker='o', color='w', label=ct, markerfacecolor=c, markersize=marker_size))
+    # fig.legend(handles=legend_elements, loc="center right")
+    # plt.savefig(path.with_suffix('.png'))
+    fig.legend(handles=legend_elements, bbox_to_anchor=(0.95, 0.45),loc = 'center left')
+    plt.subplots_adjust(left=0.07, right=0.93, wspace=0.3, hspace=0.3)
+    plt.savefig(path.with_suffix('.png'), bbox_inches='tight')
+    plt.savefig(path.with_suffix('.svg'), bbox_inches='tight')
 
 def load_embeddings_df(args):
+    ct_key = []
+    batch_key = []
     task_path = []
     task_title = []
     sourceLeaveOut = []
@@ -122,10 +136,14 @@ def load_embeddings_df(args):
             dataset.extend([task.ds_key] * n_points)
             source.extend([task.source_batch] * n_points)
             target.extend([task.target_batch] * n_points)
+            ct_key.extend([task.ct_key] * n_points)
+            batch_key.extend([task.batch_key] * n_points)
     df = pd.DataFrame(data={
         'task_path': task_path,
         'task': task_title,
         'dataset': dataset,
+        'ct_key': ct_key,
+        'batch_key': batch_key,
         'source': source,
         'target': target,
         'leaveOut': leaveOut,
@@ -172,10 +190,13 @@ if __name__ == '__main__':
     print(embeddings.shape)
 
     for ds in np.unique(embeddings.dataset):
-        subset = embeddings[embeddings.dataset == ds]
-        for b in np.unique(embeddings.source):
-            subset = subset[subset.source == b]
-            create_figure(subset, args.embedding, embeddings_folder / f'{ds}_{b.replace("(", "_").replace(")", "_")}')
+        ds_subset = embeddings[embeddings.dataset == ds]
+        for m in np.unique(ds_subset.method):
+            m_subset = ds_subset[ds_subset.method == m]
+            for b in np.unique(m_subset.source):
+                b_subset = m_subset[m_subset.source == b]
+                print(f'{ds} {m} {b}')
+                create_figure(b_subset, args.embedding, embeddings_folder / f'{args.embedding}_{ds}_{b.replace("(", "_").replace(")", "_")}_{m}')
 
     # def change_facet_titles(g):
     #     # Required workaround for set_titles, see https://github.com/mwaskom/seaborn/issues/509#issuecomment-316132303
