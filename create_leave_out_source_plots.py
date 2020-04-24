@@ -48,8 +48,8 @@ def create_figure(df, embedding, path):
     alpha = 0.1
     axs[0, 0].set_title('Unaligned\ncolor=Batch')
     axs[0, 1].set_title('Unaligned\ncolor=CellType')
-    axs[0, 2].set_title('Aligned + missing\ncolor=Batch')
-    axs[0, 3].set_title('Aligned + missing\ncolor=CellType')
+    axs[0, 2].set_title('Aligned  (missing)\ncolor=Batch')
+    axs[0, 3].set_title('Aligned (all)\ncolor=CellType')
     for i, ct in enumerate(source_cell_types):
         subset = df[(df['sourceLeaveOut'] == ct) & (df['Cell type'] != ct)]
         b_colors = [batch_color_map[b] for b in subset['Batch']]
@@ -58,9 +58,10 @@ def create_figure(df, embedding, path):
         c_colors = [ct_color_map[ct_] for ct_ in subset['Cell type']]
         axs[i, 1].scatter(subset[f'orig_{embedding}1'], subset[f'orig_{embedding}2'], c=c_colors, alpha=alpha, s=marker_size)
 
-        subset = df[df['sourceLeaveOut'] == ct]
+        subset = df[(df['sourceLeaveOut'] == ct) & (df['Cell type'] == ct)]
         b_colors = [batch_color_map[b] for b in subset['Batch']]
         axs[i, 2].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=b_colors, alpha=alpha, s=marker_size)
+        subset = df[df['sourceLeaveOut'] == ct]
         c_colors = [ct_color_map[ct_] for ct_ in subset['Cell type']]
         axs[i, 3].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=c_colors, alpha=alpha, s=marker_size)
     legend_elements = []
