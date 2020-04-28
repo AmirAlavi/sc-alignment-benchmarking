@@ -43,27 +43,31 @@ def create_figure(df, embedding, path):
     print(batch_color_map)
     def_figsize = mpl.rcParams['figure.figsize']
     figsize = [s*1.5 for s in def_figsize]
-    fig, axs = plt.subplots(nrows=len(source_cell_types), ncols=4, gridspec_kw={'hspace': 0.3, 'wspace': 0.3}, figsize=figsize)
+    figsize = [8.33, 10]
+    #width = max(def_figsize)
+    #figsize = [width*1.5, width*1.5]
+    #fig, axs = plt.subplots(nrows=len(source_cell_types), ncols=2, gridspec_kw={'hspace': 0.3, 'wspace': 0.3}, figsize=figsize, subplot_kw=dict(box_aspect=1))
+    fig, axs = plt.subplots(nrows=len(source_cell_types), ncols=2, subplot_kw=dict(box_aspect=1), constrained_layout=True, figsize=figsize)
     marker_size = 6.0
-    alpha = 0.1
-    axs[0, 0].set_title('Unaligned\ncolor=Batch')
-    axs[0, 1].set_title('Unaligned\ncolor=CellType')
-    axs[0, 2].set_title('Aligned  (missing)\ncolor=Batch')
-    axs[0, 3].set_title('Aligned (all)\ncolor=CellType')
+    alpha = 0.25
+    axs[0, 0].set_title('Aligned  (missing)\ncolor=Batch')
+    axs[0, 1].set_title('Aligned (all)\ncolor=CellType')
     for i, ct in enumerate(source_cell_types):
-        subset = df[(df['sourceLeaveOut'] == ct) & (df['Cell type'] != ct)]
-        b_colors = [batch_color_map[b] for b in subset['Batch']]
-        axs[i, 0].scatter(subset[f'orig_{embedding}1'], subset[f'orig_{embedding}2'], c=b_colors, alpha=alpha, s=marker_size)
+        # subset = df[(df['sourceLeaveOut'] == ct) & (df['Cell type'] != ct)]
+        # b_colors = [batch_color_map[b] for b in subset['Batch']]
+        # axs[i, 0].scatter(subset[f'orig_{embedding}1'], subset[f'orig_{embedding}2'], c=b_colors, alpha=alpha, s=marker_size)
+        # axs[i, 0].set_ylabel(ct)
+        # c_colors = [ct_color_map[ct_] for ct_ in subset['Cell type']]
+        # axs[i, 1].scatter(subset[f'orig_{embedding}1'], subset[f'orig_{embedding}2'], c=c_colors, alpha=alpha, s=marker_size)
         axs[i, 0].set_ylabel(ct)
-        c_colors = [ct_color_map[ct_] for ct_ in subset['Cell type']]
-        axs[i, 1].scatter(subset[f'orig_{embedding}1'], subset[f'orig_{embedding}2'], c=c_colors, alpha=alpha, s=marker_size)
-
         subset = df[(df['sourceLeaveOut'] == ct) & (df['Cell type'] == ct)]
         b_colors = [batch_color_map[b] for b in subset['Batch']]
-        axs[i, 2].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=b_colors, alpha=alpha, s=marker_size)
+        #axs[i, 0].set(aspect='equal')
+        axs[i, 0].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=b_colors, alpha=alpha, s=marker_size)
         subset = df[df['sourceLeaveOut'] == ct]
         c_colors = [ct_color_map[ct_] for ct_ in subset['Cell type']]
-        axs[i, 3].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=c_colors, alpha=alpha, s=marker_size)
+        # axs[i, 1].set(aspect='equal')
+        axs[i, 1].scatter(subset[f'{embedding}1'], subset[f'{embedding}2'], c=c_colors, alpha=alpha, s=marker_size)
     legend_elements = []
     # empty_patch = mpl.patches.Rectangle((0,0), 1, 1, fill=False, edgecolor='none', visible=False)
     legend_elements.append(mpl.patches.Rectangle((0,0), 1, 1, fill=False, edgecolor='none', visible=False, label='Batch'))
@@ -74,8 +78,10 @@ def create_figure(df, embedding, path):
         legend_elements.append(Line2D([0], [0], marker='o', color='w', label=ct, markerfacecolor=c, markersize=marker_size))
     # fig.legend(handles=legend_elements, loc="center right")
     # plt.savefig(path.with_suffix('.png'))
-    fig.legend(handles=legend_elements, bbox_to_anchor=(0.95, 0.45),loc = 'center left')
-    plt.subplots_adjust(left=0.07, right=0.93, wspace=0.3, hspace=0.3)
+    #for ax in axs.flatten():
+    #    ax.set_aspect(aspect='equal')
+    #plt.subplots_adjust(wspace=0., hspace=0.1)
+    fig.legend(handles=legend_elements, bbox_to_anchor=(1.0, 0.45),loc = 'center left')
     plt.savefig(path.with_suffix('.png'), bbox_inches='tight')
     plt.savefig(path.with_suffix('.svg'), bbox_inches='tight')
 
