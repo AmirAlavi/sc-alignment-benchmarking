@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
+plt.rcParams['svg.fonttype'] = 'none'
 
 from submit_small_experiments import get_method_info
 
@@ -276,7 +277,7 @@ def plot_overall_LISI_fig(df, output_folder):
 
     def_figsize = matplotlib.rcParams['figure.figsize']
     figsize = [s*1.5 for s in def_figsize]
-    fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols, gridspec_kw={'hspace': 0.6, 'wspace': 0.75}, figsize=figsize)
+    fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols, gridspec_kw={'hspace': 0.6, 'wspace': 0.75}, figsize=figsize, squeeze=False)
     for i, dataset in enumerate(datasets):
         for j, source in enumerate(sources[dataset]):
             print(f'{dataset}: {source}')
@@ -373,33 +374,45 @@ def plot_leaveOut_LISI_fig(df, dataset, output_folder):
     plt.close()
 
 def plot_sourceLeaveOut_LISI_fig(df, dataset, output_folder):
+    df_orig = df[(pd.isnull(df.sourceLeaveOut)) & (df.dataset == dataset) & (pd.isnull(df.leaveOut))]
     df = df[(pd.notnull(df.sourceLeaveOut)) & (df.dataset == dataset)]
 
-
+    methods = df.method.unique()
+    df_orig = df_orig[df_orig.method.isin(methods)]
+    
     # dataset_order = {'CellBench': 0, 'Pancreas': 1, 'PBMC': 2}
     # datasets = np.unique(df.dataset)
     # datasets_places = [dataset_order[ds] for ds in datasets]
     # sort_idx = np.argsort(datasets_places)
     # datasets = datasets[sort_idx]
     n_rows = len(sources[dataset])
-    leaveOuts = np.unique(df.sourceLeaveOut)
+    leaveOuts = ['None hidden'] + list(np.unique(df.sourceLeaveOut))
     n_cols = len(leaveOuts)
 
     def_figsize = matplotlib.rcParams['figure.figsize']
+    def_figsize = [1.25*def_figsize[0], def_figsize[1]]
+    figsize = [s*1.5 for s in def_figsize]
+    figsize_3_rows = [figsize[0], 0.833*figsize[1]]
+    figsize_2_rows = [figsize_3_rows[0], 0.666*figsize_3_rows[1]]
+    #figsize = [6.4, 3]
 
-    figsize = [6.4, 3]
-    figsize = [s*1.5 for s in figsize]
     if dataset == 'CellBench':
+        def_figsize = [def_figsize[0], 0.33*def_figsize[1]] 
+        figsize = figsize_2_rows
         hspace = 0.2
-        wspace = 0.75
+        wspace = 0.9
     else:
-        hspace = 0.2
-        wspace = 0.75
+        figsize = figsize_3_rows
+        hspace = 0.3
+        wspace = 0.9
     fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols, gridspec_kw={'hspace': hspace, 'wspace': wspace}, figsize=figsize)
     for i, source in enumerate(sources[dataset]):
         for j, leaveOut in enumerate(leaveOuts):
             print(f'{source}: {leaveOut}')
-            df_subset = df[(df.source == source) & (df.sourceLeaveOut == leaveOut)]
+            if leaveOut == 'None hidden':
+                df_subset = df_orig[df_orig.source == source]
+            else:
+                df_subset = df[(df.source == source) & (df.sourceLeaveOut == leaveOut)]
 
             plot_lisi_leaveOut_ax(df_subset, axs[i, j])
             if i == 0:
@@ -433,10 +446,10 @@ if __name__ == '__main__':
             os.makedirs(path)
 
     df = load_LISI_df(args)
-    #plot_overall_LISI_fig(df, lisi_folder)
-    for dataset in np.unique(df.dataset):
-        # plot_leaveOut_LISI_fig(df, dataset, lisi_folder)
-        plot_sourceLeaveOut_LISI_fig(df, dataset, lisi_folder)
+    plot_overall_LISI_fig(df, lisi_folder)
+    # for dataset in np.unique(df.dataset):
+    #     # plot_leaveOut_LISI_fig(df, dataset, lisi_folder)
+    #     plot_sourceLeaveOut_LISI_fig(df, dataset, lisi_folder)
 
     # results_by_task = defaultdict(list)
     # for filename in glob.iglob(join(args.root_folder, '**/results.pickle'), recursive=True):
