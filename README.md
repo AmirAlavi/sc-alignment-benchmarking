@@ -1,5 +1,8 @@
 # sc-alignment-benchmarking
 Supporting data and benchmarking software for our SCIPR paper.
-# Under Construction...please excuse the mess
 
-![](https://media.giphy.com/media/fVeAI9dyD5ssIFyOyM/200.gif) 
+`alignment_experiment.py` is the main script. See `cli.py` for its command line interface and options, or run
+
+```
+$ python alignment_experiment.py --help
+```
