@@ -1,0 +1,6 @@
+#  -> indrop3
+MNN MNN-panc8-indrop3 --method MNN --dataset panc8 --source indrop1,indrop2,indrop4 --target indrop3 --input_space GENE --filter_hvg --save_alignment
+SeuratV3 SeuratV3-panc8-indrop3 --method SeuratV3 --dataset panc8 --source indrop1,indrop2,indrop4 --target indrop3 --input_space GENE --filter_hvg --save_alignment
+ScAlign ScAlign-panc8-indrop3 --method ScAlign --input_space GENE --filter_hvg --dataset panc8 --source indrop1,indrop2,indrop4 --target indrop3 --save_alignment
+scipr-gdy scipr-gdy-panc8-indrop3 --method ICP_affine --dataset panc8 --source indrop1,indrop2,indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo greedy --source_match_thresh 0.5 --filter_hvg --save_alignment
+scipr-mnn scipr-mnn-panc8-indrop3 --method ICP_affine --dataset panc8 --source indrop1,indrop2,indrop4 --target indrop3 --input_space GENE --input_normalization l2 --max_steps 5 --max_epochs 1000 --opt adam --lr 1e-3 --matching_algo mnn --filter_hvg --save_alignment
