@@ -7,6 +7,7 @@ def get_parser():
 
     parser.add_argument('name', help='Descriptive name of the method, usually some concatenation of the method and its specific parameters')
     parser.add_argument('output_folder', help='Output folder for this experiment.')
+    parser.add_argument('--save_alignment', help='Save the resulting aligned cells to disk', action='store_true')
 
     parser.add_argument('--method', help='Which method to run.', required=True, choices=['None', 'ScAlign', 'MNN', 'SeuratV3', 'ICP', 'ICP2', 'ICP2_xentropy', 'ICP_converge', 'ICP2_xentropy_converge', 'ICP_align', 'ICP_rigid', 'ICP_affine', 'ICP_stacked_aes'])
     parser.add_argument('--dataset', help='Which dataset to run the alignment method on.', required=True, choices=['Kowalcyzk', 'CellBench', 'panc8', 'scQuery_retina', 'scQuery_tcell', 'scQuery_lung', 'scQuery_pancreas', 'scQuery_ESC', 'scQuery_HSC', 'scQuery_combined', 'pbmcsca_low', 'pbmcsca_high'])
