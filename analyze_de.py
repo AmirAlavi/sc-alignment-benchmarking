@@ -54,6 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('output_folder', help='Path of output folder (created if not exists) to store plots in.')
     parser.add_argument('--use_top_n', help='Use the top n DE genes rather than taking only those below the 0.5 threshold', action='store_true')
     parser.add_argument('--top_n', help='Number of top DE genes to use if use_top_n option is enabled.', type=int, default=500)
+    parser.add_argument('--filter_hvg', help='Filter first to hvg genes and use all genes as the background set', action='store_true')
 
     # parser.add_argument('--embedding', help='Which type of embedding ot use', choices=['PCA', 'TSNE', 'UMAP'], default='UMAP')
     # parser.add_argument('--rename_method', help='Change the text name of a particular method to appear in the plots.', action='append')
@@ -74,14 +75,20 @@ if __name__ == '__main__':
     elif args.dataset == 'pbmcsca_high':
         source = '"10x Chromium (v2) A"'
         target = '"10x Chromium (v2)"'
+    
+    data_args = {'dataset': args.dataset, 'panc8_n_cell_types': 5, 'pbmcsca_high_n_cell_types': 3, 'filter_hvg': args.filter_hvg, 'source': source, 'target': target}
+    data_args = SimpleNamespace(**data_args)
+
+    adata = data.get_data(data_args.dataset, data_args)
+    
     data_args = {'dataset': args.dataset, 'panc8_n_cell_types': 5, 'pbmcsca_high_n_cell_types': 3, 'filter_hvg': False, 'source': source, 'target': target}
     data_args = SimpleNamespace(**data_args)
 
-    data = data.get_data(data_args.dataset, data_args)
+    adata_all_genes = data.get_data(data_args.dataset, data_args)
     
     for source in sources[args.dataset]:
         # subset = pbmc[(pbmc.obs['protocol'] == source) | (pbmc.obs['protocol'] == "10x Chromium (v2)"), :]
-        subset = data[data.obs[batch_columns[args.dataset]] == source, :]
+        subset = adata[adata.obs[batch_columns[args.dataset]] == source, :]
         print(source)
         print(subset.shape)
 
@@ -94,9 +101,12 @@ if __name__ == '__main__':
                 if args.use_top_n:
                     print(f'Using top {args.top_n} DE genes')
                     threshold = find_threshold_for_n_items(test_result, args.top_n)
-                    enr = de.enrich.test(ref=ref_set, det=test_result, threshold=threshold, clean_ref=True)
+                    enr = de.enrich.test(ref=ref_set, det=test_result, threshold=threshold, clean_ref=True, all_ids=adata_all_genes.var_names)
                 else:
-                    enr = de.enrich.test(ref=ref_set, det=test_result, clean_ref=True)
+                    enr = de.enrich.test(ref=ref_set, det=test_result, clean_ref=True, all_ids=adata_all_genes.var_names)
+                print(len(enr._all_ids))
+                print(len(set(subset.var_names)))
+                # assert(np.array_equal(enr._all_ids, subset.var_names))
                 enr_table = enr.summary().loc[enr.summary()['qval'] < 0.05]
                 if enr_table.shape[0] > 0:
                     print(enr_table.head(n=20))

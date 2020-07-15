@@ -71,9 +71,10 @@ def analyze_model_weights_normalized_diag(scipr, model_gene_list, full_gene_list
     diag = np.diag(df)
     sort_idx = (-diag).argsort()[:500]
     weights = diag[sort_idx]
+    max_weight = np.amax(weights)
     genes = model_gene_list[sort_idx]
     # for rs_key, ref_set in ref_sets.items():
-    enr = de.enrich.test(ref=ref_set, scores=weights, gene_ids=genes, clean_ref=True, all_ids=full_gene_list)
+    enr = de.enrich.test(ref=ref_set, scores=weights, gene_ids=genes, threshold=max_weight + 1., clean_ref=True, all_ids=full_gene_list)
     return enr
 
 def load_models(args):

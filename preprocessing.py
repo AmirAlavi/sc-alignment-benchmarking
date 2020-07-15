@@ -44,5 +44,6 @@ def filter_hvg(adata):
     log_normed = scanpy.pp.log1p(adata, copy=True)
     scanpy.pp.highly_variable_genes(log_normed)
     adata.var['highly_variable'] = log_normed.var['highly_variable']
+    adata.var['dispersions_norm'] = log_normed.var['dispersions_norm']
     highly_variable = adata.var.index[adata.var['highly_variable'] == True]
     return adata[:, highly_variable]
