@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import platform
 import pickle
+import datetime
 
 import torch
 import sklearn.preprocessing
@@ -19,6 +20,11 @@ import pandas as pd
 import icp
 import alignment_task
 from scipr import AffineSCIPR, StackedAutoEncoderSCIPR
+
+def pretty_tdelta(tdelta):
+    hours, rem = divmod(tdelta.seconds, 3600)
+    mins, secs = divmod(rem, 60)
+    return '{:02d}h:{:02d}m:{:02d}s'.format(hours, mins, secs)
 
 def run_ICP_rigid(datasets, task, task_adata, method_name, log_dir, args):
     method_key = '{}_aligned'.format(method_name)
@@ -66,7 +72,15 @@ def run_ICP_affine(datasets, task, task_adata, method_name, log_dir, args):
                         source_match_thresh=args.source_match_thresh,
                         target_match_limit=args.target_match_limit)
     
-    scipr.fit(A, B)
+    t0 = datetime.datetime.now()
+    n_pairs, mean_distances = scipr.fit(A, B)
+    t1 = datetime.datetime.now()
+    time_str = pretty_tdelta(t1 - t0)
+    print(f'took: {time_str}')
+    with open(log_dir / 'fit_time.txt', 'w') as f:
+        f.write(time_str + '\n')
+    np.save(log_dir / 'fit_n_pairs.npy', n_pairs)
+    np.save(log_dir / 'fit_mean_distances.npy', mean_distances)
     with open(log_dir / 'scipr_model.pkl', 'wb') as f:
         pickle.dump(scipr, f)
     A, B, type_index_dict, combined_meta = alignment_task.get_source_target(datasets, task, use_PCA=args.input_space == 'PCA', subsample=False, leave_out_source_ct=False)
@@ -285,7 +299,13 @@ def run_scAlign(datasets, task, task_adata, method_name, log_dir, args):
             'early_stop': True
         },
         device='CPU')
+    t0 = datetime.datetime.now()
     sc_align.fit_encoder(task_adata)
+    t1 = datetime.datetime.now()
+    time_str = pretty_tdelta(t1 - t0)
+    print(f'took: {time_str}')
+    with open(log_dir / 'fit_time.txt', 'w') as f:
+        f.write(time_str + '\n')
     print('Trained encoder saved to: {}'.format(sc_align.trained_encoder_path_))
     if args.input_space == 'PCA':
         data_to_encode = task_adata.obsm['PCA']
@@ -309,7 +329,13 @@ def run_MNN(datasets, task, task_adata, method_name, log_dir, args):
 #             B_X = scaler.transform(B_X)
     mnn_adata_A = anndata.AnnData(X=A_X, obs=task_adata[A_idx].obs)
     mnn_adata_B = anndata.AnnData(X=B_X, obs=task_adata[B_idx].obs)
+    t0 = datetime.datetime.now()
     corrected = mnnpy.mnn_correct(mnn_adata_A, mnn_adata_B)
+    t1 = datetime.datetime.now()
+    time_str = pretty_tdelta(t1 - t0)
+    print(f'took: {time_str}')
+    with open(log_dir / 'fit_time.txt', 'w') as f:
+        f.write(time_str + '\n')
     task_adata.obsm[method_key] = np.zeros(corrected[0].shape)
     task_adata.obsm[method_key][np.where(A_idx)[0]] = corrected[0].X[:mnn_adata_A.shape[0]]
     task_adata.obsm[method_key][np.where(B_idx)[0]] = corrected[0].X[mnn_adata_A.shape[0]:]
@@ -350,7 +376,13 @@ def run_Seurat(datasets, task, task_adata, method_name, log_dir, args):
         #cmd = r"set PATH=C:\Users\samir\Anaconda3\envs\seuratV3\Library\mingw-w64\bin;%PATH% && C:\Users\samir\Anaconda3\envs\seuratV3\Scripts\Rscript.exe  seurat_align.R {}".format(task.batch_key)
         print('Running command: {}'.format(cmd))
         try:
+            t0 = datetime.datetime.now()
             console_output = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            t1 = datetime.datetime.now()
+            time_str = pretty_tdelta(t1 - t0)
+            print(f'took: {time_str}')
+            with open(log_dir / 'fit_time.txt', 'w') as f:
+                f.write(time_str + '\n')
             console_output = console_output.stdout.decode('UTF-8')
             print('Finished running')
             print(console_output)

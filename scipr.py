@@ -31,6 +31,10 @@ class AffineSCIPR(object):
         A = self.apply_input_normalization(A)
         B = self.apply_input_normalization(B)
         matching_fcn = self.get_matching_fcn()
+        
+        n_pairs = []
+        mean_distances = []
+        
         if self.matching_algo in ['closest', 'mnn']:
             kd_B = spatial.cKDTree(B)
         theta = None
@@ -40,6 +44,10 @@ class AffineSCIPR(object):
             else:
                 a_idx, b_idx, distances = matching_fcn(A, B)
             print(f'Step: {i+1}/{self.n_iter}, pairs: {len(a_idx)}, mean_dist: {np.mean(distances)}')
+            
+            n_pairs.append(len(a_idx))
+            mean_distances.append(np.mean(distances))
+            
             theta_new, W, bias = transform.fit_transform_affine(A[a_idx], B[b_idx], optim=self.opt, lr=self.lr, epochs=self.n_epochs_per_iter)
             A = np.dot(W, A.T).T + bias
             if theta is None:
@@ -51,6 +59,8 @@ class AffineSCIPR(object):
 
         self.W_ = W
         self.bias_ = bias
+
+        return n_pairs, mean_distances
 
     def transform(self, X):
         X = self.apply_input_normalization(X)
