@@ -41,6 +41,26 @@ def rename_dataset(alignment_task, renames):
     return alignment_task
 
 
+def plot_embedding(adata, folder_path, embedding='tsne'):
+    if embedding not in ['tsne', 'pca', 'umap']:
+        raise ValueError("not an available embedding")
+    fig, axs = plt.subplots(1, 2, figsize=(13, 8))
+    for i, b in enumerate(adata.obs['batch'].unique()):
+        batch = adata[adata.obs['batch'] == b]
+        axs[0].scatter(batch.obsm[f'X_{embedding}'][:, 0], batch.obsm[f'X_{embedding}'][:, 1], label=b, alpha=0.3, facecolors='none', edgecolors=f'C{i}')
+    axs[0].legend()
+    for i, ct in enumerate(adata.obs['celltype'].unique()):
+        cells = adata[adata.obs['celltype'] == ct]
+        axs[1].scatter(cells.obsm[f'X_{embedding}'][:, 0], cells.obsm[f'X_{embedding}'][:, 1], label=ct, alpha=0.3, facecolors='none', edgecolors=f'C{i}')
+    axs[1].legend()
+    axs[0].set_xlabel(f'{embedding.upper()} 1')
+    axs[0].set_ylabel(f'{embedding.upper()} 2')
+    axs[1].set_xlabel(f'{embedding.upper()} 1')
+    method_name = adata.obs['method'].unique()[0]
+    plt.suptitle(method_name)
+    plt.savefig(folder_path / f'multi-align_{method_name}_{embedding}.png')
+    plt.savefig(folder_path / f'multi-align_{method_name}_{embedding}.svg')    
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('multi-alignment embeddings', description='Create publication embedding plots')
@@ -57,8 +77,9 @@ if __name__ == '__main__':
     for path in [args.output_folder, embeddings_folder]:#, clf_folder, kbet_folder]:
         if not os.path.exists(path):
             os.makedirs(path)
-    df = pd.DataFrame({'filename':[], 'dataset':[], 'method':[], 'source_batch':[], 'target_batch':[], 'target_leave_out':[]})
+
     for filename in glob.iglob(join(args.root_folder, f'**/aligned.h5ad'), recursive=True):
+        print(filename)
         filename = Path(filename)
         adata = anndata.read_h5ad(filename)
         pca = PCA(n_components=50).fit_transform(adata.X)
@@ -73,6 +94,11 @@ if __name__ == '__main__':
         if adata.shape[0] > 1000:
             print('data large, subsampling')
             sc.pp.subsample(adata, n_obs=1000)
+
+        plot_embedding(adata, embeddings_folder, 'pca')
+        plot_embedding(adata, embeddings_folder, 'tsne')
+        plot_embedding(adata, embeddings_folder, 'umap')
+            
         fig, axs = plt.subplots(3, 2, figsize=(10, 21))
         for i, b in enumerate(adata.obs['batch'].unique()):
             batch = adata[adata.obs['batch'] == b]
@@ -96,5 +122,6 @@ if __name__ == '__main__':
         axs[2,0].set_ylabel('UMAP 2')
         axs[2,1].set_xlabel('UMAP 1')
         method_name = adata.obs['method'].unique()[0]
+        plt.suptitle(method_name)
         plt.savefig(embeddings_folder / f'multi-align_{method_name}.png')
         plt.savefig(embeddings_folder / f'multi-align_{method_name}.svg')
