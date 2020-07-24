@@ -47,3 +47,16 @@ def filter_hvg(adata):
     adata.var['dispersions_norm'] = log_normed.var['dispersions_norm']
     highly_variable = adata.var.index[adata.var['highly_variable'] == True]
     return adata[:, highly_variable]
+
+def filter_hvg2(adata, dataset):
+    n_genes = {
+        'CellBench': 2351 * 2,
+        'panc8':  2629 * 2,
+        'pbmcsca_high': 1466 * 2
+    }
+    log_normed = scanpy.pp.log1p(adata, copy=True)
+    scanpy.pp.highly_variable_genes(log_normed, n_top_genes=n_genes[dataset])
+    adata.var['highly_variable'] = log_normed.var['highly_variable']
+    adata.var['dispersions_norm'] = log_normed.var['dispersions_norm']
+    highly_variable = adata.var.index[adata.var['highly_variable'] == True]
+    return adata[:, highly_variable]
