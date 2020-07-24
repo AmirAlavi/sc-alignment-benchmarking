@@ -62,6 +62,7 @@ def get_parser():
     icp.add_argument('--plot_every_n', help='Plot the data using the neural net aligner every n steps.', type=int, default=5)
     icp.add_argument('--filter_hvg', help='Filter down to only highly variable genes.', action='store_true')
     icp.add_argument('--filter_hvg2', help='Filter down to only highly variable genes, but use twice as many of them as --filter_hvg (when sorted by variability, pick twice as many).', action='store_true')
+    icp.add_argument('--filter_hvg_random', help='Filter down to only highly variable genes, and also include an equal amount of other randomly selected genes.', action='store_true')
     
     scalign = parser.add_argument_group('ScAlign options')
     scalign.add_argument('--scalign_max_steps', help='Maximum epochs.', type=int, default=15000)

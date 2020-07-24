@@ -1,5 +1,6 @@
 #import pdb;pdb.set_trace()
 import scanpy
+import numpy as np
 # Functions for cleaning the data (filtering)
 
 def remove_doublets(df_counts, df_meta):
@@ -60,3 +61,24 @@ def filter_hvg2(adata, dataset):
     adata.var['dispersions_norm'] = log_normed.var['dispersions_norm']
     highly_variable = adata.var.index[adata.var['highly_variable'] == True]
     return adata[:, highly_variable]
+
+def filter_hvg_random(adata, dataset):
+    n_genes = {
+        'CellBench': 2351,
+        'panc8':  2629,
+        'pbmcsca_high': 1466
+    }
+    log_normed = scanpy.pp.log1p(adata, copy=True)
+    scanpy.pp.highly_variable_genes(log_normed)
+    adata.var['highly_variable'] = log_normed.var['highly_variable']
+    adata.var['dispersions_norm'] = log_normed.var['dispersions_norm']
+    highly_var_idx = adata.var['highly_variable'] == True
+    n_hvg = highly_var_idx.sum()
+    assert(n_hvg == n_genes[dataset])
+    print(f'highly variable genes selected: {n_hvg}')
+    random_selection = np.random.choice(np.where(adata.var['highly_variable'] == False)[0], size=n_hvg, replace=False)
+    adata.var['random_selection'] = False
+    adata.var['random_selection'][random_selection] = True
+    
+    genes_chosen = adata.var.index[(adata.var['highly_variable'] == True) | (adata.var['random_selection'] == True)]
+    return adata[:, genes_chosen]

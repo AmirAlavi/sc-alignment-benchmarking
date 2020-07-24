@@ -97,6 +97,11 @@ def get_data(dataset, args):
         print(f'Original       : {data.shape}')
         data = preprocessing.filter_hvg2(data, dataset)
         print(f'After filtering: {data.shape}')
+    elif args.filter_hvg_random:
+        print('Filter to HVG + random...')
+        print(f'Original       : {data.shape}')
+        data = preprocessing.filter_hvg_random(data, dataset)
+        print(f'After filtering: {data.shape}')
     print_data_info(data, args)
     return data
 
