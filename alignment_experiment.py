@@ -189,6 +189,8 @@ if __name__ == '__main__':
 
     with open(log_dir / 'args.txt', 'w') as f:
         f.write('\n'.join(sys.argv[1:]))
+    with open(log_dir / 'args.pickle', 'wb') as f:
+        pickle.dump(args.__dict__, f)
 
     #%%
     datasets = {}
