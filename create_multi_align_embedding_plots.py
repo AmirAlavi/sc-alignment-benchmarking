@@ -295,8 +295,18 @@ if __name__ == '__main__':
             continue
         
     print(adata.obs)
+    def fix_indrop_label(row):
+        batch = row['batch']
+        return batch.replace('indrop', 'inDrop')
+
+    adata.obs['batch'] = adata.obs.apply(fix_indrop_label, axis=1)
     fig, axs = plt.subplots(3, 2, figsize=(10, 21))
     for m in adata.obs['method'].unique():
+        title = m
+        if m == 'scipr-gdy':
+            title = 'SCIPR-gdy'
+        elif m == 'scipr-mnn':
+            title = 'SCIPR-mnn'
         print(m)
         subset = adata[adata.obs['method'] == m]
         print('embedding...')
@@ -333,7 +343,7 @@ if __name__ == '__main__':
         axs[2,0].set_xlabel('UMAP 1')
         axs[2,0].set_ylabel('UMAP 2')
         axs[2,1].set_xlabel('UMAP 1')
-        plt.suptitle(m)
+        plt.suptitle(title)
         plt.savefig(embeddings_folder / f'multi-align_{m}.png')
         plt.savefig(embeddings_folder / f'multi-align_{m}.svg')
             
